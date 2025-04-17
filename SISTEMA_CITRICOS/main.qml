@@ -13,7 +13,7 @@ ApplicationWindow {
 
     // Propiedades de diseño - Basado en la paleta proporcionada
     property color colorVerdeBosque: "#2E7D32"    // Color principal
-    property color colorNaranjaCitrico: "#FF9800" // Color secundario
+    property color colorNaranjaCitrico: "#2f2e2e" // Color secundario
     property color colorAmarilloCalido: "#FFEB3B" // Destacados
     property color colorBlancoNieve: "#FFFFFF"    // Fondo
     property color colorMarronTierra: "#795548"   // Bordes y texto
@@ -122,7 +122,7 @@ ApplicationWindow {
                 // Ícono de cítrico simplificado
                 Text {
                     text: "🍊"
-                    font.pixelSize: 24
+                    font.pixelSize: 35
                 }
 
                 Text {
@@ -219,7 +219,7 @@ ApplicationWindow {
                     id: btnMaquinaria
                     objectName: "btnMaquinaria"
                     width: parent.width
-                    icon: "Image/Image_UI_interfaz/Inconos/maquinaria-agricola.png"
+                    icon: "Image/Image_UI_interfaz/Inconos/tractor.png"
                     text: "MAQUINARIA"
                     moduleIndex: 6
                     color: mainWindow.activeModule === 6 ? colorNaranjaCitrico : "transparent"
