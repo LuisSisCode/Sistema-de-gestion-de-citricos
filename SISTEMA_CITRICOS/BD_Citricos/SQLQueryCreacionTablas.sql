@@ -71,8 +71,6 @@ CREATE TABLE VariedadesCultivo (
     id_variedad INT IDENTITY(1,1) PRIMARY KEY,
     id_tipo_cultivo INT NOT NULL,
     nombre VARCHAR(50) NOT NULL,
-    descripcion TEXT NULL,
-    caracteristicas TEXT NULL,
     tiempo_produccion INT NULL,
     rendimiento_esperado DECIMAL(10,2) NULL,
     resistencia_enfermedades VARCHAR(100) NULL,
@@ -84,16 +82,23 @@ CREATE TABLE CiclosProduccion (
     id_ciclo INT IDENTITY(1,1) PRIMARY KEY,
     id_parcela INT NOT NULL,
     id_variedad INT NOT NULL,
-    nombre_ciclo VARCHAR(100) NOT NULL,
-    fecha_inicio DATE NOT NULL,
     fecha_siembra DATE NULL,
     fecha_cosecha_estimada DATE NULL,
     fecha_cosecha_real DATE NULL,
     area_sembrada DECIMAL(10,2) NOT NULL,
     densidad_siembra INT NULL,
-    estado VARCHAR(20) NOT NULL CHECK (estado IN ('Planificado', 'En Preparaci�n', 'Sembrado', 'En Desarrollo', 'En Cosecha', 'Finalizado', 'Cancelado')),
-    notas TEXT NULL,
+    estado VARCHAR(20) NOT NULL CHECK (estado IN (
+        'Planificado', 'En Preparación', 'Sembrado', 
+        'En Desarrollo', 'En Cosecha', 'Finalizado', 'Cancelado'
+    )),
     activo BIT NOT NULL DEFAULT 1,
+
+    -- Columnas simplificadas
+    fecha_floracion DATE NULL,
+    fecha_poda DATE NULL,
+    fecha_limpieza DATE NULL,            
+    frecuencia_limpieza INT NULL,          --(en días)
+    -- Relaciones
     CONSTRAINT FK_CiclosProduccion_Parcelas FOREIGN KEY (id_parcela) REFERENCES Parcelas(id_parcela),
     CONSTRAINT FK_CiclosProduccion_VariedadesCultivo FOREIGN KEY (id_variedad) REFERENCES VariedadesCultivo(id_variedad)
 );

@@ -51,36 +51,30 @@ INSERT INTO Parcelas (id_agricultor, nombre, ubicacion, area_total, coordenadas_
 VALUES (2, 'Lote El Limonal', 'Yapacani km 8 sector El Naranjal', 5.2, '-17.4125,-63.8345', 'Franco', 'Pozo profundo', '2018-03-10', 45000.00, 'Especializado en limones', 1);
 
 
-3. Tipos de Cultivo y Variedades
--- Insertar tipos de cultivo
-INSERT INTO TiposCultivo (nombre, nombre_cientifico, descripcion, tiempo_cosecha_min, tiempo_cosecha_max, activo)
-VALUES ('Naranja', 'Citrus sinensis', 'Árbol frutal cítrico de porte mediano que produce frutos de forma esférica u ovoide', 300, 365, 1);
+3-- Tipos de Cultivo (actualizados para Yapacani)
+INSERT INTO TiposCultivo (nombre, nombre_cientifico, tiempo_cosecha_min, tiempo_cosecha_max, activo)
+VALUES 
+('Naranja', 'Citrus sinensis', 270, 360, 1),
+('Mandarina', 'Citrus reticulata', 210, 300, 1),
+('Limón', 'Citrus limon', 150, 240, 1);
 
-INSERT INTO TiposCultivo (nombre, nombre_cientifico, descripcion, tiempo_cosecha_min, tiempo_cosecha_max, activo)
-VALUES ('Mandarina', 'Citrus reticulata', 'Árbol frutal cítrico de menor tamaño que la naranja, produce frutos con cáscara suelta', 240, 300, 1);
+-- VariedadesCultivo (con nombres locales y nuevas variedades)
+INSERT INTO VariedadesCultivo (id_tipo_cultivo, nombre, tiempo_produccion, rendimiento_esperado, resistencia_enfermedades, activo)
+VALUES 
+-- NARANJAS (ajustadas a Yapacani)
+(1, 'Criolla Boliviana', 300, 16.5, 'Resistente a cancro cítrico', 1),
+(1, 'Siete Sabores', 280, 18.0, 'Moderada resistencia a antracnosis', 1),
 
-INSERT INTO TiposCultivo (nombre, nombre_cientifico, descripcion, tiempo_cosecha_min, tiempo_cosecha_max, activo)
-VALUES ('Limón', 'Citrus limon', 'Árbol frutal cítrico que produce frutos ácidos de color verde a amarillo', 180, 270, 1);
+-- MANDARINAS (actualizado con Morocochi)
+(2, 'Criolla', 240, 14.0, 'Sensible a minador de hojas', 1),
+(2, 'Ponkan', 210, 17.0, 'Resistente a alternaria', 1),
+(2, 'Japonesa', 200, 19.5, 'Tolerante a plagas', 1),
+(2, 'Incor', 260, 20.0, 'Alta resistencia a virosis', 1),
+(2, 'Morocochi', 330, 16.0, 'Resistente a heladas y antracnosis', 1),  -- Nueva variedad tardía
 
--- Insertar variedades de cultivo
-INSERT INTO VariedadesCultivo (id_tipo_cultivo, nombre, descripcion, caracteristicas, tiempo_produccion, rendimiento_esperado, resistencia_enfermedades, activo)
-VALUES (1, 'Valencia', 'Variedad de naranja tardía muy productiva', 'Frutos medianos a grandes, muy jugosos, ideal para zumo', 330, 25.5, 'Alta resistencia a hongos', 1);
-
-INSERT INTO VariedadesCultivo (id_tipo_cultivo, nombre, descripcion, caracteristicas, tiempo_produccion, rendimiento_esperado, resistencia_enfermedades, activo)
-VALUES (1, 'Navelina', 'Variedad temprana de naranja', 'Frutos grandes, sin semillas, fácil de pelar', 300, 22.0, 'Moderada resistencia a plagas', 1);
-
-INSERT INTO VariedadesCultivo (id_tipo_cultivo, nombre, descripcion, caracteristicas, tiempo_produccion, rendimiento_esperado, resistencia_enfermedades, activo)
-VALUES (2, 'Clementina', 'Mandarina de maduración temprana', 'Sin semillas, dulce, fácil de pelar', 270, 18.5, 'Susceptible a ácaros', 1);
-
-INSERT INTO VariedadesCultivo (id_tipo_cultivo, nombre, descripcion, caracteristicas, tiempo_produccion, rendimiento_esperado, resistencia_enfermedades, activo)
-VALUES (2, 'Murcott', 'Híbrido de mandarina y naranja dulce', 'Sabor intenso, alto contenido de azúcares', 300, 20.0, 'Buena resistencia general', 1);
-
-INSERT INTO VariedadesCultivo (id_tipo_cultivo, nombre, descripcion, caracteristicas, tiempo_produccion, rendimiento_esperado, resistencia_enfermedades, activo)
-VALUES (3, 'Tahití', 'Limón persa sin semillas', 'Frutos grandes de color verde intenso, muy jugoso', 210, 15.0, 'Moderada resistencia a gomosis', 1);
-
-INSERT INTO VariedadesCultivo (id_tipo_cultivo, nombre, descripcion, caracteristicas, tiempo_produccion, rendimiento_esperado, resistencia_enfermedades, activo)
-VALUES (3, 'Sutil', 'Limón criollo tradicional', 'Pequeño, muy aromático y ácido', 180, 12.5, 'Susceptible a virosis', 1);
-
+-- LIMONES (variedades locales)
+(3, 'Criollo', 160, 12.0, 'Susceptible a gomosis', 1),
+(3, 'Persa', 180, 22.5, 'Resistente a verrugosis', 1);
 
 4. Categorías de Agroquímicos y Productos
 -- Insertar categorías de agroquímicos

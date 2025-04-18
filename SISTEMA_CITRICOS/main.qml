@@ -13,7 +13,7 @@ ApplicationWindow {
 
     // Propiedades de diseño - Basado en la paleta proporcionada
     property color colorVerdeBosque: "#2E7D32"    // Color principal
-    property color colorNaranjaCitrico: "#FF9800" // Color secundario
+    property color colorNaranjaCitrico: "#2f2e2e" // Color secundario
     property color colorAmarilloCalido: "#FFEB3B" // Destacados
     property color colorBlancoNieve: "#FFFFFF"    // Fondo
     property color colorMarronTierra: "#795548"   // Bordes y texto
@@ -47,10 +47,26 @@ ApplicationWindow {
             spacing: 15
 
             // Ícono
-            Text {
-                text: icon
-                font.pixelSize: 18
-                color: colorAmarilloCalido
+            Item {
+                width: 35
+                height: 35
+                
+                // Mostramos Text si es un emoji
+                Text {
+                    anchors.centerIn: parent
+                    text: icon.length <= 2 ? icon : ""  // Mostramos solo si parece un emoji
+                    font.pixelSize: 18
+                    color: colorAmarilloCalido
+                    visible: icon.length <= 2
+                }
+                
+                // Mostramos Image si es una ruta de archivo
+                Image {
+                    anchors.fill: parent
+                    source: icon.length > 2 ? icon : ""  // Mostramos solo si parece una ruta
+                    fillMode: Image.PreserveAspectFit
+                    visible: icon.length > 2
+                }
             }
 
             // Texto
@@ -106,7 +122,7 @@ ApplicationWindow {
                 // Ícono de cítrico simplificado
                 Text {
                     text: "🍊"
-                    font.pixelSize: 24
+                    font.pixelSize: 35
                 }
 
                 Text {
@@ -136,7 +152,7 @@ ApplicationWindow {
                     id: btnInicio
                     objectName: "btnInicio"
                     width: parent.width
-                    icon: "📊"
+                    icon :"Image/Image_UI_interfaz/Inconos/hogar.png" 
                     text: "INICIO"
                     moduleIndex: 0
                     color: mainWindow.activeModule === 0 ? colorNaranjaCitrico : "transparent"
@@ -148,8 +164,8 @@ ApplicationWindow {
                     id: btnUsuarios
                     objectName: "btnUsuarios"
                     width: parent.width
-                    icon: "👥"
-                    text: "USUARIOS/  ROLES"
+                    icon: "Image/Image_UI_interfaz/Inconos/usuario.png"
+                    text: "USUARIOS"
                     moduleIndex: 1
                     color: mainWindow.activeModule === 1 ? colorNaranjaCitrico : "transparent"
                 }
@@ -159,8 +175,8 @@ ApplicationWindow {
                     id: btnAgricultores
                     objectName: "btnAgricultores"
                     width: parent.width
-                    icon: "👨‍🌾"
-                    text: "AGRICULTORES/ PARCELA"
+                    icon: "Image/Image_UI_interfaz/Inconos/agricultor.png"
+                    text: "AGRICULTORES"
                     moduleIndex: 2
                     color: mainWindow.activeModule === 2 ? colorNaranjaCitrico : "transparent"
                 }
@@ -170,7 +186,7 @@ ApplicationWindow {
                     id: btnCultivos
                     objectName: "btnCultivos"
                     width: parent.width
-                    icon: "🍊"
+                    icon: "Image/Image_UI_interfaz/Inconos/cultivos.png"
                     text: "CULTIVOS"
                     moduleIndex: 3
                     color: mainWindow.activeModule === 3 ? colorNaranjaCitrico : "transparent"
@@ -181,7 +197,7 @@ ApplicationWindow {
                     id: btnAgroquimicos
                     objectName: "btnAgroquimicos"
                     width: parent.width
-                    icon: "💊"
+                    icon: "Image/Image_UI_interfaz/Inconos/productos-quimicos.png"
                     text: "AGROQUIMICOS"
                     moduleIndex: 4
                     color: mainWindow.activeModule === 4 ? colorNaranjaCitrico : "transparent"
@@ -192,8 +208,8 @@ ApplicationWindow {
                     id: btnVentas
                     objectName: "btnVentas"
                     width: parent.width
-                    icon: "💰"
-                    text: "VENTAS/ CLIENTES"
+                    icon: "Image/Image_UI_interfaz/Inconos/ventas.png"
+                    text: "VENTAS"
                     moduleIndex: 5
                     color: mainWindow.activeModule === 5 ? colorNaranjaCitrico : "transparent"
                 }
@@ -203,7 +219,7 @@ ApplicationWindow {
                     id: btnMaquinaria
                     objectName: "btnMaquinaria"
                     width: parent.width
-                    icon: "🚜"
+                    icon: "Image/Image_UI_interfaz/Inconos/tractor.png"
                     text: "MAQUINARIA"
                     moduleIndex: 6
                     color: mainWindow.activeModule === 6 ? colorNaranjaCitrico : "transparent"
@@ -214,7 +230,7 @@ ApplicationWindow {
                     id: btnReportes
                     objectName: "btnReportes"
                     width: parent.width
-                    icon: "📈"
+                    icon: "Image/Image_UI_interfaz/Inconos/reportes.png"
                     text: "REPORTES"
                     moduleIndex: 7
                     color: mainWindow.activeModule === 7 ? colorNaranjaCitrico : "transparent"
@@ -233,7 +249,7 @@ ApplicationWindow {
                     id: btnConfiguracion
                     objectName: "btnConfiguracion"
                     width: parent.width
-                    icon: "⚙️"
+                    icon: "Image/Image_UI_interfaz/Inconos/configuraciones.png"
                     text: "CONFIGURACION"
                     moduleIndex: 8
                     color: mainWindow.activeModule === 8 ? colorNaranjaCitrico : "transparent"

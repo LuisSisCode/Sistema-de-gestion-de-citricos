@@ -3,6 +3,7 @@ import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import QtQml 2.15 
 
+
 Rectangle {
     id: cultivosRoot
     anchors.fill: parent
@@ -28,6 +29,25 @@ Rectangle {
         "rendimiento": "",
         "resistencia": "Media",
         "resistenciaColor": "#FF9800"
+    }
+
+    property var nuevoCiclo: {
+        "id_ciclo": -1,
+        "id_parcela": 1,
+        "nombre_parcela": "",
+        "id_variedad": 1,
+        "nombre_variedad": "",
+        "fecha_siembra": "",
+        "fecha_cosecha_estimada": "",
+        "fecha_cosecha_real": "",
+        "area_sembrada": 0,
+        "densidad_siembra": 0,
+        "estado": "Planificado",
+        "activo": true,
+        "fecha_floracion": "",
+        "fecha_poda": "",
+        "fecha_limpieza": "",
+        "frecuencia_limpieza_maleza": 1
     }
     
     // Propiedades para el calendario
@@ -99,6 +119,22 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter
             }
         }
+        TabButton {
+            text: "Ciclos de Producción"
+            width: implicitWidth + 40
+            height: 30
+            background: Rectangle {
+                color: parent.checked ? "#32CD32":"#4CAF50"
+                radius: height / 2
+            }
+            contentItem: Text {
+                text: parent.text
+                color: "white"
+                font.bold: true
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+            }
+        }
 
         TabButton {
             text: "Calendario de Cultivos"
@@ -116,6 +152,7 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter
             }
         }
+        
     }
 
     // Contenedor de páginas de pestañas
@@ -753,6 +790,383 @@ Rectangle {
             }
         }
 
+        // Página de Ciclos de Producción
+        Item {
+            ColumnLayout {
+                anchors.fill: parent
+                spacing: 20
+                
+                // Barra de acción
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 50
+                    color: "white"
+                    radius: 25
+                    border.color: "#EEEEEE"
+                    
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 20
+                        
+                        Button {
+                            text: "Nuevo Ciclo"
+                            icon.source: "Image/Image_UI_interfaz/Inconos/agregar.svg"
+                            implicitHeight: 36
+                            background: Rectangle {
+                                color: "#f5922f"
+                                radius: height / 2
+                            }
+                            onClicked: {
+                                dialogCicloProduccion.modo = "crear";
+                                dialogCicloProduccion.open();
+                                // Aquí irá la lógica para abrir el diálogo de nuevo ciclo
+                                showMessage("Función para crear nuevo ciclo no implementada")
+                            }
+                        }
+                        
+                        TextField {
+                            Layout.preferredWidth: 250
+                            placeholderText: "Buscar ciclos..."
+                            implicitHeight: 25
+                            background: Rectangle {
+                                color: "#b2c4c9"
+                                radius: height / 2
+                            }
+                        }
+                        
+                        ComboBox {
+                            Layout.preferredWidth: 200
+                            model: ["Todos los estados"]
+                            implicitHeight: 36
+                        }
+                        
+                        Item { Layout.fillWidth: true }
+                        
+                        Button {
+                            text: "Exportar"
+                            icon.source: "Image/Image_UI_interfaz/Inconos/exportacion-de-archivos.svg"
+                            implicitHeight: 36
+                            background: Rectangle {
+                                color: "#4CAF50"
+                                radius: height / 2
+                            }
+                            onClicked: showMessage("Función de exportación no implementada")
+                        }
+                    }
+                }
+                
+                // Tabla de ciclos de producción
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    color: "white"
+                    radius: 5
+                    border.color: "#EEEEEE"
+                    
+                    ListView {
+                        id: ciclosListView
+                        anchors.fill: parent
+                        anchors.margins: 1
+                        clip: true
+                        model: ciclosModel
+                        headerPositioning: ListView.OverlayHeader
+
+                        // Cabecera de la tabla
+                        header: Rectangle {
+                            width: parent.width
+                            height: 40
+                            color: "#F5F5F5"
+                            z: 2
+                            
+                            Row {
+                                anchors.fill: parent
+                                
+                                Text {
+                                    width: parent.width * 0.05
+                                    height: parent.height
+                                    text: "ID"
+                                    font.bold: true
+                                    verticalAlignment: Text.AlignVCenter
+                                    horizontalAlignment: Text.AlignHCenter
+                                }
+                                
+                                Text {
+                                    width: parent.width * 0.13
+                                    height: parent.height
+                                    text: "Parcela"
+                                    font.bold: true
+                                    verticalAlignment: Text.AlignVCenter
+                                    leftPadding: 10
+                                }
+                                
+                                Text {
+                                    width: parent.width * 0.13
+                                    height: parent.height
+                                    text: "Variedad"
+                                    font.bold: true
+                                    verticalAlignment: Text.AlignVCenter
+                                    leftPadding: 10
+                                }
+                                
+                                Text {
+                                    width: parent.width * 0.1
+                                    height: parent.height
+                                    text: "Siembra"
+                                    font.bold: true
+                                    verticalAlignment: Text.AlignVCenter
+                                    leftPadding: 10
+                                }
+                                
+                                Text {
+                                    width: parent.width * 0.1
+                                    height: parent.height
+                                    text: "Cosecha Est."
+                                    font.bold: true
+                                    verticalAlignment: Text.AlignVCenter
+                                    leftPadding: 10
+                                }
+                                
+                                Text {
+                                    width: parent.width * 0.1
+                                    height: parent.height
+                                    text: "Área (ha)"
+                                    font.bold: true
+                                    verticalAlignment: Text.AlignVCenter
+                                    leftPadding: 10
+                                }
+                                
+                                Text {
+                                    width: parent.width * 0.1
+                                    height: parent.height
+                                    text: "Densidad"
+                                    font.bold: true
+                                    verticalAlignment: Text.AlignVCenter
+                                    leftPadding: 10
+                                }
+                                
+                                Text {
+                                    width: parent.width * 0.14
+                                    height: parent.height
+                                    text: "Estado"
+                                    font.bold: true
+                                    verticalAlignment: Text.AlignVCenter
+                                    leftPadding: 10
+                                }
+                                
+                                Text {
+                                    width: parent.width * 0.15
+                                    height: parent.height
+                                    text: "Acciones"
+                                    font.bold: true
+                                    verticalAlignment: Text.AlignVCenter
+                                    horizontalAlignment: Text.AlignHCenter
+                                }
+                            }
+                        }
+
+                        // Delegado para cada fila
+                        delegate: Rectangle {
+                            width: parent.width
+                            height: 50
+                            color: index % 2 === 0 ? "#FFFFFF" : "#F9F9F9"
+                            
+                            Row {
+                                anchors.fill: parent
+                                spacing: 0
+                                
+                                // ID
+                                Rectangle {
+                                    width: parent.width * 0.05
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: id_ciclo
+                                        verticalAlignment: Text.AlignVCenter
+                                        horizontalAlignment: Text.AlignHCenter
+                                    }
+                                }
+                                
+                                // Parcela
+                                Rectangle {
+                                    width: parent.width * 0.13
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.left: parent.left
+                                        anchors.leftMargin: 10
+                                        text: nombre_parcela
+                                        elide: Text.ElideRight
+                                        width: parent.width - 20
+                                    }
+                                }
+                                
+                                // Variedad
+                                Rectangle {
+                                    width: parent.width * 0.13
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.left: parent.left
+                                        anchors.leftMargin: 10
+                                        text: nombre_variedad
+                                        elide: Text.ElideRight
+                                        width: parent.width - 20
+                                    }
+                                }
+                                
+                                // Fecha Siembra
+                                Rectangle {
+                                    width: parent.width * 0.1
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.left: parent.left
+                                        anchors.leftMargin: 10
+                                        text: fecha_siembra || "No definida"
+                                        elide: Text.ElideRight
+                                        width: parent.width - 20
+                                    }
+                                }
+                                
+                                // Fecha Cosecha Estimada
+                                Rectangle {
+                                    width: parent.width * 0.1
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.left: parent.left
+                                        anchors.leftMargin: 10
+                                        text: fecha_cosecha_estimada || "No definida"
+                                        elide: Text.ElideRight
+                                        width: parent.width - 20
+                                    }
+                                }
+                                
+                                // Área sembrada
+                                Rectangle {
+                                    width: parent.width * 0.1
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.left: parent.left
+                                        anchors.leftMargin: 10
+                                        text: area_sembrada
+                                        elide: Text.ElideRight
+                                        width: parent.width - 20
+                                    }
+                                }
+                                
+                                // Densidad de siembra
+                                Rectangle {
+                                    width: parent.width * 0.1
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.left: parent.left
+                                        anchors.leftMargin: 10
+                                        text: densidad_siembra || "No definida"
+                                        elide: Text.ElideRight
+                                        width: parent.width - 20
+                                    }
+                                }
+                                
+                                // Estado
+                                Rectangle {
+                                    width: parent.width * 0.14
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Rectangle {
+                                        width: 100
+                                        height: 24
+                                        radius: 12
+                                        color: getEstadoColor(estado)
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.left: parent.left
+                                        anchors.leftMargin: 10
+                                        
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: estado
+                                            font.pixelSize: 11
+                                            color: "white"
+                                        }
+                                    }
+                                }
+                                
+                                // Acciones
+                                Rectangle {
+                                    width: parent.width * 0.15
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Row {
+                                        spacing: 10
+                                        anchors.centerIn: parent
+                                        
+                                        Button {
+                                            width: 36
+                                            height: 36
+                                            icon.source: "Image/Image_UI_interfaz/Inconos/editar.svg"
+                                            flat: true
+                                            ToolTip.visible: hovered
+                                            ToolTip.text: "Editar"
+                                            onClicked: {
+                                                // Aquí abriríamos el diálogo de edición con los datos del ciclo seleccionado
+                                                dialogCicloProduccion.modo = "editar";
+                                                dialogCicloProduccion.cargarCiclo(id_ciclo);
+                                                dialogCicloProduccion.open();
+                                            }
+                                        }
+                                        
+                                        Button {
+                                            width: 36
+                                            height: 36
+                                            icon.source: "Image/Image_UI_interfaz/Inconos/basura.svg"
+                                            flat: true
+                                            ToolTip.visible: hovered
+                                            ToolTip.text: "Eliminar"
+                                            onClicked: {
+                                                // Mostrar diálogo de confirmación
+                                                confirmDeleteCicloDialog.cicloId = id_ciclo;
+                                                confirmDeleteCicloDialog.nombreParcela = nombre_parcela;
+                                                confirmDeleteCicloDialog.nombreVariedad = nombre_variedad;
+                                                confirmDeleteCicloDialog.open();
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Mensaje cuando no hay datos
+                        Text {
+                            anchors.centerIn: parent
+                            text: "No hay ciclos de producción registrados.\nHaga clic en 'Nuevo Ciclo' para agregar uno."
+                            color: "#757575"
+                            font.pixelSize: 14
+                            horizontalAlignment: Text.AlignHCenter
+                            visible: ciclosModel.count === 0
+                        }
+                    }
+                }
+            }
+        }
         // Página de Calendario de Cultivos
         Item {
             Rectangle {
@@ -942,7 +1356,6 @@ Rectangle {
             }
         }
     }
-    
     // DIÁLOGO DE NUEVA VARIEDAD
     Dialog {
         id: dialogNuevaVariedad
@@ -1071,7 +1484,7 @@ Rectangle {
                         text: getFormattedDate() // Llamamos a la función para obtener la fecha formateada
                     }
                     
-                    // Función para formatear la fecha
+                    // Función para formatear la fecha actual
                     function getFormattedDate() {
                         var today = new Date();
                         var dd = String(today.getDate()).padStart(2, '0');
@@ -1169,6 +1582,8 @@ Rectangle {
         id: confirmDeleteVariedadDialog
         title: "Confirmar eliminación"
         modal: true
+        width: 650
+        height: 650
         
         property int variedadId: -1
         property string nombreVariedad: ""
@@ -1258,6 +1673,498 @@ Rectangle {
             }
             
             showMessage("Variedad eliminada correctamente")
+        }
+    }
+    // DIÁLOGO DE CICLO DE PRODUCCIÓN
+    Dialog {
+        id: dialogCicloProduccion
+        title: modo === "crear" ? "Nuevo Ciclo de Producción" : "Editar Ciclo de Producción"
+        modal: true
+        width: 650
+        height: 650
+        x: (parent.width - width) / 2
+        y: (parent.height - height) / 2
+        
+        property string modo: "crear" // "crear" o "editar"
+        property int cicloId: -1
+        
+       
+        
+        // Función para cargar datos de un ciclo existente
+        function cargarCiclo(id) {
+            cicloId = id;
+            // Aquí cargaríamos los datos del ciclo desde el modelo
+            // Por ahora, simplemente buscaremos en el modelo local
+            
+            for (let i = 0; i < ciclosModel.count; i++) {
+                if (ciclosModel.get(i).id_ciclo === id) {
+                    let ciclo = ciclosModel.get(i);
+                    // Cargar todos los campos
+                    cmbParcelas.currentIndex = getParcelaIndex(ciclo.id_parcela);
+                    cmbVariedades.currentIndex = getVariedadIndex(ciclo.id_variedad);
+                    txtAreaSembrada.text = ciclo.area_sembrada;
+                    spinDensidad.value = ciclo.densidad_siembra || 0;
+                    cmbEstado.currentIndex = getEstadoIndex(ciclo.estado);
+                    ciclo_chkActivo.checked = ciclo.activo;
+                    
+                    // Fechas
+                    txtFechaSiembra.text = ciclo.fecha_siembra || "";
+                    txtFechaCosechaEst.text = ciclo.fecha_cosecha_estimada || "";
+                    txtFechaCosechaReal.text = ciclo.fecha_cosecha_real || "";
+                    txtFechaFloracion.text = ciclo.fecha_floracion || "";
+                    txtFechaPoda.text = ciclo.fecha_poda || "";
+                    txtFechaLimpieza.text = ciclo.fecha_limpieza || "";
+                    spinFrecuenciaLimpieza.value = ciclo.frecuencia_limpieza_maleza || 1;
+                    
+                    break;
+                }
+            }
+        }
+        
+        // Contenido del diálogo
+        contentItem: Rectangle {
+            color: "white"
+            
+            ScrollView {
+                anchors.fill: parent
+                anchors.margins: 10
+                clip: true
+                
+                ColumnLayout {
+                    width: parent.width
+                    spacing: 15
+                    
+                    // Título
+                    Text {
+                        text: dialogCicloProduccion.modo === "crear" ? "Crear Nuevo Ciclo de Producción" : "Editar Ciclo de Producción"
+                        font.pixelSize: 18
+                        font.bold: true
+                        Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+                    
+                    // Formulario principal
+                    GridLayout {
+                        Layout.fillWidth: true
+                        columns: 4
+                        columnSpacing: 10
+                        rowSpacing: 15
+                        
+                        // Parcela
+                        Text {
+                            text: "Parcela:"
+                            Layout.alignment: Qt.AlignRight
+                        }
+                        
+                        ComboBox {
+                            id: cmbParcelas
+                            Layout.fillWidth: true
+                            Layout.columnSpan: 3
+                            model: ["Parcela 1", "Parcela 2", "Parcela 3"] // Aquí cargarías parcelas reales
+                            onCurrentTextChanged: {
+                                if (dialogCicloProduccion.modo === "crear") {
+                                    nuevoCiclo.nombre_parcela = currentText;
+                                    nuevoCiclo.id_parcela = currentIndex + 1; // Simplificado para el ejemplo
+                                }
+                            }
+                        }
+                        
+                        // Variedad
+                        Text {
+                            text: "Variedad:"
+                            Layout.alignment: Qt.AlignRight
+                        }
+                        
+                        ComboBox {
+                            id: cmbVariedades
+                            Layout.fillWidth: true
+                            Layout.columnSpan: 3
+                            model: getTiposCultivoNombres() // Reutilizamos la función existente
+                            onCurrentTextChanged: {
+                                if (dialogCicloProduccion.modo === "crear") {
+                                    nuevoCiclo.nombre_variedad = currentText;
+                                    nuevoCiclo.id_variedad = currentIndex + 1; // Simplificado para el ejemplo
+                                }
+                            }
+                        }
+                        
+                        // Estado
+                        Text {
+                            text: "Estado:"
+                            Layout.alignment: Qt.AlignRight
+                        }
+                        
+                        ComboBox {
+                            id: cmbEstado
+                            Layout.fillWidth: true
+                            model: ["Planificado", "En Preparación", "Sembrado", "En Desarrollo", "En Cosecha", "Finalizado", "Cancelado"]
+                            currentIndex: 0
+                            onCurrentTextChanged: {
+                                if (dialogCicloProduccion.modo === "crear") {
+                                    nuevoCiclo.estado = currentText;
+                                }
+                            }
+                        }
+                        
+                        // Activo
+                        Text {
+                            text: "Activo:"
+                            Layout.alignment: Qt.AlignRight
+                        }
+                        
+                        CheckBox {
+                            id:ciclo_chkActivo
+                            checked: true
+                            onCheckedChanged: {
+                                if (dialogCicloProduccion.modo === "crear") {
+                                    nuevoCiclo.activo = checked;
+                                }
+                            }
+                        }
+                        
+                        // Área sembrada
+                        Text {
+                            text: "Área sembrada (ha):"
+                            Layout.alignment: Qt.AlignRight
+                        }
+                        
+                        TextField {
+                            id: txtAreaSembrada
+                            Layout.fillWidth: true
+                            validator: DoubleValidator { bottom: 0.01 }
+                            placeholderText: "Ej: 2.5"
+                            onTextChanged: {
+                                if (dialogCicloProduccion.modo === "crear" && text.trim() !== "") {
+                                    nuevoCiclo.area_sembrada = parseFloat(text);
+                                }
+                            }
+                        }
+                        
+                        // Densidad de siembra
+                        Text {
+                            text: "Densidad (plantas/ha):"
+                            Layout.alignment: Qt.AlignRight
+                        }
+                        
+                        SpinBox {
+                            id: spinDensidad
+                            Layout.fillWidth: true
+                            from: 0
+                            to: 10000
+                            stepSize: 10
+                            onValueChanged: {
+                                if (dialogCicloProduccion.modo === "crear") {
+                                    nuevoCiclo.densidad_siembra = value;
+                                }
+                            }
+                        }
+                        
+                        // Separador de sección
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.columnSpan: 4
+                            height: 1
+                            color: "#EEEEEE"
+                        }
+                        
+                        // Título de fechas
+                        Text {
+                            text: "Fechas importantes"
+                            font.bold: true
+                            font.pixelSize: 14
+                            Layout.fillWidth: true
+                            Layout.columnSpan: 4
+                        }
+                        
+                        // Fecha de siembra
+                        Text {
+                            text: "Fecha de siembra:"
+                            Layout.alignment: Qt.AlignRight
+                        }
+                        
+                        TextField {
+                            id: txtFechaSiembra
+                            Layout.fillWidth: true
+                            placeholderText: "DD/MM/AAAA"
+                            inputMask: "99/99/9999"
+                            onTextChanged: {
+                                if (dialogCicloProduccion.modo === "crear") {
+                                    nuevoCiclo.fecha_siembra = text;
+                                }
+                            }
+                        }
+                        
+                        // Fecha de cosecha estimada
+                        Text {
+                            text: "Cosecha estimada:"
+                            Layout.alignment: Qt.AlignRight
+                        }
+                        
+                        TextField {
+                            id: txtFechaCosechaEst
+                            Layout.fillWidth: true
+                            placeholderText: "DD/MM/AAAA"
+                            inputMask: "99/99/9999"
+                            onTextChanged: {
+                                if (dialogCicloProduccion.modo === "crear") {
+                                    nuevoCiclo.fecha_cosecha_estimada = text;
+                                }
+                            }
+                        }
+                        
+                        // Fecha de cosecha real
+                        Text {
+                            text: "Cosecha real:"
+                            Layout.alignment: Qt.AlignRight
+                        }
+                        
+                        TextField {
+                            id: txtFechaCosechaReal
+                            Layout.fillWidth: true
+                            placeholderText: "DD/MM/AAAA"
+                            inputMask: "99/99/9999"
+                            onTextChanged: {
+                                if (dialogCicloProduccion.modo === "crear") {
+                                    nuevoCiclo.fecha_cosecha_real = text;
+                                }
+                            }
+                        }
+                        
+                        // Fecha de floración
+                        Text {
+                            text: "Fecha de floración:"
+                            Layout.alignment: Qt.AlignRight
+                        }
+                        
+                        TextField {
+                            id: txtFechaFloracion
+                            Layout.fillWidth: true
+                            placeholderText: "DD/MM/AAAA"
+                            inputMask: "99/99/9999"
+                            onTextChanged: {
+                                if (dialogCicloProduccion.modo === "crear") {
+                                    nuevoCiclo.fecha_floracion = text;
+                                }
+                            }
+                        }
+                        
+                        // Fecha de poda
+                        Text {
+                            text: "Fecha de poda:"
+                            Layout.alignment: Qt.AlignRight
+                        }
+                        
+                        TextField {
+                            id: txtFechaPoda
+                            Layout.fillWidth: true
+                            placeholderText: "DD/MM/AAAA"
+                            inputMask: "99/99/9999"
+                            onTextChanged: {
+                                if (dialogCicloProduccion.modo === "crear") {
+                                    nuevoCiclo.fecha_poda = text;
+                                }
+                            }
+                        }
+                        
+                        // Fecha última limpieza
+                        Text {
+                            text: "Fecha limpieza:"
+                            Layout.alignment: Qt.AlignRight
+                        }
+                        
+                        TextField {
+                            id: txtFechaLimpieza
+                            Layout.fillWidth: true
+                            placeholderText: "DD/MM/AAAA"
+                            inputMask: "99/99/9999"
+                            onTextChanged: {
+                                if (dialogCicloProduccion.modo === "crear") {
+                                    nuevoCiclo.fecha_limpieza = text;
+                                }
+                            }
+                        }
+                        
+                        // Frecuencia de limpieza
+                        Text {
+                            text: "Frecuencia limpieza (meses):"
+                            Layout.alignment: Qt.AlignRight
+                        }
+                        
+                        SpinBox {
+                            id: spinFrecuenciaLimpieza
+                            Layout.fillWidth: true
+                            from: 1
+                            to: 12
+                            value: 1
+                            onValueChanged: {
+                                if (dialogCicloProduccion.modo === "crear") {
+                                    nuevoCiclo.frecuencia_limpieza_maleza = value;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Espacio adicional
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 10
+                    }
+                    
+                    // Mensaje de validación
+                    Text {
+                        id: mensajeValidacionCiclo
+                        Layout.fillWidth: true
+                        text: ""
+                        color: "red"
+                        visible: text !== ""
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+                }
+            }
+        }
+        
+        footer: DialogButtonBox {
+            Button {
+                text: "Cancelar"
+                DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
+                onClicked: dialogCicloProduccion.close()
+            }
+            
+            Button {
+                text: dialogCicloProduccion.modo === "crear" ? "Guardar" : "Actualizar"
+                DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
+                background: Rectangle {
+                    color: "#4CAF50"
+                    radius: 5
+                }
+                contentItem: Text {
+                    text: parent.text
+                    color: "white"
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                onClicked: {
+                    // Validación de campos obligatorios
+                    if (txtAreaSembrada.text === "" || parseFloat(txtAreaSembrada.text) <= 0) {
+                        mensajeValidacionCiclo.text = "Por favor, ingrese un área sembrada válida";
+                        return;
+                    }
+                    
+                    if (dialogCicloProduccion.modo === "crear") {
+                        guardarNuevoCiclo();
+                    } else {
+                        actualizarCiclo();
+                    }
+                }
+            }
+        }
+        
+        // Resetea el formulario al cerrar
+        onClosed: {
+            mensajeValidacionCiclo.text = "";
+        }
+        
+        onOpened: {
+            if (modo === "crear") {
+                // Resetear valores para un nuevo ciclo
+                cmbParcelas.currentIndex = 0;
+                cmbVariedades.currentIndex = 0;
+                txtAreaSembrada.text = "";
+                spinDensidad.value = 0;
+                cmbEstado.currentIndex = 0;
+                ciclo_chkActivo.checked = true;
+                
+                // Fechas
+                txtFechaSiembra.text = "";
+                txtFechaCosechaEst.text = "";
+                txtFechaCosechaReal.text = "";
+                txtFechaFloracion.text = "";
+                txtFechaPoda.text = "";
+                txtFechaLimpieza.text = "";
+                spinFrecuenciaLimpieza.value = 1;
+                txtFechaFumigacion.text = "";
+            }
+        }
+    }
+
+    // DIÁLOGO DE CONFIRMACIÓN PARA ELIMINAR CICLO
+    Dialog {
+        id: confirmDeleteCicloDialog
+        title: "Confirmar eliminación"
+        modal: true
+        width:400
+        height:180
+        
+        property int cicloId: -1
+        property string nombreParcela: ""
+        property string nombreVariedad: ""
+        
+        contentItem: Item {
+            implicitWidth: 400
+            implicitHeight: 100
+            
+            Column {
+                anchors.fill: parent
+                anchors.margins: 20
+                spacing: 20
+                
+                Text {
+                    width: parent.width
+                    text: "¿Está seguro que desea eliminar el ciclo de producción '" + 
+                        confirmDeleteCicloDialog.nombreVariedad + "' en parcela '" + 
+                        confirmDeleteCicloDialog.nombreParcela + "'?"
+                    font.pixelSize: 14
+                    wrapMode: Text.WordWrap
+                }
+                
+                Text {
+                    width: parent.width
+                    text: "Esta acción no se puede deshacer."
+                    font.pixelSize: 14
+                    font.italic: true
+                    color: "#F44336"
+                    wrapMode: Text.WordWrap
+                }
+            }
+        }
+        
+        footer: DialogButtonBox {
+            Button {
+                text: "Cancelar"
+                DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
+            }
+            
+            Button {
+                text: "Eliminar"
+                DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
+                background: Rectangle {
+                    color: "#F44336"
+                    radius: 5
+                }
+                contentItem: Text {
+                    text: parent.text
+                    color: "white"
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
+        }
+        
+        onAccepted: {
+            // Aquí iría el código para eliminar el ciclo de la base de datos
+            console.log("Eliminando ciclo con ID:", cicloId);
+            
+            // También eliminamos el ciclo del modelo local
+            for (let i = 0; i < ciclosModel.count; i++) {
+                if (ciclosModel.get(i).id_ciclo === cicloId) {
+                    ciclosModel.remove(i);
+                    break;
+                }
+            }
+            
+            showMessage("Ciclo eliminado correctamente");
         }
     }
     
@@ -1489,6 +2396,81 @@ Rectangle {
         // }
         // return events;
     }
+    //
+        // Función para guardar nuevo ciclo
+    function guardarNuevoCiclo() {
+        // Validar datos adicionales si es necesario
+        
+        // INTEGRACIÓN CON SQL SERVER:
+        // Aquí es donde conectarías con tu base de datos SQL Server
+        
+        // Crear un objeto con toda la información del ciclo
+        var datosCiclo = {
+            id_ciclo: ciclosModel.count + 1,
+            id_parcela: nuevoCiclo.id_parcela,
+            nombre_parcela: cmbParcelas.currentText,
+            id_variedad: nuevoCiclo.id_variedad,
+            nombre_variedad: cmbVariedades.currentText,
+            fecha_siembra: txtFechaSiembra.text,
+            fecha_cosecha_estimada: txtFechaCosechaEst.text,
+            fecha_cosecha_real: txtFechaCosechaReal.text,
+            area_sembrada: txtAreaSembrada.text,
+            densidad_siembra: spinDensidad.value,
+            estado: cmbEstado.currentText,
+            activo: ciclo_chkActivo.checked,
+            fecha_floracion: txtFechaFloracion.text,
+            fecha_poda: txtFechaPoda.text,
+            fecha_limpieza: txtFechaLimpieza.text,
+            frecuencia_limpieza_maleza: spinFrecuenciaLimpieza.value,
+        };
+        
+        console.log("Guardando ciclo de producción:", JSON.stringify(datosCiclo));
+        
+        // Añadir al modelo local
+        ciclosModel.append(datosCiclo);
+        
+        // Cerrar el diálogo
+        dialogCicloProduccion.close();
+        
+        // Mensaje de éxito
+        showMessage("Ciclo de producción guardado correctamente");
+    }
+
+    // Función para actualizar un ciclo existente
+    function actualizarCiclo() {
+        // Validar datos adicionales si es necesario
+        
+        // INTEGRACIÓN CON SQL SERVER:
+        // Aquí es donde conectarías con tu base de datos SQL Server
+        
+        // En un sistema real, aquí iría la actualización en la base de datos
+        
+        // Actualizar en el modelo local
+        for (let i = 0; i < ciclosModel.count; i++) {
+            if (ciclosModel.get(i).id_ciclo === dialogCicloProduccion.cicloId) {
+                ciclosModel.setProperty(i, "nombre_parcela", cmbParcelas.currentText);
+                ciclosModel.setProperty(i, "nombre_variedad", cmbVariedades.currentText);
+                ciclosModel.setProperty(i, "fecha_siembra", txtFechaSiembra.text);
+                ciclosModel.setProperty(i, "fecha_cosecha_estimada", txtFechaCosechaEst.text);
+                ciclosModel.setProperty(i, "fecha_cosecha_real", txtFechaCosechaReal.text);
+                ciclosModel.setProperty(i, "area_sembrada", txtAreaSembrada.text);
+                ciclosModel.setProperty(i, "densidad_siembra", spinDensidad.value);
+                ciclosModel.setProperty(i, "estado", cmbEstado.currentText);
+                ciclosModel.setProperty(i, "activo", ciclo_chkActivo.checked);
+                ciclosModel.setProperty(i, "fecha_floracion", txtFechaFloracion.text);
+                ciclosModel.setProperty(i, "fecha_poda", txtFechaPoda.text);
+                ciclosModel.setProperty(i, "fecha_limpieza", txtFechaLimpieza.text);
+                ciclosModel.setProperty(i, "frecuencia_limpieza_maleza", spinFrecuenciaLimpieza.value);
+                break;
+            }
+        }
+        
+        // Cerrar el diálogo
+        dialogCicloProduccion.close();
+        
+        // Mensaje de éxito
+        showMessage("Ciclo de producción actualizado correctamente");
+    }
 
     // Modelos de datos (vacíos inicialmente)
     ListModel {
@@ -1501,7 +2483,12 @@ Rectangle {
         id: variedadesModel
         // Se agregarán elementos cuando el usuario los cree
     }
-    
+    // Modelo de Ciclos de Producción
+    ListModel {
+        id: ciclosModel
+        // Se agregarán elementos cuando el usuario los cree
+    }
+        
     // Componente para mostrar mensajes
     Rectangle {
         id: messageToast
@@ -1545,4 +2532,18 @@ Rectangle {
     Component.onCompleted: {
         actualizarCalendario();
     }
+        // Función para formatear la fecha actual
+    function getFormattedDate() {
+        var today = new Date();
+        var dd = String(today.getDate()).padStart(2, '0');
+        var mm = String(today.getMonth() + 1).padStart(2, '0'); // Los meses empiezan en 0
+        var yyyy = today.getFullYear();
+        return dd + '/' + mm + '/' + yyyy;
+    }
+    
+
+    function padZero(num) {
+        return num < 10 ? "0" + num : num;
+    }
+
 }                                
