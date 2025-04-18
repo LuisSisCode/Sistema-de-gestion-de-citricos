@@ -1200,8 +1200,4 @@ Rectangle {
         ayudaComponent,         // Ayuda
         acercaDeComponent       // Acerca de
     ]
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> cc9921b4a3a4275c2f25f0712f88a054cdf33b3b

@@ -2545,9 +2545,4 @@ Rectangle {
     function padZero(num) {
         return num < 10 ? "0" + num : num;
     }
-
-<<<<<<< HEAD
-}                                
-=======
-}                                
->>>>>>> cc9921b4a3a4275c2f25f0712f88a054cdf33b3b
+}
