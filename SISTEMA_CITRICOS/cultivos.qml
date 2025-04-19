@@ -2190,39 +2190,6 @@ Rectangle {
             return
         }
         
-        // INTEGRACIÓN CON SQL SERVER:
-        // Aquí es donde conectarías con tu base de datos SQL Server
-        // Ejemplo:
-        // let db = QSqlDatabase.addDatabase("QODBC")
-        // db.setDatabaseName("DRIVER={SQL Server};SERVER=tuServidor;DATABASE=tuBaseDeDatos;UID=usuario;PWD=contraseña")
-        // if (!db.open()) {
-        //     console.error("Error de conexión a la base de datos:", db.lastError().text)
-        //     showMessage("Error de conexión a la base de datos")
-        //     return
-        // }
-        //
-        // let query = QSqlQuery()
-        // query.prepare("INSERT INTO tipos_cultivo (nombre, nombre_cientifico, tiempo_cosecha_min, tiempo_cosecha_max, descripcion) VALUES (?, ?, ?, ?, ?)")
-        // query.addBindValue(nuevoTipoCultivo.nombre)
-        // query.addBindValue(nuevoTipoCultivo.nombreCientifico || "")
-        // query.addBindValue(nuevoTipoCultivo.tiempoCosechaMin || 0)
-        // query.addBindValue(nuevoTipoCultivo.tiempoCosechaMax || 0)
-        // query.addBindValue(nuevoTipoCultivo.descripcion || "")
-        //
-        // if (!query.exec()) {
-        //     console.error("Error al insertar tipo de cultivo:", query.lastError().text)
-        //     showMessage("Error al guardar el tipo de cultivo")
-        //     return
-        // }
-        //
-        // // Obtener el ID generado
-        // query.exec("SELECT @@IDENTITY as id")
-        // let tipoId = -1
-        // if (query.first()) {
-        //     tipoId = query.value("id")
-        // }
-        //
-        // db.close()
         
         // Crear un objeto con toda la información del tipo de cultivo
         var datosTipoCultivo = {

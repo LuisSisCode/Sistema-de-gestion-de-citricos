@@ -10,6 +10,7 @@ Rectangle {
     // Propiedades para la edición de usuarios
     property var nuevoUsuario: { "id_rol": 5, "nombre": "", "apellido": "", "usuario": "", "correo": "", "contrasena": "" }
     property bool hayCambiosPendientes: false
+    
     // Título de la página
     Rectangle {
         id: titleBar
@@ -18,7 +19,7 @@ Rectangle {
         color: "transparent"
 
         Text {
-            text: "GESTIÓN DE ACCESO AL SISTEMA"
+            text: "GESTIÓN DE USUARIOS"
             font.pixelSize: 28
             font.bold: true
             color: "#2E7D32"
@@ -27,544 +28,288 @@ Rectangle {
         }
     }
 
-    // Contenido principal con pestañas
-    TabBar {
-        id: tabBar
+    // Contenido principal - Solo la sección de Usuarios
+    Item {
         width: parent.width
         anchors.top: titleBar.bottom
-        spacing: 20
-
-        background: Rectangle {
-            color: "white"
-            Rectangle {
-                width: parent.width 
-                height: 0
-                color: "#EEEEEE"
-                anchors.bottom: parent.bottom
-            }
-        }
-
-        TabButton {
-            text: "Usuarios"
-            width: implicitWidth + 50
-            height: 30
-            background: Rectangle {
-                color: parent.checked ? "#32CD32":"#4CAF50"
-                radius: height / 2
-            }
-            contentItem: Text {
-                text: parent.text
-                color: "white"
-                font.bold: true
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
-        }
-
-        TabButton {
-            text: "Roles y Permisos"
-            width: implicitWidth + 50
-            height: 30
-            background: Rectangle {
-                color: parent.checked ? "#32CD32":"#4CAF50"
-                radius: height / 2
-            }
-            contentItem: Text {
-                text: parent.text
-                color: "white"
-                font.bold: true
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
-        }
-    }
-
-    // Contenedor de páginas de pestañas
-    StackLayout {
-        width: parent.width
-        anchors.top: tabBar.bottom
         anchors.bottom: parent.bottom
         anchors.topMargin: 20
-        currentIndex: tabBar.currentIndex
+        
+        // Barra de acciones
+        Rectangle {
+            id: actionBar
+            width: parent.width
+            height: 50
+            color: "white"
+            radius: 25
+            border.color: "#EEEEEE"
 
-        // Página de Usuarios
-        Item {
-            // Barra de acciones
-            Rectangle {
-                id: actionBar
-                width: parent.width
-                height: 50
-                color: "white"
-                radius: 25
-                border.color: "#EEEEEE"
+            RowLayout {
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: 20
+                spacing: 10
 
-                RowLayout {
-                    anchors.left: parent.left
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.leftMargin: 20
-                    spacing: 10
-
-                    Button {
-                        text: "Nuevo Usuario"
-                        icon.source: "Image/Image_UI_interfaz/Inconos/agregar-usuario.svg"
-                        implicitHeight: 36
-                        background: Rectangle {
-                            color: "#f5922f"
-                            radius: height / 2
-                        }
-                        onClicked: {
-                            // Inicializa los valores para el nuevo usuario
-                            nuevoUsuario = { 
-                                "id_rol": 1, 
-                                "nombre": "", 
-                                "apellido": "", 
-                                "usuario": "", 
-                                "correo": "", 
-                                "contrasena": "" 
-                            }
-                            
-                            // para abrir una ventana secundaria...
-                            nuevoUsuarioDialog.open()
-                        }
+                Button {
+                    text: "Nuevo Usuario"
+                    icon.source: "Image/Image_UI_interfaz/Inconos/agregar-usuario.svg"
+                    implicitHeight: 36
+                    background: Rectangle {
+                        color: "#f5922f"
+                        radius: height / 2
                     }
-
-                    TextField {
-                        placeholderText: "Buscar usuario..."
-                        implicitWidth: 450
-                        implicitHeight: 25
-                        background: Rectangle {
-                            color: "#b2c4c9"
-                            radius: height / 2
+                    onClicked: {
+                        // Inicializa los valores para el nuevo usuario
+                        nuevoUsuario = { 
+                            "id_rol": 1, 
+                            "nombre": "", 
+                            "apellido": "", 
+                            "usuario": "", 
+                            "correo": "", 
+                            "contrasena": "" 
                         }
+                        
+                        // para abrir una ventana secundaria...
+                        nuevoUsuarioDialog.open()
                     }
                 }
-            }
 
-            // Tabla de usuarios
-            Rectangle {
-                anchors.top: actionBar.bottom
-                anchors.topMargin: 20
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                color: "white"
-                radius: 5
-                border.color: "#EEEEEE"
-
-                // Aqui visualisamos los usuario que ya tenemos registrados en la base de datos
-                ListView {
-                    id: usuariosListView
-                    anchors.fill: parent
-                    anchors.margins: 1
-                    clip: true
-                    model: usuariosRolesModel.usuarios
-                    headerPositioning: ListView.OverlayHeader
-
-                    // Cabecera de la tabla
-                    header: Rectangle {
-                        width: parent.width
-                        height: 40
-                        color: "#F5F5F5"
-                        z: 2
-
-                        Row {
-                            anchors.fill: parent
-
-                            Text {
-                                width: parent.width * 0.05
-                                height: parent.height
-                                text: "ID"
-                                font.bold: true
-                                verticalAlignment: Text.AlignVCenter
-                                horizontalAlignment: Text.AlignHCenter
-                            }
-
-                            Text {
-                                width: parent.width * 0.2
-                                height: parent.height
-                                text: "Nombre Completo"
-                                font.bold: true
-                                verticalAlignment: Text.AlignVCenter
-                                leftPadding: 10
-                            }
-
-                            Text {
-                                width: parent.width * 0.2
-                                height: parent.height
-                                text: "Usuario"
-                                font.bold: true
-                                verticalAlignment: Text.AlignVCenter
-                                leftPadding: 10
-                            }
-
-                            Text {
-                                width: parent.width * 0.25
-                                height: parent.height
-                                text: "Correo"
-                                font.bold: true
-                                verticalAlignment: Text.AlignVCenter
-                                leftPadding: 10
-                            }
-
-                            Text {
-                                width: parent.width * 0.15
-                                height: parent.height
-                                text: "Rol"
-                                font.bold: true
-                                verticalAlignment: Text.AlignVCenter
-                                leftPadding: 10
-                            }
-
-                            Text {
-                                width: parent.width * 0.15
-                                height: parent.height
-                                text: "Acciones"
-                                font.bold: true
-                                verticalAlignment: Text.AlignVCenter
-                                horizontalAlignment: Text.AlignHCenter
-                            }
-                        }
-                    }
-
-                    // Delegado para cada fila
-                    delegate: Rectangle {
-                        width: parent.width
-                        height: 50
-                        color: index % 2 === 0 ? "#FFFFFF" : "#F9F9F9"
-
-                        // Usamos Row con Rectangles para cada columna
-                        Row {
-                            anchors.fill: parent
-                            spacing: 0  // Sin espaciado entre columnas
-
-                            // Columna ID
-                            Rectangle {
-                                width: parent.width * 0.05
-                                height: parent.height
-                                color: "transparent"
-                                
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: modelData.id_usuario
-                                    verticalAlignment: Text.AlignVCenter
-                                    horizontalAlignment: Text.AlignHCenter
-                                }
-                            }
-
-                            // Columna Nombre Completo
-                            Rectangle {
-                                width: parent.width * 0.2
-                                height: parent.height
-                                color: "transparent"
-                                
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    anchors.left: parent.left
-                                    anchors.leftMargin: 10
-                                    text: modelData.nombre_completo
-                                    elide: Text.ElideRight
-                                    width: parent.width - 20
-                                }
-                            }
-
-                            // Columna Usuario
-                            Rectangle {
-                                width: parent.width * 0.2
-                                height: parent.height
-                                color: "transparent"
-                                
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    anchors.left: parent.left
-                                    anchors.leftMargin: 10
-                                    text: modelData.usuario
-                                    elide: Text.ElideRight
-                                    width: parent.width - 20
-                                }
-                            }
-
-                            // Columna Correo
-                            Rectangle {
-                                width: parent.width * 0.25
-                                height: parent.height
-                                color: "transparent"
-                                
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    anchors.left: parent.left
-                                    anchors.leftMargin: 10
-                                    text: modelData.correo
-                                    elide: Text.ElideRight
-                                    width: parent.width - 20
-                                }
-                            }
-
-                            // Columna Rol
-                            Rectangle {
-                                width: parent.width * 0.15
-                                height: parent.height
-                                color: "transparent"
-                                
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    anchors.left: parent.left
-                                    anchors.leftMargin: 10
-                                    text: modelData.rol
-                                    elide: Text.ElideRight
-                                    width: parent.width - 20
-                                }
-                            }
-
-                            // Columna Acciones
-                            Rectangle {
-                                width: parent.width * 0.15
-                                height: parent.height
-                                color: "transparent"
-                                
-                                Row {
-                                    spacing: 10
-                                    anchors.centerIn: parent
-                                    
-                                    Button {
-                                        width: 36
-                                        height: 36
-                                        icon.source: "Image/Image_UI_interfaz/Inconos/editar.svg"
-                                        flat: true
-                                        ToolTip.visible: hovered
-                                        ToolTip.text: "Editar"
-                                        onClicked: {
-                                            editUsuarioDialog.prepararEdicion(modelData);
-                                            editUsuarioDialog.open();
-                                            
-                                        }
-                                    }
-                                    
-                                    Button {
-                                        width: 36
-                                        height: 36
-                                        icon.source: "Image/Image_UI_interfaz/Inconos/basura.svg"
-                                        flat: true
-                                        ToolTip.visible: hovered
-                                        ToolTip.text: "Eliminar"
-                                        onClicked: {
-                                            // Aquí llamamos al DIALOGO donde nos muestra si estamos seguros de eliminar a ese usuario
-                                            confirmDeleteDialog.userId = modelData.id_usuario;
-                                            confirmDeleteDialog.open()
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Mensaje cuando no hay datos
-                    Text {
-                        anchors.centerIn: parent
-                        text: "No hay usuarios registrados.\nHaga clic en 'Nuevo Usuario' para agregar uno."
-                        color: "#757575"
-                        font.pixelSize: 14
-                        horizontalAlignment: Text.AlignHCenter
-                        visible: usuariosRolesModel.usuarios.length === 0
+                TextField {
+                    placeholderText: "Buscar usuario..."
+                    implicitWidth: 450
+                    implicitHeight: 25
+                    background: Rectangle {
+                        color: "#b2c4c9"
+                        radius: height / 2
                     }
                 }
             }
         }
 
-        // Página de Roles y Permisos (simplificada para ahora)
-        Item {
-            // Panel de roles
-            Rectangle {
-                id: rolesPanel
-                width: parent.width * 0.3
-                height: parent.height
-                color: "white"
-                radius: 5
-                border.color: "#EEEEEE"
+        // Tabla de usuarios
+        Rectangle {
+            anchors.top: actionBar.bottom
+            anchors.topMargin: 20
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            color: "white"
+            radius: 5
+            border.color: "#EEEEEE"
 
-                ColumnLayout {
-                    anchors.fill: parent
-                    anchors.margins: 15
-                    spacing: 15
+            // Aqui visualisamos los usuario que ya tenemos registrados en la base de datos
+            ListView {
+                id: usuariosListView
+                anchors.fill: parent
+                anchors.margins: 1
+                clip: true
+                model: usuariosRolesModel.usuarios
+                headerPositioning: ListView.OverlayHeader
 
-                    Text {
-                        text: "Roles"
-                        font.pixelSize: 18
-                        font.bold: true
-                    }
+                // Cabecera de la tabla
+                header: Rectangle {
+                    width: parent.width
+                    height: 40
+                    color: "#F5F5F5"
+                    z: 2
 
-                    ListView {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        clip: true
-                        model: usuariosRolesModel.roles
-                        spacing: 5
+                    Row {
+                        anchors.fill: parent
 
-                        delegate: Rectangle {
-                            width: parent.width
-                            height: 50
-                            color: ListView.isCurrentItem ? "#E3F2FD" : "transparent"
-                            radius: 4
-
-                            Text {
-                                anchors.left: parent.left
-                                anchors.verticalCenter: parent.verticalCenter
-                                anchors.leftMargin: 10
-                                text: modelData.nombre
-                                font.pixelSize: 14
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: {
-                                    parent.ListView.view.currentIndex = index;
-                                    // Cargar los permisos para este rol
-                                    usuariosRolesModel.cargar_permisos_por_rol(modelData.id_rol);
-                                    hayCambiosPendientes = false; // Reiniciamos el estado
-                                }
-                            }
-                        }
-                        
-                        // Mensaje cuando no hay datos
                         Text {
-                            anchors.centerIn: parent
-                            text: "No hay roles definidos."
-                            color: "#757575"
-                            font.pixelSize: 14
+                            width: parent.width * 0.05
+                            height: parent.height
+                            text: "ID"
+                            font.bold: true
+                            verticalAlignment: Text.AlignVCenter
                             horizontalAlignment: Text.AlignHCenter
-                            visible: usuariosRolesModel.roles.length === 0
                         }
-                    }
 
-                    Button {
-                        text: "Nuevo Rol"
-                        Layout.fillWidth: true
-                        implicitHeight: 36
-                        onClicked: {
-                            // Aquí también deberíamos usar un diálogo en lugar de un mensaje simple
-                            nuevoRolDialog.open();
+                        Text {
+                            width: parent.width * 0.2
+                            height: parent.height
+                            text: "Nombre Completo"
+                            font.bold: true
+                            verticalAlignment: Text.AlignVCenter
+                            leftPadding: 10
+                        }
+
+                        Text {
+                            width: parent.width * 0.2
+                            height: parent.height
+                            text: "Usuario"
+                            font.bold: true
+                            verticalAlignment: Text.AlignVCenter
+                            leftPadding: 10
+                        }
+
+                        Text {
+                            width: parent.width * 0.25
+                            height: parent.height
+                            text: "Correo"
+                            font.bold: true
+                            verticalAlignment: Text.AlignVCenter
+                            leftPadding: 10
+                        }
+
+                        Text {
+                            width: parent.width * 0.15
+                            height: parent.height
+                            text: "Rol"
+                            font.bold: true
+                            verticalAlignment: Text.AlignVCenter
+                            leftPadding: 10
+                        }
+
+                        Text {
+                            width: parent.width * 0.15
+                            height: parent.height
+                            text: "Acciones"
+                            font.bold: true
+                            verticalAlignment: Text.AlignVCenter
+                            horizontalAlignment: Text.AlignHCenter
                         }
                     }
                 }
-            }
 
-            // Panel de permisos
-            Rectangle {
-                anchors.left: rolesPanel.right
-                anchors.leftMargin: 20
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
-                color: "white"
-                radius: 5
-                border.color: "#EEEEEE"
+                // Delegado para cada fila
+                delegate: Rectangle {
+                    width: parent.width
+                    height: 50
+                    color: index % 2 === 0 ? "#FFFFFF" : "#F9F9F9"
 
-                ColumnLayout {
-                    anchors.fill: parent
-                    anchors.margins: 15
-                    spacing: 15
+                    // Usamos Row con Rectangles para cada columna
+                    Row {
+                        anchors.fill: parent
+                        spacing: 0  // Sin espaciado entre columnas
 
-                    Text {
-                        text: "Permisos del Rol: Seleccione un rol"
-                        font.pixelSize: 18
-                        font.bold: true
-                    }
-
-                    // Lista de permisos con checkboxes
-                    ListView {
-                        id: permisosListView
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        clip: true
-                        model: usuariosRolesModel.permisos
-                        spacing: 10
-
-                        delegate: RowLayout {
-                            width: parent ? parent.width : 0
-                            height: 40
-                            spacing: 15
-
-                            CheckBox {
-                                id: permisoCheck   
-                                checked: modelData.permitido
-                                Layout.leftMargin: 10
-                                onCheckedChanged: {
-                                    // Actualizar el modelo local temporalmente
-                                    // La actualización permanente ocurrirá cuando se guarden los cambios
-                                    if (checked !== modelData.permitido) {
-                                        // Marcamos visualmente que ha habido cambios
-                                        hayCambiosPendientes = true
-                                    }
-                                }
-                            }
-
-                            Column {
-                                Layout.fillWidth: true
-                                spacing: 3
-
-                                Text {
-                                    text: modelData.seccion
-                                    font.pixelSize: 14
-                                    font.bold: true
-                                }
-
-                                Text {
-                                    text: modelData.descripcion
-                                    font.pixelSize: 12
-                                    color: "#757575"
-                                }
+                        // Columna ID
+                        Rectangle {
+                            width: parent.width * 0.05
+                            height: parent.height
+                            color: "transparent"
+                            
+                            Text {
+                                anchors.centerIn: parent
+                                text: modelData.id_usuario
+                                verticalAlignment: Text.AlignVCenter
+                                horizontalAlignment: Text.AlignHCenter
                             }
                         }
-                        
-                        // Mensaje cuando no hay datos
-                        Text {
-                            anchors.centerIn: parent
-                            text: "No hay permisos definidos o\nno se ha seleccionado ningún rol."
-                            color: "#757575"
-                            font.pixelSize: 14
-                            horizontalAlignment: Text.AlignHCenter
-                            visible: usuariosRolesModel.permisos.length === 0
-                        }
-                    }
 
-                    // Botones de acción
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Layout.alignment: Qt.AlignRight
-                        spacing: 10
-
-                        Button {
-                            text: "Cancelar"
-                            implicitHeight: 36
-                            flat: true
+                        // Columna Nombre Completo
+                        Rectangle {
+                            width: parent.width * 0.2
+                            height: parent.height
+                            color: "transparent"
+                            
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.left: parent.left
+                                anchors.leftMargin: 10
+                                text: modelData.nombre_completo
+                                elide: Text.ElideRight
+                                width: parent.width - 20
+                            }
                         }
 
-                        Button {
-                            text: "Guardar Cambios"
-                            implicitHeight: 36
-                            enabled: hayCambiosPendientes
-                            opacity: enabled ? 1.0 : 0.5
-                            onClicked: {
-                                var permisosActualizados = [];
-                                for (let i = 0; i < permisosListView.count; i++) {
-                                    let item = permisosListView.itemAtIndex(i);
-                                    if (item) {
-                                        let checkBox = item.children[0]; // El primer hijo es el CheckBox
-                                        
-                                        permisosActualizados.push({
-                                            seccion: usuariosRolesModel.permisos[i].seccion,
-                                            permitido: checkBox.checked
-                                        });
-                                    }
-                                }
-                                // Aquí necesitas implementar en tu modelo Python un método para guardar los permisos
-                                // var exito = usuariosRolesModel.guardarPermisos(rolSeleccionadoId, permisosActualizados);
+                        // Columna Usuario
+                        Rectangle {
+                            width: parent.width * 0.2
+                            height: parent.height
+                            color: "transparent"
+                            
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.left: parent.left
+                                anchors.leftMargin: 10
+                                text: modelData.usuario
+                                elide: Text.ElideRight
+                                width: parent.width - 20
+                            }
+                        }
+
+                        // Columna Correo
+                        Rectangle {
+                            width: parent.width * 0.25
+                            height: parent.height
+                            color: "transparent"
+                            
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.left: parent.left
+                                anchors.leftMargin: 10
+                                text: modelData.correo
+                                elide: Text.ElideRight
+                                width: parent.width - 20
+                            }
+                        }
+
+                        // Columna Rol
+                        Rectangle {
+                            width: parent.width * 0.15
+                            height: parent.height
+                            color: "transparent"
+                            
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.left: parent.left
+                                anchors.leftMargin: 10
+                                text: modelData.rol
+                                elide: Text.ElideRight
+                                width: parent.width - 20
+                            }
+                        }
+
+                        // Columna Acciones
+                        Rectangle {
+                            width: parent.width * 0.15
+                            height: parent.height
+                            color: "transparent"
+                            
+                            Row {
+                                spacing: 10
+                                anchors.centerIn: parent
                                 
-                                // Por ahora, mostramos un mensaje:
-                                showMessage("Cambios guardados correctamente (función en desarrollo)");
-                                hayCambiosPendientes = false;
+                                Button {
+                                    width: 36
+                                    height: 36
+                                    icon.source: "Image/Image_UI_interfaz/Inconos/editar.svg"
+                                    flat: true
+                                    ToolTip.visible: hovered
+                                    ToolTip.text: "Editar"
+                                    onClicked: {
+                                        editUsuarioDialog.prepararEdicion(modelData);
+                                        editUsuarioDialog.open();
+                                    }
+                                }
+                                
+                                Button {
+                                    width: 36
+                                    height: 36
+                                    icon.source: "Image/Image_UI_interfaz/Inconos/basura.svg"
+                                    flat: true
+                                    ToolTip.visible: hovered
+                                    ToolTip.text: "Eliminar"
+                                    onClicked: {
+                                        // Aquí llamamos al DIALOGO donde nos muestra si estamos seguros de eliminar a ese usuario
+                                        confirmDeleteDialog.userId = modelData.id_usuario;
+                                        confirmDeleteDialog.open()
+                                    }
+                                }
                             }
                         }
                     }
+                }
+                
+                // Mensaje cuando no hay datos
+                Text {
+                    anchors.centerIn: parent
+                    text: "No hay usuarios registrados.\nHaga clic en 'Nuevo Usuario' para agregar uno."
+                    color: "#757575"
+                    font.pixelSize: 14
+                    horizontalAlignment: Text.AlignHCenter
+                    visible: usuariosRolesModel.usuarios.length === 0
                 }
             }
         }
@@ -986,179 +731,6 @@ Rectangle {
         }
     }
 
-    // DIÁLOGO DE NUEVO ROL
-    Dialog {
-        id: nuevoRolDialog
-        title: "Nuevo Rol"
-        modal: true
-        width: 500
-        height: 380
-        x: (parent.width - width) / 2
-        y: (parent.height - height) / 2
-        
-        property var nuevoRol: { "roleId": "", "nombre": "", "descripcion": "", "activo": true }
-        
-        // Contenido del diálogo
-        contentItem: Rectangle {
-            color: "white"
-            
-            Column {
-                anchors.fill: parent
-                anchors.margins: 20
-                spacing: 15
-                
-                // Título
-                Text {
-                    text: "Agregar Nuevo Rol"
-                    font.pixelSize: 18
-                    font.bold: true
-                    width: parent.width
-                    horizontalAlignment: Text.AlignHCenter
-                }
-                
-                // Formulario
-                GridLayout {
-                    width: parent.width
-                    columns: 2
-                    columnSpacing: 10
-                    rowSpacing: 15
-                    
-                    // Nombre del rol
-                    Text {
-                        text: "Nombre del Rol*:"
-                        Layout.alignment: Qt.AlignRight
-                    }
-                    
-                    TextField {
-                        id: txtNombreRol
-                        placeholderText: "Ej: Administrador, Empleado, etc."
-                        Layout.fillWidth: true
-                        onTextChanged: nuevoRol.nombre = text
-                    }
-                    
-                    // Descripción
-                    Text {
-                        text: "Descripción:"
-                        Layout.alignment: Qt.AlignRight
-                    }
-                    
-                    TextArea {
-                        id: txtDescripcionRol
-                        placeholderText: "Describa las funciones y responsabilidades de este rol"
-                        Layout.fillWidth: true
-                        wrapMode: TextEdit.Wrap
-                        Layout.preferredHeight: 80
-                        onTextChanged: nuevoRol.descripcion = text
-                    }
-                    
-                    // Fecha de creación
-                    Text {
-                        text: "Fecha de creación:"
-                        Layout.alignment: Qt.AlignRight
-                    }
-                    
-                    TextField {
-                        id: txtFechaCreacionRol
-                        placeholderText: "DD/MM/AAAA"
-                        Layout.fillWidth: true
-                        readOnly: true
-                        text: getFormattedDate() // Llamamos a la función para obtener la fecha formateada
-                    }
-                    
-                    // Activo
-                    Text {
-                        text: "Activo:"
-                        Layout.alignment: Qt.AlignRight
-                    }
-                    
-                    CheckBox {
-                        id: chkActivoRol
-                        checked: true
-                        onCheckedChanged: nuevoRol.activo = checked
-                    }
-                    
-                }
-                
-                // Espacio adicional
-                Item {
-                    width: parent.width
-                    height: 20
-                }
-                
-                // Mensaje de validación
-                Text {
-                    id: mensajeValidacionRol
-                    width: parent.width
-                    text: ""
-                    color: "red"
-                    visible: usuariosRolesModel && usuariosRolesModel.usuarios && usuariosRolesModel.usuarios.length === 0
-                    horizontalAlignment: Text.AlignHCenter
-                }
-            }
-        }
-        
-        footer: DialogButtonBox {
-            Button {
-                text: "Cancelar"
-                DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
-                onClicked: nuevoRolDialog.close()
-            }
-            
-            Button {
-                text: "Guardar"
-                DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
-                background: Rectangle {
-                    color: "#4CAF50"
-                    radius: 5
-                }
-                contentItem: Text {
-                    text: parent.text
-                    color: "white"
-                    font.bold: true
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-                onClicked: {
-                    // Validación de campos obligatorios
-                    if (txtNombreRol.text === "") {
-                        mensajeValidacionRol.text = "Por favor, ingrese el nombre del rol";
-                        return;
-                    }
-                    
-                    // Verificar si el nombre del rol ya existe
-                    for (let i = 0; i < usuariosRolesModel.roles.length; i++) {
-                        if (usuariosRolesModel.roles[i].nombre.toLowerCase() === txtNombreRol.text.toLowerCase()) {
-                            mensajeValidacionRol.text = "Este nombre de rol ya existe";
-                            return;
-                        }
-                    }
-                    // Preparar datos para el nuevo rol
-                    var datosRol = {
-                        "nombre": txtNombreRol.text,
-                        "descripcion": txtDescripcionRol.text,
-                        "activo": chkActivoRol.checked
-                    };
-
-                     // Llamar al modelo para guardar
-                    var exito = usuariosRolesModel.agregar_rol(JSON.stringify(datosRol));
-                    if (exito) {
-                        nuevoRolDialog.close();
-                        showMessage("Rol guardado correctamente");
-                    } else {
-                        mensajeValidacionRol.text = "Error al guardar el rol en la base de datos";
-                    }
-                }
-            }
-        }
-    
-    // Resetea el formulario al cerrar
-    onClosed: {
-        txtNombreRol.text = ""
-        txtDescripcionRol.text = ""
-        chkActivoRol.checked = true
-        mensajeValidacionRol.text = ""
-    }
-}
     // DIÁLOGO DE EDICIÓN DE USUARIO
 Dialog {
     id: editUsuarioDialog

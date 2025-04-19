@@ -6,7 +6,7 @@ Rectangle {
     id: agricultorerParcelaRoot
     anchors.fill: parent
     color: "#F8F9FA"
-    
+    property var agricultoresparcelas: null  
     // Propiedades para la edición de agricultores
     property var nuevoAgricultor: { 
         "agricultorId": "", 
@@ -63,7 +63,7 @@ Rectangle {
 
         TabButton {
             text: "Agricultores"
-            width: implicitWidth + 40
+            width:contentItem.implicitWidth + 40
             height: 30
             background: Rectangle {
                 color: parent.checked ? "#32CD32":"#4CAF50"
@@ -80,7 +80,7 @@ Rectangle {
 
         TabButton {
             text: "Parcelas"
-            width: implicitWidth + 40
+            width: contentItem.implicitWidth + 40
             height: 30
             background: Rectangle {
                 color: parent.checked ? "#32CD32":"#4CAF50"
@@ -97,7 +97,7 @@ Rectangle {
 
         TabButton {
             text: "Mapa"
-            width: implicitWidth + 40
+            width: contentItem.implicitWidth + 40
             height: 30
             background: Rectangle {
                 color: parent.checked ? "#32CD32":"#4CAF50"
@@ -191,7 +191,7 @@ Rectangle {
                     anchors.fill: parent
                     anchors.margins: 1
                     clip: true
-                    model: agricultoresModel
+                    model: agricultoresparcelas ? agricultoresparcelas.agricultoresModel : null
                     headerPositioning: ListView.OverlayHeader
 
                     // Cabecera de la tabla
@@ -468,7 +468,7 @@ Rectangle {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 clip: true
-                model: parcelasModel
+                model: agricultoresparcelas ? agricultoresparcelas.parcelasModel : null
                 cellWidth: width / 3
                 cellHeight: 200
                 
@@ -1140,194 +1140,15 @@ Rectangle {
         }
         
         onAccepted: {
-            // INTEGRACIÓN CON SQL SERVER:
-            // Aquí ejecutaríamos la consulta DELETE en SQL Server
-            // Ejemplo:
-            // let db = QSqlDatabase.addDatabase("QODBC")
-            // db.setDatabaseName("DRIVER={SQL Server};SERVER=tuServidor;DATABASE=tuBaseDeDatos;UID=usuario;PWD=contraseña")
-            // if (db.open()) {
-            //     let query = QSqlQuery()
-            //     query.prepare("DELETE FROM agricultores WHERE id = ?")
-            //     query.addBindValue(agricultorId)
-            //     
-            //     if (!query.exec()) {
-            //         console.error("Error al eliminar agricultor:", query.lastError().text)
-            //         showMessage("Error al eliminar el agricultor")
-            //         return
-            //     }
-            //     
-            //     db.close()
-            // } else {
-            //     console.error("Error de conexión a la base de datos:", db.lastError().text)
-            //     showMessage("Error de conexión a la base de datos")
-            //     return
-            // }
-            
-            console.log("Eliminando agricultor con ID:", agricultorId);
-            
-            // También eliminamos el agricultor del modelo local
-            for (let i = 0; i < agricultoresModel.count; i++) {
-                if (agricultoresModel.get(i).agricultorId === agricultorId) {
-                    agricultoresModel.remove(i)
-                    break
-                }
+            var exito = agricultoresparcelas.eliminar_agricultor(agricultorId);
+            if (exito) {
+                showMessage("Agricultor eliminado correctamente")
+            } else {
+                showMessage("No se pudo eliminar el agricultor")
             }
-            
-            showMessage("Agricultor eliminado correctamente")
-        }
+        }     
     }
     
-    // Función para guardar nuevo agricultor
-    function guardarNuevoAgricultor() {
-        // La validación se hace ahora en el botón Guardar del diálogo
-        
-        // INTEGRACIÓN CON SQL SERVER:
-        // Aquí es donde conectarías con tu base de datos SQL Server
-        // Ejemplo:
-        // let db = QSqlDatabase.addDatabase("QODBC")
-        // db.setDatabaseName("DRIVER={SQL Server};SERVER=tuServidor;DATABASE=tuBaseDeDatos;UID=usuario;PWD=contraseña")
-        // if (!db.open()) {
-        //     console.error("Error de conexión a la base de datos:", db.lastError().text)
-        //     mensajeValidacionAgricultor.text = "Error de conexión a la base de datos"
-        //     return
-        // }
-        //
-        // let query = QSqlQuery()
-        // query.prepare("INSERT INTO agricultores (nombre, apellido, identificacion, telefono, correo, es_propietario, fecha_registro) VALUES (?, ?, ?, ?, ?, ?, ?)")
-        // query.addBindValue(nuevoAgricultor.nombre)
-        // query.addBindValue(nuevoAgricultor.apellido)
-        // query.addBindValue(nuevoAgricultor.identificacion)
-        // query.addBindValue(nuevoAgricultor.telefono)
-        // query.addBindValue(nuevoAgricultor.correo)
-        // query.addBindValue(nuevoAgricultor.esPropietario ? 1 : 0)
-        // query.addBindValue(txtFechaRegistro.text)
-        //
-        // if (!query.exec()) {
-        //     console.error("Error al insertar agricultor:", query.lastError().text)
-        //     mensajeValidacionAgricultor.text = "Error al guardar el agricultor"
-        //     return
-        // }
-        //
-        // // Obtener el ID generado
-        // query.exec("SELECT @@IDENTITY as id")
-        // let agricultorId = -1
-        // if (query.first()) {
-        //     agricultorId = query.value("id")
-        // }
-        //
-        // db.close()
-        
-        // Crear un objeto con toda la información del agricultor
-        var datosAgricultor = {
-            agricultorId: agricultoresModel.count + 1,
-            nombre: nuevoAgricultor.nombre,
-            apellido: nuevoAgricultor.apellido,
-            identificacion: nuevoAgricultor.identificacion,
-            telefono: nuevoAgricultor.telefono,
-            correo: nuevoAgricultor.correo,
-            esPropietario: nuevoAgricultor.esPropietario,
-            fechaRegistro: txtFechaRegistro.text
-        };
-        
-        console.log("Guardando agricultor:", JSON.stringify(datosAgricultor));
-        
-        // Añadir al modelo local
-        agricultoresModel.append(datosAgricultor)
-        
-        // Cerrar el diálogo
-        dialogNuevoAgricultor.close()
-        
-        // Mensaje de éxito
-        showMessage("Agricultor guardado correctamente")
-    }
-    
-    // Función para guardar nueva parcela
-    function guardarNuevaParcela() {
-        // La validación se hace en el botón Guardar del diálogo
-        
-        // INTEGRACIÓN CON SQL SERVER:
-        // Aquí es donde conectarías con tu base de datos SQL Server
-        // Ejemplo:
-        // let db = QSqlDatabase.addDatabase("QODBC")
-        // db.setDatabaseName("DRIVER={SQL Server};SERVER=tuServidor;DATABASE=tuBaseDeDatos;UID=usuario;PWD=contraseña")
-        // if (!db.open()) {
-        //     console.error("Error de conexión a la base de datos:", db.lastError().text)
-        //     mensajeValidacionParcela.text = "Error de conexión a la base de datos"
-        //     return
-        // }
-        //
-        // // Buscar el ID del propietario
-        // let propietarioId = -1;
-        // if (nuevaParcela.propietario) {
-        //     let propQuery = QSqlQuery()
-        //     propQuery.prepare("SELECT id FROM agricultores WHERE nombre + ' ' + apellido = ?")
-        //     propQuery.addBindValue(nuevaParcela.propietario)
-        //     if (propQuery.exec() && propQuery.first()) {
-        //         propietarioId = propQuery.value("id")
-        //     }
-        // }
-        //
-        // let query = QSqlQuery()
-        // query.prepare("INSERT INTO parcelas (nombre, propietario_id, ubicacion, area, porcentaje_uso, fecha_registro, descripcion) VALUES (?, ?, ?, ?, ?, ?, ?)")
-        // query.addBindValue(nuevaParcela.nombre)
-        // query.addBindValue(propietarioId)
-        // query.addBindValue(nuevaParcela.ubicacion)
-        // query.addBindValue(nuevaParcela.area)
-        // query.addBindValue(nuevaParcela.porcentajeUso)
-        // query.addBindValue(txtFechaRegistroParcela.text)
-        // query.addBindValue(txtDescripcionParcela.text)
-        //
-        // if (!query.exec()) {
-        //     console.error("Error al insertar parcela:", query.lastError().text)
-        //     mensajeValidacionParcela.text = "Error al guardar la parcela"
-        //     return
-        // }
-        //
-        // // Obtener el ID generado
-        // query.exec("SELECT @@IDENTITY as id")
-        // let parcelaId = -1
-        // if (query.first()) {
-        //     parcelaId = query.value("id")
-        // }
-        //
-        // db.close()
-        
-        // Crear un objeto con toda la información de la parcela
-        var datosParcela = {
-            parcelaId: parcelasModel.count + 1,
-            nombre: nuevaParcela.nombre,
-            propietario: nuevaParcela.propietario || "Sin asignar",
-            ubicacion: nuevaParcela.ubicacion,
-            area: nuevaParcela.area,
-            porcentajeUso: nuevaParcela.porcentajeUso,
-            fechaRegistro: txtFechaRegistroParcela.text,
-            descripcion: txtDescripcionParcela.text || ""
-        };
-        
-        console.log("Guardando parcela:", JSON.stringify(datosParcela));
-        
-        // Añadir al modelo local
-        parcelasModel.append(datosParcela)
-        
-        // Cerrar el diálogo
-        dialogNuevaParcela.close()
-        
-        // Mensaje de éxito
-        showMessage("Parcela guardada correctamente")
-    }
-    
-    // Función para obtener los nombres de propietarios para el ComboBox
-    function obtenerPropietariosModel() {
-        var propietarios = ["Sin asignar"];
-        for (var i = 0; i < agricultoresModel.count; i++) {
-            var agricultor = agricultoresModel.get(i);
-            if (agricultor.esPropietario) {
-                propietarios.push(agricultor.nombre + " " + agricultor.apellido);
-            }
-        }
-        return propietarios;
-    }
-
     // Modelos de datos vacíos
     ListModel {
         id: agricultoresModel
@@ -1370,7 +1191,51 @@ Rectangle {
             onTriggered: messageToast.visible = false
         }
     }
-    
+    function obtenerPropietariosModel() {
+        var propietariosArray = [];
+        if (agricultoresparcelas && agricultoresparcelas.propietarios) {
+            for (var i = 0; i < agricultoresparcelas.propietarios.length; i++) {
+                propietariosArray.push(agricultoresparcelas.propietarios[i].nombre);
+            }
+        }
+        return propietariosArray;
+    }
+
+    function guardarNuevoAgricultor() {
+        var agricultor_json = JSON.stringify(nuevoAgricultor);
+        var exito = agricultoresparcelas.agregar_agricultor(agricultor_json);
+        
+        if (exito) {
+            showMessage("Agricultor guardado correctamente");
+            dialogNuevoAgricultor.close();
+        } else {
+            mensajeValidacionAgricultor.text = "Error al guardar el agricultor";
+        }
+    }
+
+    function guardarNuevaParcela() {
+        // Buscar el id del propietario seleccionado
+        var propietarioId = -1;
+        if (agricultoresparcelas && agricultoresparcelas.propietarios) {
+            for (var i = 0; i < agricultoresparcelas.propietarios.length; i++) {
+                if (agricultoresparcelas.propietarios[i].nombre === cmbPropietario.currentText) {
+                    propietarioId = agricultoresparcelas.propietarios[i].id;
+                    break;
+                }
+            }
+        }
+        
+        nuevaParcela.propietarioId = propietarioId;
+        var parcela_json = JSON.stringify(nuevaParcela);
+        var exito = agricultoresparcelas.agregar_parcela(parcela_json);
+        
+        if (exito) {
+            showMessage("Parcela guardada correctamente");
+            dialogNuevaParcela.close();
+        } else {
+            mensajeValidacionParcela.text = "Error al guardar la parcela";
+        }
+    }   
     // Función para mostrar mensajes
     function showMessage(message) {
         messageToast.text = message

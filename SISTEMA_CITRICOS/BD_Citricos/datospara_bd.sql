@@ -31,25 +31,24 @@ VALUES (5, 'Rosa', 'Flores', 'rflores@gmail.com', '73654189', 'Yapacani - Comuni
 
 2. Agricultores y Parcelas
 -- Insertar agricultores
-INSERT INTO Agricultores (nombre, apellido, identificacion, telefono, correo, direccion, fecha_registro, es_propietario, notas, activo)
-VALUES ('Luis', 'López', '3245678', '67819004', 'llopezbeltran0@gmail.com', 'Yapacani - Barrio 24 de junio', '2018-05-15', 1, 'Propietario principal, gestiona todas las parcelas de cítricos', 1);
+INSERT INTO Agricultores (nombre, apellido, identificacion, telefono, correo, direccion, fecha_registro, es_propietario, activo)
+VALUES ('Luis', 'López', '3245678', '67819004', 'llopezbeltran0@gmail.com', 'Yapacani - Barrio 24 de junio', '2018-05-15', 1, 1);
 
-INSERT INTO Agricultores (nombre, apellido, identificacion, telefono, correo, direccion, fecha_registro, es_propietario, notas, activo)
-VALUES ('Roberto', 'Mendez', '4578923', '70543218', 'rmendez@gmail.com', 'Yapacani - Barrio San Pedro', '2019-03-10', 0, 'Encargado de parcela norte, especialista en mandarinas', 1);
+INSERT INTO Agricultores (nombre, apellido, identificacion, telefono, correo, direccion, fecha_registro, es_propietario, activo)
+VALUES ('Roberto', 'Mendez', '4578923', '70543218', 'rmendez@gmail.com', 'Yapacani - Barrio San Pedro', '2019-03-10', 0, 1);
 
-INSERT INTO Agricultores (nombre, apellido, identificacion, telefono, correo, direccion, fecha_registro, es_propietario, notas, activo)
-VALUES ('Ana', 'Rojas', '6123458', '73214569', 'arojas@gmail.com', 'Yapacani - Comunidad Nueva Esperanza', '2020-02-18', 0, 'Manejo de limones, experta en injertos', 1);
+INSERT INTO Agricultores (nombre, apellido, identificacion, telefono, correo, direccion, fecha_registro, es_propietario,  activo)
+VALUES ('Ana', 'Rojas', '6123458', '73214569', 'arojas@gmail.com', 'Yapacani - Comunidad Nueva Esperanza', '2020-02-18', 0, 1);
 
 -- Insertar parcelas
-INSERT INTO Parcelas (id_agricultor, nombre, ubicacion, area_total, coordenadas_gps, tipo_suelo, fuente_agua, fecha_adquisicion, precio_adquisicion, notas, activo)
-VALUES (1, 'Parcela Principal', 'Yapacani km 10 vía a Santa Cruz', 12.5, '-17.4023,-63.8245', 'Franco Arcilloso', 'Río Yapacani', '2010-06-20', 85000.00, 'Primera parcela adquirida, cultivo principal de naranjas', 1);
+INSERT INTO Parcelas (id_agricultor, nombre, ubicacion, area_total, coordenadas_gps, tipo_suelo, fuente_agua, fecha_adquisicion, precio_adquisicion, activo)
+VALUES (1, 'Parcela Principal', 'Yapacani km 10 vía a Santa Cruz', 12.5, '-17.4023,-63.8245', 'Franco Arcilloso', 'Río Yapacani', '2010-06-20', 85000.00, 1);
 
-INSERT INTO Parcelas (id_agricultor, nombre, ubicacion, area_total, coordenadas_gps, tipo_suelo, fuente_agua, fecha_adquisicion, precio_adquisicion, notas, activo)
-VALUES (2, 'Lote Norte', 'Yapacani km 12 desvío a Buena Vista', 8.3, '-17.3856,-63.8123', 'Franco Arenoso', 'Canal de riego comunitario', '2015-08-14', 62000.00, 'Dedicado principalmente a mandarinas', 1);
+INSERT INTO Parcelas (id_agricultor, nombre, ubicacion, area_total, coordenadas_gps, tipo_suelo, fuente_agua, fecha_adquisicion, precio_adquisicion, activo)
+VALUES (2, 'Lote Norte', 'Yapacani km 12 desvío a Buena Vista', 8.3, '-17.3856,-63.8123', 'Franco Arenoso', 'Canal de riego comunitario', '2015-08-14', 62000.00, 1);
 
-INSERT INTO Parcelas (id_agricultor, nombre, ubicacion, area_total, coordenadas_gps, tipo_suelo, fuente_agua, fecha_adquisicion, precio_adquisicion, notas, activo)
-VALUES (2, 'Lote El Limonal', 'Yapacani km 8 sector El Naranjal', 5.2, '-17.4125,-63.8345', 'Franco', 'Pozo profundo', '2018-03-10', 45000.00, 'Especializado en limones', 1);
-
+INSERT INTO Parcelas (id_agricultor, nombre, ubicacion, area_total, coordenadas_gps, tipo_suelo, fuente_agua, fecha_adquisicion, precio_adquisicion, activo)
+VALUES (2, 'Lote El Limonal', 'Yapacani km 8 sector El Naranjal', 5.2, '-17.4125,-63.8345', 'Franco', 'Pozo profundo', '2018-03-10', 45000.00, 1);
 
 3-- Tipos de Cultivo (actualizados para Yapacani)
 INSERT INTO TiposCultivo (nombre, nombre_cientifico, tiempo_cosecha_min, tiempo_cosecha_max, activo)
@@ -182,15 +181,15 @@ VALUES ('Cancelada', 'Venta cancelada', 1);
 
 
 8. Ciclos de producción
--- Insertar ciclos de producción
-INSERT INTO CiclosProduccion (id_parcela, id_variedad, nombre_ciclo, fecha_inicio, fecha_siembra, fecha_cosecha_estimada, fecha_cosecha_real, area_sembrada, densidad_siembra, estado, notas, activo)
-VALUES (1, 1, 'Naranja Valencia 2023', '2023-01-15', '2023-01-20', '2023-12-15', NULL, 4.5, 400, 'En Desarrollo', 'Ciclo con buen desarrollo, fertilización reforzada en marzo', 1);
+---- Insertar ciclos de producción
+INSERT INTO CiclosProduccion (id_parcela, id_variedad, fecha_siembra, fecha_cosecha_estimada, fecha_cosecha_real, area_sembrada, densidad_siembra, estado, activo, fecha_floracion, fecha_poda, fecha_limpieza, frecuencia_limpieza)
+VALUES (1, 1, '2023-01-20', '2023-12-15', NULL, 4.5, 400, 'En Desarrollo', 1, '2023-03-15', '2023-01-05', '2023-02-10', 30);
 
-INSERT INTO CiclosProduccion (id_parcela, id_variedad, nombre_ciclo, fecha_inicio, fecha_siembra, fecha_cosecha_estimada, fecha_cosecha_real, area_sembrada, densidad_siembra, estado, notas, activo)
-VALUES (2, 3, 'Mandarina Clementina 2023', '2023-02-10', '2023-02-15', '2023-10-20', NULL, 3.2, 450, 'En Desarrollo', 'Ciclo con problemas iniciales de pulgón, controlado en abril', 1);
+INSERT INTO CiclosProduccion (id_parcela, id_variedad, fecha_siembra, fecha_cosecha_estimada, fecha_cosecha_real, area_sembrada, densidad_siembra, estado, activo, fecha_floracion, fecha_poda, fecha_limpieza, frecuencia_limpieza)
+VALUES (2, 3, '2023-02-15', '2023-10-20', NULL, 3.2, 450, 'En Desarrollo', 1, '2023-04-10', '2023-01-25', '2023-03-05', 45);
 
-INSERT INTO CiclosProduccion (id_parcela, id_variedad, nombre_ciclo, fecha_inicio, fecha_siembra, fecha_cosecha_estimada, fecha_cosecha_real, area_sembrada, densidad_siembra, estado, notas, activo)
-VALUES (3, 5, 'Limón Tahití 2023', '2023-03-05', '2023-03-10', '2023-09-15', NULL, 2.8, 500, 'En Desarrollo', 'Desarrollo acelerado por lluvias tempranas', 1);
+INSERT INTO CiclosProduccion (id_parcela, id_variedad, fecha_siembra, fecha_cosecha_estimada, fecha_cosecha_real, area_sembrada, densidad_siembra, estado, activo, fecha_floracion, fecha_poda, fecha_limpieza, frecuencia_limpieza)
+VALUES (3, 5, '2023-03-10', '2023-09-15', NULL, 2.8, 500, 'En Desarrollo', 1, '2023-05-05', '2023-02-20', '2023-04-15', 30);
 
 
 9. Clientes
