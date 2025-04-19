@@ -1,6 +1,7 @@
 # Base de datos donde se concetas las tablas de: usuarios, roles
 import pyodbc
 import logging
+from bd_connection import DatabaseConnection
 from datetime import datetime
 
 # Configurar logging
@@ -8,7 +9,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger('bd_usuario_roles')
 
 class GestorUsuariosRoles:
-    def __init__(self, server="DESKTOP-HOE6AHT\\SQLEXPRESS", database="Produccion_Citricos", trusted_connection=True):
+    def __init__(self, server=None, database=None, trusted_connection=True):
         """
         Inicializa la conexión a la base de datos SQL Server.
         
@@ -18,14 +19,11 @@ class GestorUsuariosRoles:
             trusted_connection (bool): Usar autenticación de Windows (True) o SQL Server (False).
         """
         try:
-            self.connection_string = f"DRIVER={{SQL Server}};SERVER={server};DATABASE={database};"
             
-            if trusted_connection:
-                self.connection_string += "Trusted_Connection=yes;"
+            if server and database:
+                self.db = DatabaseConnection(server, database, trusted_connection)
             else:
-                # Si necesitas usar autenticación de SQL Server, añade usuario y contraseña
-                # self.connection_string += "UID=tu_usuario;PWD=tu_contraseña;"
-                pass
+                self.db =DatabaseConnection()
                 
             # Probar la conexión al iniciar
             self.test_connection()
@@ -37,7 +35,7 @@ class GestorUsuariosRoles:
     def test_connection(self):
         """Prueba la conexión a la base de datos."""
         try:
-            with pyodbc.connect(self.connection_string) as conn:
+            with self.db.get_connection() as conn:
                 pass
         except Exception as e:
             logger.error(f"Error al probar la conexión: {str(e)}")
@@ -51,7 +49,7 @@ class GestorUsuariosRoles:
             list: Lista de diccionarios con la información de cada usuario.
         """
         try:
-            with pyodbc.connect(self.connection_string) as conn:
+            with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 
                 query = """
@@ -101,7 +99,7 @@ class GestorUsuariosRoles:
             list: Lista de diccionarios con la información de cada rol.
         """
         try:
-            with pyodbc.connect(self.connection_string) as conn:
+            with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 
                 query = """
@@ -194,7 +192,7 @@ class GestorUsuariosRoles:
             int: ID del usuario agregado o None en caso de error.
         """
         try:
-            with pyodbc.connect(self.connection_string) as conn:
+            with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 
                 query = """
@@ -243,7 +241,7 @@ class GestorUsuariosRoles:
             bool: True si se actualizó correctamente, False en caso contrario.
         """
         try:
-            with pyodbc.connect(self.connection_string) as conn:
+            with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 
                 # Construir la consulta de actualización dinámicamente
@@ -308,7 +306,7 @@ class GestorUsuariosRoles:
         Elimina un usuario de la base de datos.
         """
         try:
-            with pyodbc.connect(self.connection_string) as conn:
+            with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 
                 query = "DELETE FROM Usuarios WHERE id_usuario = ?"
@@ -325,7 +323,7 @@ class GestorUsuariosRoles:
     def desactivar_usuario(self, id_usuario):
             """Desactiva un usuario en lugar de eliminarlo físicamente."""
             try:
-                with pyodbc.connect(self.connection_string) as conn:
+                with self.db.get_connection() as conn:
                     cursor = conn.cursor()
                     
                     query = "UPDATE Usuarios SET activo = 0 WHERE id_usuario = ?"
@@ -351,7 +349,7 @@ class GestorUsuariosRoles:
             int: ID del rol agregado o None en caso de error.
         """
         try:
-            with pyodbc.connect(self.connection_string) as conn:
+            with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 
                 query = """

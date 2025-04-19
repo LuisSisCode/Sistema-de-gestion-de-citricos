@@ -1,5 +1,5 @@
 import QtQuick 2.15
-import QtQuick.Controls 2.15
+import QtQuick.Controls.Universal 2.15
 import QtQuick.Layouts 1.15
 
 Rectangle {
@@ -740,10 +740,8 @@ Dialog {
     height: 420
     x: (parent.width - width) / 2
     y: (parent.height - height) / 2
-    
-    // Inicializar la propiedad con un objeto vacío
     property var usuarioEditando: null
-    
+  
     // Método para preparar el diálogo antes de abrirlo
     function prepararEdicion(usuario) {
         // Crear una copia del objeto usuario para editar
@@ -976,7 +974,7 @@ Dialog {
         txtEditUsuario.text = "";
         txtEditCorreo.text = "";
         mensajeValidacionEdit.text = "";
-    }
+    }    
 }   
     // Componente para mostrar mensajes
     Rectangle {
@@ -1024,5 +1022,6 @@ Dialog {
         var yyyy = today.getFullYear();
         return dd + '/' + mm + '/' + yyyy;
         }
+
     }    
 

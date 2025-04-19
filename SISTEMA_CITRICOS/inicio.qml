@@ -1,5 +1,5 @@
 import QtQuick 2.15
-import QtQuick.Controls 2.15
+import QtQuick.Controls.Universal 2.15
 import QtQuick.Layouts 1.15
 
 // Este archivo SOLO contiene el contenido del dashboard (pantalla de inicio)
@@ -12,6 +12,8 @@ Item {
         radius: 10
         color: "#FFFFFF"
 
+        property string text: ""
+        property string subtext: ""
         property string title: ""
         property string value: ""
         property string valueUnit: ""
@@ -146,7 +148,7 @@ Item {
 
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: parent.text
+                text:parent.text || "" 
                 font.family: "Arial"
                 font.pixelSize: 20
                 color: "#424242"
@@ -154,7 +156,7 @@ Item {
 
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: parent.subtext
+                text: parent.subtext || ""
                 font.family: "Arial"
                 font.pixelSize: 12
                 color: "#757575"

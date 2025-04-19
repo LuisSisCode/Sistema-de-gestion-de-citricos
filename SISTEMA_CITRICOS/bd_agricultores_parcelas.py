@@ -1,6 +1,7 @@
 # Base de datos donde se conectan las tablas de: agricultores, parcelas
 import pyodbc
 import logging
+from bd_connection import DatabaseConnection
 from datetime import datetime
 
 # Configurar logging
@@ -8,7 +9,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger('bd_agricultores_parcelas')
 
 class GestorAgricultoresParcelas:
-    def __init__(self, server="DESKTOP-HOE6AHT\\SQLEXPRESS", database="Produccion_Citricos", trusted_connection=True):
+    def __init__(self, server=None, database=None, trusted_connection=True):
         """
         Inicializa la conexión a la base de datos SQL Server.
         
@@ -18,29 +19,15 @@ class GestorAgricultoresParcelas:
             trusted_connection (bool): Usar autenticación de Windows (True) o SQL Server (False).
         """
         try:
-            self.connection_string = f"DRIVER={{SQL Server}};SERVER={server};DATABASE={database};"
-            
-            if trusted_connection:
-                self.connection_string += "Trusted_Connection=yes;"
+            # Usamos la clase DatabaseConnection para obtener la conexión
+            if server and database:
+                self.db = DatabaseConnection(server, database, trusted_connection)
             else:
-                # Si necesitas usar autenticación de SQL Server, añade usuario y contraseña
-                # self.connection_string += "UID=tu_usuario;PWD=tu_contraseña;"
-                pass
+                self.db = DatabaseConnection()  # Utiliza valores predeterminados
                 
-            # Probar la conexión al iniciar
-            self.test_connection()
             logger.info("Conexión a la base de datos establecida correctamente.")
         except Exception as e:
             logger.error(f"Error al establecer la conexión a la base de datos: {str(e)}")
-            raise
-
-    def test_connection(self):
-        """Prueba la conexión a la base de datos."""
-        try:
-            with pyodbc.connect(self.connection_string) as conn:
-                pass
-        except Exception as e:
-            logger.error(f"Error al probar la conexión: {str(e)}")
             raise
 
     def obtener_agricultores(self):
@@ -51,7 +38,7 @@ class GestorAgricultoresParcelas:
             list: Lista de diccionarios con la información de cada agricultor.
         """
         try:
-            with pyodbc.connect(self.connection_string) as conn:
+            with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 
                 query = """
@@ -105,7 +92,7 @@ class GestorAgricultoresParcelas:
             list: Lista de diccionarios con la información de cada parcela.
         """
         try:
-            with pyodbc.connect(self.connection_string) as conn:
+            with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 
                 query = """
@@ -169,7 +156,7 @@ class GestorAgricultoresParcelas:
             list: Lista de diccionarios con la información de cada propietario.
         """
         try:
-            with pyodbc.connect(self.connection_string) as conn:
+            with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 
                 query = """
@@ -206,7 +193,7 @@ class GestorAgricultoresParcelas:
             tuple: (bool, int) - Éxito de la operación y ID del agricultor agregado.
         """
         try:
-            with pyodbc.connect(self.connection_string) as conn:
+            with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 
                 query = """
@@ -256,7 +243,7 @@ class GestorAgricultoresParcelas:
             bool: True si se actualizó correctamente, False en caso contrario.
         """
         try:
-            with pyodbc.connect(self.connection_string) as conn:
+            with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 
                 # Construir la consulta de actualización dinámicamente
@@ -328,7 +315,7 @@ class GestorAgricultoresParcelas:
         """
         try:
             # Primero verificamos si el agricultor tiene parcelas asociadas
-            with pyodbc.connect(self.connection_string) as conn:
+            with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 
                 query_check = "SELECT COUNT(*) FROM Parcelas WHERE id_agricultor = ?"
@@ -362,7 +349,7 @@ class GestorAgricultoresParcelas:
             bool: True si se desactivó correctamente, False en caso contrario.
         """
         try:
-            with pyodbc.connect(self.connection_string) as conn:
+            with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 
                 query = "UPDATE Agricultores SET activo = 0 WHERE id_agricultor = ?"
@@ -387,7 +374,7 @@ class GestorAgricultoresParcelas:
             tuple: (bool, int) - Éxito de la operación y ID de la parcela agregada.
         """
         try:
-            with pyodbc.connect(self.connection_string) as conn:
+            with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 
                 query = """
