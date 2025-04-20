@@ -124,6 +124,7 @@ class UsuariosRolesModel(QObject):
         except Exception as e:
             print(f"Error al agregar rol: {str(e)}")
             return False
+        
     @Slot(int, list, result=bool)
     def guardarPermisos(self, id_rol, permisos_actualizados):
         """Guarda los permisos actualizados para un rol específico"""

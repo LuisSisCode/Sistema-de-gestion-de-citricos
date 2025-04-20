@@ -5,7 +5,8 @@ from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
 
 from usuario_roles_model import UsuariosRolesModel
-from agricultores_parcelas_model import GestorAgricultoresParcelas # Importamos el nuevo modelo
+from agricultores_parcelas_model import AgricultoresParcelas
+
 os.environ["QT_LOGGING_RULES"] = "*.debug=false"
 
 class ModuleManager(QObject):
@@ -124,7 +125,7 @@ def main():
     engine.rootContext().setContextProperty("usuariosRolesModel", usuario_roles_model)
     
     # Crear y registrar el modelo de agricultores y parcelas
-    agricultores_parcelas_model = GestorAgricultoresParcelas()
+    agricultores_parcelas_model = AgricultoresParcelas()
     engine.rootContext().setContextProperty("agricultoresparcelas", agricultores_parcelas_model)
     
     # Imprimir el directorio de trabajo actual (útil para depuración)

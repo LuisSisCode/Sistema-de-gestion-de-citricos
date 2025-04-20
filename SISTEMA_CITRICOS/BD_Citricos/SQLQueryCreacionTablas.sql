@@ -35,7 +35,6 @@ CREATE TABLE Agricultores (
     direccion VARCHAR(200) NULL,
     fecha_registro DATE NOT NULL,
     es_propietario BIT NOT NULL DEFAULT 0,
-    notas TEXT NULL,
     activo BIT NOT NULL DEFAULT 1
 );
 
@@ -51,7 +50,6 @@ CREATE TABLE Parcelas (
     fuente_agua VARCHAR(100) NULL,
     fecha_adquisicion DATE NULL,
     precio_adquisicion DECIMAL(12,2) NULL,
-    notas TEXT NULL,
     activo BIT NOT NULL DEFAULT 1,
     CONSTRAINT FK_Parcelas_Agricultores FOREIGN KEY (id_agricultor) REFERENCES Agricultores(id_agricultor)
 );

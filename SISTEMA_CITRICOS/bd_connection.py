@@ -88,18 +88,3 @@ class DatabaseConnection:
         """
         return self.connection_string
 
-# Ejemplo de uso
-if __name__ == "__main__":
-    # Prueba la conexión
-    try:
-        db = DatabaseConnection()
-        print("Conexión exitosa a la base de datos.")
-        
-        # Puedes probar una consulta simple
-        with db.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT @@VERSION")
-            row = cursor.fetchone()
-            print(f"Versión del servidor: {row[0]}")
-    except Exception as e:
-        print(f"Error al conectar a la base de datos: {str(e)}")

@@ -6,28 +6,61 @@ Rectangle {
     id: agricultorerParcelaRoot
     anchors.fill: parent
     color: "#F8F9FA"
-    property var agricultoresparcelas: null  
+    property var agricultoresparcelas  
     // Propiedades para la edición de agricultores
-    property var nuevoAgricultor: { 
-        "agricultorId": "", 
+    property var nuevoAgricultor: {  
         "nombre": "", 
         "apellido": "", 
         "identificacion": "", 
         "telefono": "", 
-        "correo": "", 
-        "esPropietario": false 
+        "correo": "",
+        "direccion": "",
+        "esPropietario": false
+
     }
     
     // Propiedades para la edición de parcelas
     property var nuevaParcela: {
-        "parcelaId": "",
         "nombre": "",
         "propietario": "",
         "ubicacion": "",
         "area": 0,
         "porcentajeUso": 0
     }
-
+    
+    Component.onCompleted: {
+        console.log("Modelo disponible:", agricultoresparcelas !== null)
+        if (agricultoresparcelas) {
+            console.log("Tipo de agricultoresparcelas.agricultores:", typeof agricultoresparcelas.agricultores)
+            console.log("Es array:", Array.isArray(agricultoresparcelas.agricultores))
+            
+            if (agricultoresparcelas.agricultores) {
+                console.log("Número de agricultores:", agricultoresparcelas.agricultores.length)
+                if (agricultoresparcelas.agricultores.length > 0) {
+                    console.log("Primer agricultor:", JSON.stringify(agricultoresparcelas.agricultores[0]))
+                }
+            }
+            
+            // Cargar explícitamente los datos
+            agricultoresparcelas.cargar_agricultores()
+            agricultoresparcelas.cargar_parcelas()
+            agricultoresparcelas.cargar_propietarios()
+        }
+    }
+    
+    Connections {
+        target: agricultoresparcelas
+        function onAgricultoresChanged() {
+            console.log("Agricultores actualizados:", agricultoresparcelas.agricultores.length)
+        }
+        function onParcelasChanged() {
+            console.log("Parcelas actualizadas:", agricultoresparcelas.parcelas.length)
+        }
+        function onPropietariosChanged() {
+            console.log("Propietarios actualizados:", agricultoresparcelas.propietarios.length)
+        }
+    }
+    
     // Título de la página
     Rectangle {
         id: titleBar
@@ -148,13 +181,13 @@ Rectangle {
                         }
                         onClicked: {
                             // Inicializa los valores para el nuevo agricultor
-                            nuevoAgricultor = { 
-                                "agricultorId": "", 
+                            nuevoAgricultor = {  
                                 "nombre": "", 
                                 "apellido": "", 
                                 "identificacion": "", 
                                 "telefono": "", 
-                                "correo": "", 
+                                "correo": "",
+                                "direccion": "", 
                                 "esPropietario": false 
                             }
                             
@@ -191,7 +224,10 @@ Rectangle {
                     anchors.fill: parent
                     anchors.margins: 1
                     clip: true
-                    model: agricultoresparcelas ? agricultoresparcelas.agricultoresModel : null
+                    model: agricultoresparcelas ? agricultoresparcelas.agricultores : []
+                    onModelChanged: {
+                        console.log("Modelo de agricultores cambiado, elementos:", model ? model.length : 0)
+                    }        
                     headerPositioning: ListView.OverlayHeader
 
                     // Cabecera de la tabla
@@ -214,7 +250,7 @@ Rectangle {
                             }
 
                             Text {
-                                width: parent.width * 0.25
+                                width: parent.width * 0.20
                                 height: parent.height
                                 text: "Nombre Completo"
                                 font.bold: true
@@ -223,7 +259,7 @@ Rectangle {
                             }
 
                             Text {
-                                width: parent.width * 0.15
+                                width: parent.width * 0.10
                                 height: parent.height
                                 text: "Identificación"
                                 font.bold: true
@@ -232,7 +268,7 @@ Rectangle {
                             }
 
                             Text {
-                                width: parent.width * 0.15
+                                width: parent.width * 0.10
                                 height: parent.height
                                 text: "Teléfono"
                                 font.bold: true
@@ -241,7 +277,7 @@ Rectangle {
                             }
 
                             Text {
-                                width: parent.width * 0.25
+                                width: parent.width * 0.20
                                 height: parent.height
                                 text: "Correo"
                                 font.bold: true
@@ -251,6 +287,15 @@ Rectangle {
 
                             Text {
                                 width: parent.width * 0.15
+                                height: parent.height
+                                text: "Direcciones"
+                                font.bold: true
+                                verticalAlignment: Text.AlignVCenter
+                                leftPadding: 10
+                            }
+
+                            Text {
+                                width: parent.width * 0.10
                                 height: parent.height
                                 text: "Acciones"
                                 font.bold: true
@@ -279,7 +324,7 @@ Rectangle {
                                 
                                 Text {
                                     anchors.centerIn: parent
-                                    text: agricultorId
+                                    text: modelData.id_agricultor 
                                     verticalAlignment: Text.AlignVCenter
                                     horizontalAlignment: Text.AlignHCenter
                                 }
@@ -295,7 +340,7 @@ Rectangle {
                                     anchors.verticalCenter: parent.verticalCenter
                                     anchors.left: parent.left
                                     anchors.leftMargin: 10
-                                    text: nombre + " " + apellido
+                                    text: modelData.nombre + " " + modelData.apellido
                                     elide: Text.ElideRight
                                     width: parent.width - 20
                                 }
@@ -311,7 +356,7 @@ Rectangle {
                                     anchors.verticalCenter: parent.verticalCenter
                                     anchors.left: parent.left
                                     anchors.leftMargin: 10
-                                    text: identificacion
+                                    text: modelData.identificacion
                                     elide: Text.ElideRight
                                     width: parent.width - 20
                                 }
@@ -327,7 +372,7 @@ Rectangle {
                                     anchors.verticalCenter: parent.verticalCenter
                                     anchors.left: parent.left
                                     anchors.leftMargin: 10
-                                    text: telefono
+                                    text: modelData.telefono
                                     elide: Text.ElideRight
                                     width: parent.width - 20
                                 }
@@ -343,11 +388,28 @@ Rectangle {
                                     anchors.verticalCenter: parent.verticalCenter
                                     anchors.left: parent.left
                                     anchors.leftMargin: 10
-                                    text: correo
+                                    text: modelData.correo
                                     elide: Text.ElideRight
                                     width: parent.width - 20
                                 }
                             }
+
+                            // Columna Direccion
+                            Rectangle {
+                                width: parent.width * 0.25
+                                height: parent.height
+                                color: "transparent"
+                                
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: 10
+                                    text: modelData.direccion
+                                    elide: Text.ElideRight
+                                    width: parent.width - 20
+                                }
+                            }
+                            
 
                             // Columna Acciones
                             Rectangle {
@@ -378,8 +440,8 @@ Rectangle {
                                         ToolTip.text: "Eliminar"
                                         onClicked: {
                                             // Mostrar diálogo de confirmación de eliminación
-                                            confirmDeleteAgricultorDialog.agricultorId = agricultorId
-                                            confirmDeleteAgricultorDialog.nombreAgricultor = nombre + " " + apellido
+                                            confirmDeleteAgricultorDialog.agricultorId = modelData.id_agricultor
+                                            confirmDeleteAgricultorDialog.nombreAgricultor = modelData.nombre + " " + modelData.apellido
                                             confirmDeleteAgricultorDialog.open()
                                         }
                                     }
@@ -395,7 +457,7 @@ Rectangle {
                         color: "#757575"
                         font.pixelSize: 14
                         horizontalAlignment: Text.AlignHCenter
-                        visible: agricultoresModel.count === 0
+                        visible: agricultoresparcelas && agricultoresparcelas.agricultores && agricultoresparcelas.agricultores.length === 0
                     }
                 }
             }
@@ -456,6 +518,24 @@ Rectangle {
                         model: ["Todos los agricultores"]
                         implicitWidth: 200
                         implicitHeight: 36
+
+                        Connections {
+                            target: agricultoresparcelas
+
+                            function onAgricultoresChanged() {
+                                console.log("Agricultores actualizados");
+                                // Actualizar UI aquí
+                            }
+
+                            function onParcelasChanged() {
+                                console.log("Parcelas actualizadas");
+                            }
+
+                            function onPropietariosChanged() {
+                                console.log("Propietarios actualizados");
+                                cmbPropietario.model = obtenerPropietariosModel();
+                            }
+                        }
                     }
                 }
             }
@@ -468,7 +548,10 @@ Rectangle {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 clip: true
-                model: agricultoresparcelas ? agricultoresparcelas.parcelasModel : null
+                model: agricultoresparcelas ? agricultoresparcelas.parcelas : []
+                onModelChanged: {
+                    console.log("Modelo de parcelas cambiado, elementos:", model ? model.length : 0)
+                }
                 cellWidth: width / 3
                 cellHeight: 200
                 
@@ -479,7 +562,7 @@ Rectangle {
                     color: "#757575"
                     font.pixelSize: 14
                     horizontalAlignment: Text.AlignHCenter
-                    visible: parcelasModel.count === 0
+                    visible: agricultoresparcelas && agricultoresparcelas.parcelas && agricultoresparcelas.parcelas.length === 0
                 }
 
                 delegate: Rectangle {
@@ -496,7 +579,7 @@ Rectangle {
 
                         // Título de la parcela
                         Text {
-                            text: nombre
+                            text: modelData.nombre
                             font.pixelSize: 16
                             font.bold: true
                             Layout.fillWidth: true
@@ -514,7 +597,7 @@ Rectangle {
                             }
 
                             Text {
-                                text: propietario
+                                text: modelData.propietario
                                 font.pixelSize: 12
                             }
                         }
@@ -531,7 +614,7 @@ Rectangle {
                             }
 
                             Text {
-                                text: ubicacion
+                                text: modelData.ubicacion
                                 font.pixelSize: 12
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
@@ -550,7 +633,7 @@ Rectangle {
                             }
 
                             Text {
-                                text: area + " hectáreas"
+                                text: modelData.area + " hectáreas"
                                 font.pixelSize: 12
                             }
                         }
@@ -563,7 +646,7 @@ Rectangle {
                             radius: 10
 
                             Rectangle {
-                                width: parent.width * porcentajeUso / 100
+                                width: parent.width * modelData.porcentajeUso / 100
                                 height: parent.height
                                 color: "#2E7D32"
                                 radius: 10
@@ -571,7 +654,7 @@ Rectangle {
 
                             Text {
                                 anchors.centerIn: parent
-                                text: porcentajeUso + "% en uso"
+                                text: modelData.porcentajeUso + "% en uso"
                                 font.pixelSize: 10
                                 color: "white"
                             }
@@ -657,9 +740,11 @@ Rectangle {
         title: "Nuevo Agricultor"
         modal: true
         width: 500
-        height: 450
+        height: 520
+        property bool isEditMode: false
         x: (parent.width - width) / 2
         y: (parent.height - height) / 2
+        
         
         // Contenido del diálogo
         contentItem: Rectangle {
@@ -781,15 +866,6 @@ Rectangle {
                         readOnly: true
                         text: getFormattedDate() // Llamamos a la función para obtener la fecha formateada
                     }
-                    
-                    // Función para formatear la fecha
-                    function getFormattedDate() {
-                        var today = new Date();
-                        var dd = String(today.getDate()).padStart(2, '0');
-                        var mm = String(today.getMonth() + 1).padStart(2, '0'); // Los meses empiezan en 0
-                        var yyyy = today.getFullYear();
-                        return dd + '/' + mm + '/' + yyyy;
-                    }
                 }
                 
                 // Espacio adicional
@@ -846,8 +922,12 @@ Rectangle {
                             return;
                         }
                     }
-                    
-                    guardarNuevoAgricultor();
+                    // Verificar si está en modo edición o creación
+                    if (dialogNuevoAgricultor.isEditMode) {
+                        editarAgricultor();
+                    } else {
+                        guardarNuevoAgricultor();
+                    }
                 }
             }
         }
@@ -861,16 +941,17 @@ Rectangle {
             txtCorreo.text = ""
             chkPropietario.checked = false
             mensajeValidacionAgricultor.text = ""
+            isEditMode = false
+            title = "Nuevo Agricultor"  // Restaurar el título original
         }
     }
-    
     // DIÁLOGO DE NUEVA PARCELA
     Dialog {
         id: dialogNuevaParcela
         title: "Nueva Parcela"
         modal: true
         width: 500
-        height: 450
+        height: 600
         x: (parent.width - width) / 2
         y: (parent.height - height) / 2
         
@@ -920,9 +1001,14 @@ Rectangle {
                     
                     ComboBox {
                         id: cmbPropietario
-                        Layout.fillWidth: true
-                        model: obtenerPropietariosModel()
-                        onCurrentTextChanged: nuevaParcela.propietario = currentText
+                        model: agricultoresparcelas ? agricultoresparcelas.propietarios : []
+                        textRole: "nombre"
+                        
+                        // Actualizar cuando cambien los propietarios
+                        Connections {
+                            target: agricultoresparcelas
+                            onPropietariosChanged: cmbPropietario.model = agricultoresparcelas.propietarios
+                        }
                     }
                     
                     // Ubicación
@@ -990,16 +1076,6 @@ Rectangle {
                         Layout.fillWidth: true
                         readOnly: true
                         text: getFormattedDate() // Llamamos a la función para obtener la fecha formateada
-                    }
-                    
-                    // Función para formatear la fecha
-
-                    function getFormattedDate() {
-                        var today = new Date();
-                        var dd = String(today.getDate()).padStart(2, '0');
-                        var mm = String(today.getMonth() + 1).padStart(2, '0'); // Los meses empiezan en 0
-                        var yyyy = today.getFullYear();
-                        return dd + '/' + mm + '/' + yyyy;
                     }
                     
                     // Descripción
@@ -1079,12 +1155,14 @@ Rectangle {
             mensajeValidacionParcela.text = ""
         }
     }
-    
+
     // DIÁLOGO DE CONFIRMACIÓN PARA ELIMINAR AGRICULTOR
     Dialog {
         id: confirmDeleteAgricultorDialog
         title: "Confirmar eliminación"
         modal: true
+        width: 400  
+        height: 200
         
         property int agricultorId: -1
         property string nombreAgricultor: ""
@@ -1140,7 +1218,7 @@ Rectangle {
         }
         
         onAccepted: {
-            var exito = agricultoresparcelas.eliminar_agricultor(agricultorId);
+            var exito = agricultoresparcelas.eliminar_agricultor(confirmDeleteAgricultorDialog.agricultorId);
             if (exito) {
                 showMessage("Agricultor eliminado correctamente")
             } else {
@@ -1148,18 +1226,7 @@ Rectangle {
             }
         }     
     }
-    
-    // Modelos de datos vacíos
-    ListModel {
-        id: agricultoresModel
-        // Se agregarán elementos cuando el usuario los cree
-    }
 
-    ListModel {
-        id: parcelasModel
-        // Se agregarán elementos cuando el usuario los cree
-    }
-    
     // Componente para mostrar mensajes
     Rectangle {
         id: messageToast
@@ -1190,40 +1257,49 @@ Rectangle {
             interval: 3000
             onTriggered: messageToast.visible = false
         }
-    }
+
+    } 
     function obtenerPropietariosModel() {
-        var propietariosArray = [];
-        if (agricultoresparcelas && agricultoresparcelas.propietarios) {
-            for (var i = 0; i < agricultoresparcelas.propietarios.length; i++) {
-                propietariosArray.push(agricultoresparcelas.propietarios[i].nombre);
-            }
-        }
-        return propietariosArray;
-    }
-
-    function guardarNuevoAgricultor() {
-        var agricultor_json = JSON.stringify(nuevoAgricultor);
-        var exito = agricultoresparcelas.agregar_agricultor(agricultor_json);
-        
-        if (exito) {
-            showMessage("Agricultor guardado correctamente");
-            dialogNuevoAgricultor.close();
-        } else {
-            mensajeValidacionAgricultor.text = "Error al guardar el agricultor";
-        }
-    }
-
-    function guardarNuevaParcela() {
-        // Buscar el id del propietario seleccionado
-        var propietarioId = -1;
-        if (agricultoresparcelas && agricultoresparcelas.propietarios) {
-            for (var i = 0; i < agricultoresparcelas.propietarios.length; i++) {
-                if (agricultoresparcelas.propietarios[i].nombre === cmbPropietario.currentText) {
-                    propietarioId = agricultoresparcelas.propietarios[i].id;
-                    break;
+            var propietariosArray = [];
+            if (agricultoresparcelas && agricultoresparcelas.propietarios) {
+                for (var i = 0; i < agricultoresparcelas.propietarios.length; i++) {
+                    propietariosArray.push({
+                    id: agricultoresparcelas.propietarios[i].id,
+                    text: agricultoresparcelas.propietarios[i].nombre
+                    });
                 }
             }
+            return propietariosArray;
         }
+
+        function guardarNuevoAgricultor() {
+            // Asegúrate de que nuevoAgricultor tenga todos los campos requeridos
+            nuevoAgricultor.fecha_registro = getFormattedDate();
+            // Asegúrate de que esPropietario sea booleano
+            nuevoAgricultor.esPropietario = nuevoAgricultor.esPropietario ? true : false;
+            
+            var agricultor_json = JSON.stringify(nuevoAgricultor);
+            var exito = agricultoresparcelas.agregar_agricultor(agricultor_json);
+            
+            if (exito) {
+                showMessage("Agricultor guardado correctamente");
+                dialogNuevoAgricultor.close();
+            } else {
+                mensajeValidacionAgricultor.text = "Error al guardar el agricultor";
+        }
+    }
+
+        function guardarNuevaParcela() {
+            // Buscar el id del propietario seleccionado
+            var propietarioId = -1;
+            if (agricultoresparcelas && agricultoresparcelas.propietarios) {
+                for (var i = 0; i < agricultoresparcelas.propietarios.length; i++) {
+                    if (agricultoresparcelas.propietarios[i].nombre === cmbPropietario.currentText) {
+                        propietarioId = agricultoresparcelas.propietarios[i].id;
+                        break;
+                    }
+                }
+            }
         
         nuevaParcela.propietarioId = propietarioId;
         var parcela_json = JSON.stringify(nuevaParcela);
@@ -1236,10 +1312,20 @@ Rectangle {
             mensajeValidacionParcela.text = "Error al guardar la parcela";
         }
     }   
+
     // Función para mostrar mensajes
     function showMessage(message) {
         messageToast.text = message
         messageToast.visible = true
         messageToastTimer.restart()
     }
+
+    // Función para formatear la fecha
+    function getFormattedDate() {
+        var today = new Date();
+        var dd = String(today.getDate()).padStart(2, '0');
+        var mm = String(today.getMonth() + 1).padStart(2, '0'); // Los meses empiezan en 0
+        var yyyy = today.getFullYear();
+        return dd + '/' + mm + '/' + yyyy;
+    } 
 }

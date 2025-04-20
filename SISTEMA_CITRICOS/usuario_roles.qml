@@ -668,6 +668,8 @@ Rectangle {
         id: confirmDeleteDialog
         title: "Confirmar eliminación"
         modal: true
+        width: 450
+        height: 200
         
         property int userId: -1
         

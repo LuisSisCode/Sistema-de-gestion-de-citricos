@@ -435,6 +435,11 @@ ApplicationWindow {
         asynchronous: true
         
         // El source se configurará desde Python cuando se haga clic en un botón del menú
+        onLoaded: {
+            if (item.hasOwnProperty("agricultoresparcelas")) {
+                item.agricultoresparcelas = agricultoresparcelas; // 👈 Pasar explícitamente
+            }
+        }
     }
 
     // COMPONENTE ADICIONAL: Modal para notificaciones

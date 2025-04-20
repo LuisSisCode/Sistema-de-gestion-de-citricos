@@ -1362,7 +1362,7 @@ Rectangle {
         title: "Nueva Variedad"
         modal: true
         width: 500
-        height: 450
+        height: 600
         x: (parent.width - width) / 2
         y: (parent.height - height) / 2
         

@@ -65,7 +65,7 @@ class GestorAgricultoresParcelas:
                                 fecha_registro = str(row.fecha_registro)
                     
                     agricultor = {
-                        'agricultorId': row.id_agricultor,
+                        'id_agricultor': row.id_agricultor,
                         'nombre': row.nombre,
                         'apellido': row.apellido,
                         'identificacion': row.identificacion,
@@ -199,12 +199,12 @@ class GestorAgricultoresParcelas:
                 query = """
                 INSERT INTO Agricultores (nombre, apellido, identificacion, telefono, 
                                       correo, direccion, fecha_registro, es_propietario, 
-                                      notas, activo)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                      activo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """
                 
                 # Configurar valores para la inserción
-                fecha_actual = datetime.now().date()
+                fecha_actual = datetime.now().date().strftime('%Y-%m-%d')
                 valores = (
                     agricultor_data['nombre'],
                     agricultor_data['apellido'],
@@ -214,7 +214,6 @@ class GestorAgricultoresParcelas:
                     agricultor_data.get('direccion'),
                     fecha_actual,
                     1 if agricultor_data.get('esPropietario', False) else 0,
-                    agricultor_data.get('notas'),
                     1  # Activo por defecto
                 )
                 
@@ -277,10 +276,6 @@ class GestorAgricultoresParcelas:
                 if 'esPropietario' in agricultor_data:
                     campos_actualizar.append("es_propietario = ?")
                     valores.append(1 if agricultor_data['esPropietario'] else 0)
-                    
-                if 'notas' in agricultor_data:
-                    campos_actualizar.append("notas = ?")
-                    valores.append(agricultor_data['notas'])
                     
                 if 'activo' in agricultor_data:
                     campos_actualizar.append("activo = ?")
@@ -385,7 +380,7 @@ class GestorAgricultoresParcelas:
                 """
                 
                 # Configurar valores para la inserción
-                fecha_actual = datetime.now().date()
+                fecha_actual = datetime.now().date().strftime('%Y-%m-%d')
                 valores = (
                     parcela_data['propietarioId'],
                     parcela_data['nombre'],
@@ -420,7 +415,7 @@ if __name__ == "__main__":
         agricultores = gestor.obtener_agricultores()
         print(f"Total de agricultores: {len(agricultores)}")
         for agricultor in agricultores:
-            print(f"ID: {agricultor['agricultorId']}, Nombre: {agricultor['nombre']} {agricultor['apellido']}, "
+            print(f"ID: {agricultor['id_agricultor']}, Nombre: {agricultor['nombre']} {agricultor['apellido']}, "
                   f"Identificación: {agricultor['identificacion']}, Es propietario: {'Sí' if agricultor['esPropietario'] else 'No'}")
             
         parcelas = gestor.obtener_parcelas()
