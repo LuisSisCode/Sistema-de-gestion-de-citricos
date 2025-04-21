@@ -12,31 +12,27 @@ Rectangle {
     // Propiedades para edición de tipos de cultivo
     property bool mostrarFilaEdicionTipo: false
     property var nuevoTipoCultivo: {
-        "tipoId": "", 
         "nombre": "", 
-        "nombreCientifico": "", 
-        "tiempoCosechaMin": 0,
-        "tiempoCosechaMax": 0,
-        "descripcion": ""
+        "nombre_cientifico": "", 
+        "tiempo_cosecha_min": 0,
+        "tiempo_cosecha_max": 0,
+        "descripcion": "",
+        "activo": true
     }
     
     // Propiedades para edición de variedades
     property var nuevaVariedad: {
-        "variedadId": "",
-        "tipo": "",
+        "id_tipo_cultivo": 1,
         "nombre": "",
-        "tiempoProduccion": 0,
-        "rendimiento": "",
-        "resistencia": "Media",
-        "resistenciaColor": "#FF9800"
+        "tiempo_produccion": 0,
+        "rendimiento_esperado": 0.0,
+        "resistencia_zona": "Media",
+        "activo": true
     }
 
     property var nuevoCiclo: {
-        "id_ciclo": -1,
         "id_parcela": 1,
-        "nombre_parcela": "",
         "id_variedad": 1,
-        "nombre_variedad": "",
         "fecha_siembra": "",
         "fecha_cosecha_estimada": "",
         "fecha_cosecha_real": "",
@@ -47,11 +43,46 @@ Rectangle {
         "fecha_floracion": "",
         "fecha_poda": "",
         "fecha_limpieza": "",
-        "frecuencia_limpieza_maleza": 1
+        "frecuencia_limpieza": 1
     }
     
     // Propiedades para el calendario
     property var fechaActual: new Date()
+    property var eventosPorFecha: ({})
+
+    // Al iniciar, cargar datos desde el modelo Python
+    Component.onCompleted: {
+        console.log("Cargando datos desde el modelo Python...")
+        cargarDatosIniciales()
+    }
+
+    function cargarDatosIniciales() {
+        console.log("Cargando datos iniciales...")
+        
+        // Primero cargar desde la base de datos
+        cultivos.cargar_tipos_cultivo()
+        cultivos.cargar_variedades()
+        cultivos.cargar_ciclos_produccion()
+        
+        // Luego actualizar los modelos locales inmediatamente
+        cargarTiposCultivo()
+        cargarVariedades()
+        cargarCiclosProduccion()
+        actualizarCalendario()
+    }
+
+    // Añade este Timer como propiedad en el componente principal
+    Timer {
+        id: cargarDatosTimer
+        interval: 500 // 500 ms de retraso
+        repeat: false
+        onTriggered: {
+            cargarTiposCultivo()
+            cargarVariedades()
+            cargarCiclosProduccion()
+            actualizarCalendario()
+        }
+    }
 
     // Título de la página
     Rectangle {
@@ -202,12 +233,12 @@ Rectangle {
                             onClicked: {
                                 // Inicializa los valores para el nuevo tipo de cultivo
                                 nuevoTipoCultivo = {
-                                    "tipoId": "",
                                     "nombre": "",
-                                    "nombreCientifico": "",
-                                    "tiempoCosechaMin": 0,
-                                    "tiempoCosechaMax": 0,
-                                    "descripcion": ""
+                                    "nombre_cientifico": "",
+                                    "tiempo_cosecha_min": 0,
+                                    "tiempo_cosecha_max": 0,
+                                    "descripcion": "",
+                                    "activo": true
                                 }
                                 
                                 // Mostrar panel de detalles limpio para agregar
@@ -218,6 +249,7 @@ Rectangle {
                     
                     // Campo de búsqueda
                     TextField {
+                        id: txtBuscarTipoCultivo
                         Layout.fillWidth: true
                         placeholderText: "Buscar tipo de cultivo..."
                         implicitHeight: 36
@@ -225,14 +257,16 @@ Rectangle {
                             color: "#b2c4c9"
                             radius: height / 2
                         }
+                        onTextChanged: filtrarTiposCultivo()
                     }
 
                     // Lista de tipos de cultivo
                     ListView {
+                        id: tiposCultivoListView
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         clip: true
-                        model: tiposCultivoModel
+                        model: ListModel { id: tiposCultivoModel }
                         spacing: 5
                         
                         delegate: Rectangle {
@@ -253,7 +287,7 @@ Rectangle {
                                 }
                                 
                                 Text {
-                                    text: nombreCientifico
+                                    text: nombre_cientifico || ""
                                     font.pixelSize: 12
                                     font.italic: true
                                     color: "#757575"
@@ -263,8 +297,9 @@ Rectangle {
                             MouseArea {
                                 anchors.fill: parent
                                 onClicked: {
-                                    parent.ListView.view.currentIndex = index
+                                    tiposCultivoListView.currentIndex = index
                                     mostrarFilaEdicionTipo = false
+                                    cargarDetallesTipoCultivo(model)
                                 }
                             }
                         }
@@ -322,7 +357,6 @@ Rectangle {
                             id: txtNombreTipo
                             Layout.fillWidth: true
                             placeholderText: "Nombre del tipo de cultivo"
-                            text: mostrarFilaEdicionTipo ? "" : (tiposCultivoModel.count > 0 ? tiposCultivoModel.get(tiposCultivoList.currentIndex).nombre : "")
                             onTextChanged: if (mostrarFilaEdicionTipo) nuevoTipoCultivo.nombre = text
                         }
                         
@@ -337,8 +371,7 @@ Rectangle {
                             Layout.fillWidth: true
                             placeholderText: "Nombre científico"
                             font.italic: true
-                            text: mostrarFilaEdicionTipo ? "" : (tiposCultivoModel.count > 0 ? tiposCultivoModel.get(tiposCultivoList.currentIndex).nombreCientifico : "")
-                            onTextChanged: if (mostrarFilaEdicionTipo) nuevoTipoCultivo.nombreCientifico = text
+                            onTextChanged: if (mostrarFilaEdicionTipo) nuevoTipoCultivo.nombre_cientifico = text
                         }
                         
                         // Tiempo de Cosecha Mínimo
@@ -352,8 +385,7 @@ Rectangle {
                             Layout.fillWidth: true
                             from: 0
                             to: 1000
-                            value: mostrarFilaEdicionTipo ? 0 : (tiposCultivoModel.count > 0 ? tiposCultivoModel.get(tiposCultivoList.currentIndex).tiempoCosechaMin : 0)
-                            onValueChanged: if (mostrarFilaEdicionTipo) nuevoTipoCultivo.tiempoCosechaMin = value
+                            onValueChanged: if (mostrarFilaEdicionTipo) nuevoTipoCultivo.tiempo_cosecha_min = value
                         }
                         
                         // Tiempo de Cosecha Máximo
@@ -367,8 +399,7 @@ Rectangle {
                             Layout.fillWidth: true
                             from: 0
                             to: 1000
-                            value: mostrarFilaEdicionTipo ? 0 : (tiposCultivoModel.count > 0 ? tiposCultivoModel.get(tiposCultivoList.currentIndex).tiempoCosechaMax : 0)
-                            onValueChanged: if (mostrarFilaEdicionTipo) nuevoTipoCultivo.tiempoCosechaMax = value
+                            onValueChanged: if (mostrarFilaEdicionTipo) nuevoTipoCultivo.tiempo_cosecha_max = value
                         }
                         
                         // Estado
@@ -385,6 +416,7 @@ Rectangle {
                                 id: chkActivo
                                 text: "Activo"
                                 checked: true
+                                onCheckedChanged: if (mostrarFilaEdicionTipo) nuevoTipoCultivo.activo = checked
                             }
                         }
                         
@@ -400,13 +432,12 @@ Rectangle {
                             Layout.rowSpan: 3
                             Layout.minimumHeight: 100
                             placeholderText: "Descripción del tipo de cultivo"
-                            text: mostrarFilaEdicionTipo ? "" : (tiposCultivoModel.count > 0 ? "Descripción del tipo de cultivo seleccionado" : "")
                             wrapMode: TextArea.Wrap
                             onTextChanged: if (mostrarFilaEdicionTipo) nuevoTipoCultivo.descripcion = text
                         }
                     }
                     
-                    // Estadísticas de producción (simplificado cuando no hay datos)
+                    // Estadísticas de producción
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 100
@@ -448,8 +479,7 @@ Rectangle {
                                 if (mostrarFilaEdicionTipo) {
                                     guardarNuevoTipoCultivo()
                                 } else {
-                                    // Aquí iría la lógica para actualizar un tipo existente
-                                    showMessage("Función para actualizar tipo de cultivo no implementada")
+                                    actualizarTipoCultivo()
                                 }
                             }
                         }
@@ -488,13 +518,12 @@ Rectangle {
                             onClicked: {
                                 // Inicializa los valores para la nueva variedad
                                 nuevaVariedad = {
-                                    "variedadId": "",
-                                    "tipo": tiposCultivoModel.count > 0 ? tiposCultivoModel.get(0).nombre : "",
+                                    "id_tipo_cultivo": tiposCultivoModel.count > 0 ? tiposCultivoModel.get(0).id_tipo_cultivo : 1,
                                     "nombre": "",
-                                    "tiempoProduccion": 0,
-                                    "rendimiento": "0.0 ton/ha",
-                                    "resistencia": "Media",
-                                    "resistenciaColor": "#FF9800"
+                                    "tiempo_produccion": 0,
+                                    "rendimiento_esperado": 0.0,
+                                    "resistencia_zona": "Media",
+                                    "activo": true
                                 }
                                 
                                 // Mostrar diálogo de nueva variedad
@@ -503,6 +532,7 @@ Rectangle {
                         }
                         
                         TextField {
+                            id: txtBuscarVariedad
                             Layout.preferredWidth: 250
                             placeholderText: "Buscar variedades..."
                             implicitHeight: 25
@@ -510,12 +540,19 @@ Rectangle {
                                 color: "#b2c4c9"
                                 radius: height / 2
                             }
+                            onTextChanged: filtrarVariedades()
                         }
                         
                         ComboBox {
+                            id: cmbFiltroTipos
                             Layout.preferredWidth: 200
-                            model: ["Todos los tipos"]
+                            model: ListModel { id: tiposFiltroModel }
                             implicitHeight: 36
+                            Component.onCompleted: {
+                                tiposFiltroModel.append({text: "Todos los tipos", value: 0})
+                                actualizarTiposFiltro()
+                            }
+                            onCurrentIndexChanged: filtrarVariedadesPorTipo()
                         }
                         
                         Item { Layout.fillWidth: true }
@@ -528,7 +565,7 @@ Rectangle {
                                 color: "#4CAF50"
                                 radius: height / 2
                             }
-                            onClicked: showMessage("Función de exportación no implementada")
+                            onClicked: exportarVariedades()
                         }
                     }
                 }
@@ -546,7 +583,7 @@ Rectangle {
                         anchors.fill: parent
                         anchors.margins: 1
                         clip: true
-                        model: variedadesModel
+                        model: ListModel { id: variedadesModel }
                         headerPositioning: ListView.OverlayHeader
                         
                         // Cabecera de la tabla
@@ -643,7 +680,7 @@ Rectangle {
                                     
                                     Text {
                                         anchors.centerIn: parent
-                                        text: variedadId || (index + 1)
+                                        text: id_variedad
                                         verticalAlignment: Text.AlignVCenter
                                         horizontalAlignment: Text.AlignHCenter
                                     }
@@ -659,7 +696,7 @@ Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
                                         anchors.left: parent.left
                                         anchors.leftMargin: 10
-                                        text: tipo
+                                        text: nombre_tipo_cultivo
                                         elide: Text.ElideRight
                                         width: parent.width - 20
                                     }
@@ -691,7 +728,7 @@ Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
                                         anchors.left: parent.left
                                         anchors.leftMargin: 10
-                                        text: tiempoProduccion
+                                        text: tiempo_produccion || "No definido"
                                         elide: Text.ElideRight
                                         width: parent.width - 20
                                     }
@@ -707,7 +744,7 @@ Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
                                         anchors.left: parent.left
                                         anchors.leftMargin: 10
-                                        text: rendimiento
+                                        text: rendimiento_esperado ? rendimiento_esperado + " ton/ha" : "No definido"
                                         elide: Text.ElideRight
                                         width: parent.width - 20
                                     }
@@ -723,14 +760,14 @@ Rectangle {
                                         width: 80
                                         height: 24
                                         radius: 12
-                                        color: resistenciaColor
+                                        color: getResistenciaColor(resistencia_zona)
                                         anchors.verticalCenter: parent.verticalCenter
                                         anchors.left: parent.left
                                         anchors.leftMargin: 10
                                         
                                         Text {
                                             anchors.centerIn: parent
-                                            text: resistencia
+                                            text: resistencia_zona
                                             font.pixelSize: 12
                                             color: "white"
                                         }
@@ -754,7 +791,7 @@ Rectangle {
                                             flat: true
                                             ToolTip.visible: hovered
                                             ToolTip.text: "Editar"
-                                            onClicked: showMessage("Función para editar variedad no implementada")
+                                            onClicked: editarVariedad(model)
                                         }
                                         
                                         Button {
@@ -765,8 +802,7 @@ Rectangle {
                                             ToolTip.visible: hovered
                                             ToolTip.text: "Eliminar"
                                             onClicked: {
-                                                // Aquí añadiríamos un diálogo de confirmación para eliminar
-                                                confirmDeleteVariedadDialog.variedadId = variedadId
+                                                confirmDeleteVariedadDialog.variedadId = id_variedad
                                                 confirmDeleteVariedadDialog.nombreVariedad = nombre
                                                 confirmDeleteVariedadDialog.open()
                                             }
@@ -820,12 +856,11 @@ Rectangle {
                             onClicked: {
                                 dialogCicloProduccion.modo = "crear";
                                 dialogCicloProduccion.open();
-                                // Aquí irá la lógica para abrir el diálogo de nuevo ciclo
-                                showMessage("Función para crear nuevo ciclo no implementada")
                             }
                         }
                         
                         TextField {
+                            id: txtBuscarCiclo
                             Layout.preferredWidth: 250
                             placeholderText: "Buscar ciclos..."
                             implicitHeight: 25
@@ -833,12 +868,19 @@ Rectangle {
                                 color: "#b2c4c9"
                                 radius: height / 2
                             }
+                            onTextChanged: filtrarCiclos()
                         }
                         
                         ComboBox {
+                            id: cmbFiltroEstados
                             Layout.preferredWidth: 200
-                            model: ["Todos los estados"]
+                            model: ListModel { id: estadosFiltroModel }
                             implicitHeight: 36
+                            Component.onCompleted: {
+                                estadosFiltroModel.append({text: "Todos los estados", value: ""})
+                                actualizarEstadosFiltro()
+                            }
+                            onCurrentIndexChanged: filtrarCiclosPorEstado()
                         }
                         
                         Item { Layout.fillWidth: true }
@@ -851,7 +893,7 @@ Rectangle {
                                 color: "#4CAF50"
                                 radius: height / 2
                             }
-                            onClicked: showMessage("Función de exportación no implementada")
+                            onClicked: exportarCiclos()
                         }
                     }
                 }
@@ -869,7 +911,7 @@ Rectangle {
                         anchors.fill: parent
                         anchors.margins: 1
                         clip: true
-                        model: ciclosModel
+                        model: ListModel { id: ciclosModel }
                         headerPositioning: ListView.OverlayHeader
 
                         // Cabecera de la tabla
@@ -887,6 +929,7 @@ Rectangle {
                                     height: parent.height
                                     text: "ID"
                                     font.bold: true
+//
                                     verticalAlignment: Text.AlignVCenter
                                     horizontalAlignment: Text.AlignHCenter
                                 }
@@ -1127,7 +1170,7 @@ Rectangle {
                                             ToolTip.visible: hovered
                                             ToolTip.text: "Editar"
                                             onClicked: {
-                                                // Aquí abriríamos el diálogo de edición con los datos del ciclo seleccionado
+                                                // Abrir el diálogo de edición con los datos del ciclo seleccionado
                                                 dialogCicloProduccion.modo = "editar";
                                                 dialogCicloProduccion.cargarCiclo(id_ciclo);
                                                 dialogCicloProduccion.open();
@@ -1243,16 +1286,25 @@ Rectangle {
                         
                         Item { Layout.fillWidth: true }
                         
+                        
                         ComboBox {
-                            model: ["Todos los cultivos", "Limón", "Naranja", "Mandarina", "Toronja", "Lima"]
+                            id: cmbFiltroCultivosCalendario
+                            model: ListModel { id: cultivosFiltroModel }
                             implicitWidth: 200
                             implicitHeight: 36
+                            Component.onCompleted: {
+                                cultivosFiltroModel.append({text: "Todos los cultivos", value: 0})
+                                actualizarCultivosFiltro()
+                            }
+                            onCurrentIndexChanged: actualizarCalendario()
                         }
                         
                         ComboBox {
                             model: ["Vista mensual", "Vista trimestral", "Vista anual"]
                             implicitWidth: 150
                             implicitHeight: 36
+                            currentIndex: 0
+                            onCurrentIndexChanged: actualizarCalendario()
                         }
                     }
                     
@@ -1305,7 +1357,7 @@ Rectangle {
                                 color: esDiaActual ? "#E3F2FD" : (esDiaMesActual ? "white" : "#F5F5F5")
                                 border.color: "#EEEEEE"
                                 
-                                // Importante: Solo un contenedor para el contenido
+                                // Contenedor para el contenido
                                 Column {
                                     id: contenidoDia
                                     anchors.fill: parent
@@ -1313,7 +1365,7 @@ Rectangle {
                                     spacing: 3
                                     visible: diaNumero > 0
                                     
-                                    // Solo un Text para mostrar el número del día
+                                    // Número del día
                                     Text {
                                         id: numeroDia
                                         text: parent.parent.diaNumero
@@ -1356,6 +1408,7 @@ Rectangle {
             }
         }
     }
+    
     // DIÁLOGO DE NUEVA VARIEDAD
     Dialog {
         id: dialogNuevaVariedad
@@ -1400,8 +1453,15 @@ Rectangle {
                     ComboBox {
                         id: cmbTipoCultivo
                         Layout.fillWidth: true
-                        model: getTiposCultivoNombres()
-                        onCurrentTextChanged: nuevaVariedad.tipo = currentText
+                        model: ListModel { id: tiposVariedadModel }
+                        textRole: "text"
+                        valueRole: "value"
+                        Component.onCompleted: actualizarTiposCombobox()
+                        onCurrentIndexChanged: {
+                            if (currentIndex >= 0) {
+                                nuevaVariedad.id_tipo_cultivo = model.get(currentIndex).value
+                            }
+                        }
                     }
                     
                     // Nombre de variedad
@@ -1429,7 +1489,7 @@ Rectangle {
                         from: 0
                         to: 500
                         value: 0
-                        onValueChanged: nuevaVariedad.tiempoProduccion = value
+                        onValueChanged: nuevaVariedad.tiempo_produccion = value
                     }
                     
                     // Rendimiento
@@ -1445,7 +1505,7 @@ Rectangle {
                         validator: DoubleValidator { bottom: 0 }
                         onTextChanged: {
                             if (text.trim() !== "")
-                                nuevaVariedad.rendimiento = text + " ton/ha"
+                                nuevaVariedad.rendimiento_esperado = parseFloat(text)
                         }
                     }
                     
@@ -1461,12 +1521,7 @@ Rectangle {
                         model: ["Alta", "Media", "Baja"]
                         currentIndex: 1 // Media por defecto
                         onCurrentTextChanged: {
-                            nuevaVariedad.resistencia = currentText
-                            switch (currentText) {
-                                case "Alta": nuevaVariedad.resistenciaColor = "#4CAF50"; break;
-                                case "Media": nuevaVariedad.resistenciaColor = "#FF9800"; break;
-                                case "Baja": nuevaVariedad.resistenciaColor = "#F44336"; break;
-                            }
+                            nuevaVariedad.resistencia_zona = currentText
                         }
                     }
                     
@@ -1482,15 +1537,6 @@ Rectangle {
                         Layout.fillWidth: true
                         readOnly: true
                         text: getFormattedDate() // Llamamos a la función para obtener la fecha formateada
-                    }
-                    
-                    // Función para formatear la fecha actual
-                    function getFormattedDate() {
-                        var today = new Date();
-                        var dd = String(today.getDate()).padStart(2, '0');
-                        var mm = String(today.getMonth() + 1).padStart(2, '0'); // Los meses empiezan en 0
-                        var yyyy = today.getFullYear();
-                        return dd + '/' + mm + '/' + yyyy;
                     }
                     
                     // Descripción
@@ -1556,7 +1602,7 @@ Rectangle {
                     }
                     
                     // Validar que haya tipos de cultivo disponibles
-                    if (tiposCultivoModel.count === 0) {
+                    if (tiposVariedadModel.count === 0) {
                         mensajeValidacionVariedad.text = "Debe crear al menos un tipo de cultivo primero";
                         return;
                     }
@@ -1582,8 +1628,8 @@ Rectangle {
         id: confirmDeleteVariedadDialog
         title: "Confirmar eliminación"
         modal: true
-        width: 650
-        height: 650
+        width: 400
+        height: 180
         
         property int variedadId: -1
         property string nombreVariedad: ""
@@ -1639,42 +1685,10 @@ Rectangle {
         }
         
         onAccepted: {
-            // INTEGRACIÓN CON SQL SERVER:
-            // Aquí ejecutaríamos la consulta DELETE en SQL Server
-            // Ejemplo:
-            // let db = QSqlDatabase.addDatabase("QODBC")
-            // db.setDatabaseName("DRIVER={SQL Server};SERVER=tuServidor;DATABASE=tuBaseDeDatos;UID=usuario;PWD=contraseña")
-            // if (db.open()) {
-            //     let query = QSqlQuery()
-            //     query.prepare("DELETE FROM variedades WHERE id = ?")
-            //     query.addBindValue(variedadId)
-            //     
-            //     if (!query.exec()) {
-            //         console.error("Error al eliminar variedad:", query.lastError().text)
-            //         showMessage("Error al eliminar la variedad")
-            //         return
-            //     }
-            //     
-            //     db.close()
-            // } else {
-            //     console.error("Error de conexión a la base de datos:", db.lastError().text)
-            //     showMessage("Error de conexión a la base de datos")
-            //     return
-            // }
-            
-            console.log("Eliminando variedad con ID:", variedadId);
-            
-            // También eliminamos la variedad del modelo local
-            for (let i = 0; i < variedadesModel.count; i++) {
-                if (variedadesModel.get(i).variedadId === variedadId) {
-                    variedadesModel.remove(i)
-                    break
-                }
-            }
-            
-            showMessage("Variedad eliminada correctamente")
+            eliminarVariedad(variedadId)
         }
     }
+    // DIÁLOGO DE CICLO DE PRODUCCIÓN
     // DIÁLOGO DE CICLO DE PRODUCCIÓN
     Dialog {
         id: dialogCicloProduccion
@@ -1688,21 +1702,19 @@ Rectangle {
         property string modo: "crear" // "crear" o "editar"
         property int cicloId: -1
         
-       
-        
         // Función para cargar datos de un ciclo existente
         function cargarCiclo(id) {
             cicloId = id;
-            // Aquí cargaríamos los datos del ciclo desde el modelo
-            // Por ahora, simplemente buscaremos en el modelo local
             
+            // Buscar el ciclo en el modelo
             for (let i = 0; i < ciclosModel.count; i++) {
                 if (ciclosModel.get(i).id_ciclo === id) {
                     let ciclo = ciclosModel.get(i);
+                    
                     // Cargar todos los campos
                     cmbParcelas.currentIndex = getParcelaIndex(ciclo.id_parcela);
                     cmbVariedades.currentIndex = getVariedadIndex(ciclo.id_variedad);
-                    txtAreaSembrada.text = ciclo.area_sembrada;
+                    txtAreaSembrada.text = ciclo.area_sembrada.toString();
                     spinDensidad.value = ciclo.densidad_siembra || 0;
                     cmbEstado.currentIndex = getEstadoIndex(ciclo.estado);
                     ciclo_chkActivo.checked = ciclo.activo;
@@ -1714,7 +1726,7 @@ Rectangle {
                     txtFechaFloracion.text = ciclo.fecha_floracion || "";
                     txtFechaPoda.text = ciclo.fecha_poda || "";
                     txtFechaLimpieza.text = ciclo.fecha_limpieza || "";
-                    spinFrecuenciaLimpieza.value = ciclo.frecuencia_limpieza_maleza || 1;
+                    spinFrecuenciaLimpieza.value = ciclo.frecuencia_limpieza || 1;
                     
                     break;
                 }
@@ -1760,11 +1772,15 @@ Rectangle {
                             id: cmbParcelas
                             Layout.fillWidth: true
                             Layout.columnSpan: 3
-                            model: ["Parcela 1", "Parcela 2", "Parcela 3"] // Aquí cargarías parcelas reales
-                            onCurrentTextChanged: {
-                                if (dialogCicloProduccion.modo === "crear") {
-                                    nuevoCiclo.nombre_parcela = currentText;
-                                    nuevoCiclo.id_parcela = currentIndex + 1; // Simplificado para el ejemplo
+                            model: ListModel { id: parcelasModel }
+                            textRole: "text"
+                            valueRole: "value"
+                            Component.onCompleted: {
+                                actualizarParcelasCombobox()
+                            }
+                            onCurrentIndexChanged: {
+                                if (dialogCicloProduccion.modo === "crear" && currentIndex >= 0) {
+                                    nuevoCiclo.id_parcela = model.get(currentIndex).value
                                 }
                             }
                         }
@@ -1779,11 +1795,15 @@ Rectangle {
                             id: cmbVariedades
                             Layout.fillWidth: true
                             Layout.columnSpan: 3
-                            model: getTiposCultivoNombres() // Reutilizamos la función existente
-                            onCurrentTextChanged: {
-                                if (dialogCicloProduccion.modo === "crear") {
-                                    nuevoCiclo.nombre_variedad = currentText;
-                                    nuevoCiclo.id_variedad = currentIndex + 1; // Simplificado para el ejemplo
+                            model: ListModel { id: variedadesCicloModel }
+                            textRole: "text"
+                            valueRole: "value"
+                            Component.onCompleted: {
+                                actualizarVariedadesCombobox()
+                            }
+                            onCurrentIndexChanged: {
+                                if (dialogCicloProduccion.modo === "crear" && currentIndex >= 0) {
+                                    nuevoCiclo.id_variedad = model.get(currentIndex).value
                                 }
                             }
                         }
@@ -1813,7 +1833,7 @@ Rectangle {
                         }
                         
                         CheckBox {
-                            id:ciclo_chkActivo
+                            id: ciclo_chkActivo
                             checked: true
                             onCheckedChanged: {
                                 if (dialogCicloProduccion.modo === "crear") {
@@ -1998,7 +2018,7 @@ Rectangle {
                             value: 1
                             onValueChanged: {
                                 if (dialogCicloProduccion.modo === "crear") {
-                                    nuevoCiclo.frecuencia_limpieza_maleza = value;
+                                    nuevoCiclo.frecuencia_limpieza = value;
                                 }
                             }
                         }
@@ -2083,7 +2103,6 @@ Rectangle {
                 txtFechaPoda.text = "";
                 txtFechaLimpieza.text = "";
                 spinFrecuenciaLimpieza.value = 1;
-                txtFechaFumigacion.text = "";
             }
         }
     }
@@ -2093,8 +2112,8 @@ Rectangle {
         id: confirmDeleteCicloDialog
         title: "Confirmar eliminación"
         modal: true
-        width:400
-        height:180
+        width: 400
+        height: 180
         
         property int cicloId: -1
         property string nombreParcela: ""
@@ -2153,139 +2172,409 @@ Rectangle {
         }
         
         onAccepted: {
-            // Aquí iría el código para eliminar el ciclo de la base de datos
-            console.log("Eliminando ciclo con ID:", cicloId);
-            
-            // También eliminamos el ciclo del modelo local
-            for (let i = 0; i < ciclosModel.count; i++) {
-                if (ciclosModel.get(i).id_ciclo === cicloId) {
-                    ciclosModel.remove(i);
+            eliminarCiclo(cicloId);
+        }
+    }
+
+    // Funciones auxiliares para la gestión de datos
+
+    // Función para obtener el índice en el combobox de parcelas a partir del ID
+    function getParcelaIndex(id_parcela) {
+        for (let i = 0; i < parcelasModel.count; i++) {
+            if (parcelasModel.get(i).value === id_parcela) {
+                return i;
+            }
+        }
+        return 0; // Por defecto, la primera
+    }
+
+    // Función para obtener el índice en el combobox de variedades a partir del ID
+    function getVariedadIndex(id_variedad) {
+        for (let i = 0; i < variedadesCicloModel.count; i++) {
+            if (variedadesCicloModel.get(i).value === id_variedad) {
+                return i;
+            }
+        }
+        return 0; // Por defecto, la primera
+    }
+
+    // Función para obtener el índice en el combobox de estados a partir del nombre
+    function getEstadoIndex(estado) {
+        const estados = ["Planificado", "En Preparación", "Sembrado", "En Desarrollo", "En Cosecha", "Finalizado", "Cancelado"];
+        const index = estados.indexOf(estado);
+        return index >= 0 ? index : 0;
+    }
+
+    // Función para obtener el color correspondiente a un estado
+    function getEstadoColor(estado) {
+        switch (estado) {
+            case "Planificado": return "#2196F3"; // Azul
+            case "En Preparación": return "#FF9800"; // Naranja
+            case "Sembrado": return "#4CAF50"; // Verde
+            case "En Desarrollo": return "#8BC34A"; // Verde claro
+            case "En Cosecha": return "#FFC107"; // Amarillo
+            case "Finalizado": return "#9E9E9E"; // Gris
+            case "Cancelado": return "#F44336"; // Rojo
+            default: return "#2196F3"; // Azul (por defecto)
+        }
+    }
+
+    // Función para obtener el color correspondiente a una resistencia
+    function getResistenciaColor(resistencia) {
+        switch (resistencia) {
+            case "Alta": return "#4CAF50"; // Verde
+            case "Media": return "#FF9800"; // Naranja
+            case "Baja": return "#F44336"; // Rojo
+            default: return "#FF9800"; // Naranja (por defecto)
+        }
+    }
+
+    // Funciones para cargar datos desde el modelo de Python
+
+    // Actualizar el modelo de tipos de cultivo
+    function cargarTiposCultivo() {
+        console.log("Intentando cargar tipos de cultivo...")
+        tiposCultivoModel.clear()
+        
+        // Obtener datos directamente del modelo Python
+        var tipos = cultivos.tipos_cultivo
+        console.log("Tipos recibidos: " + tipos.length)
+        
+        for (let i = 0; i < tipos.length; i++) {
+            let tipo = tipos[i]
+            tiposCultivoModel.append({
+                id_tipo_cultivo: tipo.id_tipo_cultivo,
+                nombre: tipo.nombre,
+                nombre_cientifico: tipo.nombre_cientifico || "",
+                tiempo_cosecha_min: tipo.tiempo_cosecha_min || 0,
+                tiempo_cosecha_max: tipo.tiempo_cosecha_max || 0,
+                descripcion: tipo.descripcion || "",
+                activo: tipo.activo
+            })
+            console.log("Agregado tipo: " + tipo.nombre)
+        }
+    }
+
+    // Actualizar el modelo de variedades
+    function cargarVariedades() {
+        variedadesModel.clear();
+        const variedades = cultivos.variedades;
+        for (let i = 0; i < variedades.length; i++) {
+            variedadesModel.append({
+                id_variedad: variedades[i].id_variedad,
+                id_tipo_cultivo: variedades[i].id_tipo_cultivo,
+                nombre: variedades[i].nombre,
+                tiempo_produccion: variedades[i].tiempo_produccion,
+                rendimiento_esperado: variedades[i].rendimiento_esperado,
+                resistencia_zona: variedades[i].resistencia_zona,
+                activo: variedades[i].activo,
+                nombre_tipo_cultivo: variedades[i].nombre_tipo_cultivo
+            });
+        }
+        
+        // Actualizar también los combos de filtros
+        actualizarTiposFiltro();
+        actualizarTiposCombobox();
+    }
+
+    // Actualizar el modelo de ciclos de producción
+   function cargarCiclosProduccion() {
+    console.log("Intentando cargar ciclos de producción...")
+    ciclosModel.clear()
+    
+    const ciclos = cultivos.ciclos_produccion
+    console.log("Ciclos recibidos: " + ciclos.length)
+    
+    for (let i = 0; i < ciclos.length; i++) {
+        const ciclo = ciclos[i]
+        
+        // Asegurar que todos los campos existan con valores predeterminados
+        const cicloFormateado = {
+            id_ciclo: ciclo.id_ciclo || 0,
+            id_parcela: ciclo.id_parcela || 0,
+            id_variedad: ciclo.id_variedad || 0,
+            fecha_siembra: ciclo.fecha_siembra || "",
+            fecha_cosecha_estimada: ciclo.fecha_cosecha_estimada || "",
+            fecha_cosecha_real: typeof ciclo.fecha_cosecha_real !== 'undefined' ? ciclo.fecha_cosecha_real : "",
+            area_sembrada: parseFloat(ciclo.area_sembrada || 0),
+            densidad_siembra: parseInt(ciclo.densidad_siembra || 0),
+            estado: ciclo.estado || "Planificado",
+            activo: !!ciclo.activo,
+            fecha_floracion: typeof ciclo.fecha_floracion !== 'undefined' ? ciclo.fecha_floracion : "",
+            fecha_poda: typeof ciclo.fecha_poda !== 'undefined' ? ciclo.fecha_poda : "",
+            fecha_limpieza: typeof ciclo.fecha_limpieza !== 'undefined' ? ciclo.fecha_limpieza : "",
+            frecuencia_limpieza: parseInt(ciclo.frecuencia_limpieza || 1),
+            nombre_parcela: ciclo.nombre_parcela || "Sin parcela",
+            nombre_variedad: ciclo.nombre_variedad || "Sin variedad",
+            nombre_tipo_cultivo: ciclo.nombre_tipo_cultivo || "Sin tipo"
+        }
+        
+        ciclosModel.append(cicloFormateado)
+    }
+    
+    // Actualizar también los combos de filtros y otros modelos relacionados
+    actualizarEstadosFiltro()
+    actualizarParcelasCombobox()
+    actualizarVariedadesCombobox()
+    actualizarCultivosFiltro()
+    cargarEventosCalendario()
+}
+    // Actualizar opciones de tipos para el filtro de variedades
+    function actualizarTiposFiltro() {
+        // Preservar selección actual si existe
+        const seleccionActual = cmbFiltroTipos.currentValue;
+        
+        // Limpiar modelo excepto el primer elemento "Todos los tipos"
+        while (tiposFiltroModel.count > 1) {
+            tiposFiltroModel.remove(1);
+        }
+        
+        // Añadir tipos desde el modelo de tipos de cultivo
+        for (let i = 0; i < tiposCultivoModel.count; i++) {
+            const tipo = tiposCultivoModel.get(i);
+            if (tipo.activo) {
+                tiposFiltroModel.append({
+                    text: tipo.nombre,
+                    value: Number(tipo.id_tipo_cultivo)
+                });
+            }
+        }
+        
+        // Restaurar selección si posible
+        if (seleccionActual) {
+            for (let i = 0; i < tiposFiltroModel.count; i++) {
+                if (tiposFiltroModel.get(i).value === seleccionActual) {
+                    cmbFiltroTipos.currentIndex = i;
                     break;
                 }
             }
+        }
+    }
+
+    // Actualizar opciones de tipos para el combobox de nueva variedad
+    function actualizarTiposCombobox() {
+        tiposVariedadModel.clear();
+        
+        for (let i = 0; i < tiposCultivoModel.count; i++) {
+            const tipo = tiposCultivoModel.get(i);
+            if (tipo.activo) {
+                tiposVariedadModel.append({
+                    text: tipo.nombre,
+                    value: tipo.id_tipo_cultivo
+                });
+            }
+        }
+        
+        // Seleccionar el primero si hay elementos
+        if (tiposVariedadModel.count > 0) {
+            cmbTipoCultivo.currentIndex = 0;
+        }
+    }
+
+    // Actualizar opciones de estados para el filtro de ciclos
+    function actualizarEstadosFiltro() {
+        // Preservar selección actual si existe
+        const seleccionActual = cmbFiltroEstados.currentText;
+        
+        // Limpiar modelo excepto el primer elemento "Todos los estados"
+        while (estadosFiltroModel.count > 1) {
+            estadosFiltroModel.remove(1);
+        }
+        
+        // Añadir estados desde la lista de estados válidos
+        const estados = ["Planificado", "En Preparación", "Sembrado", "En Desarrollo", "En Cosecha", "Finalizado", "Cancelado"];
+        for (let i = 0; i < estados.length; i++) {
+            estadosFiltroModel.append({
+                text: estados[i],
+                value: estados[i]
+            });
+        }
+        
+        // Restaurar selección si posible
+        if (seleccionActual) {
+            for (let i = 0; i < estadosFiltroModel.count; i++) {
+                if (estadosFiltroModel.get(i).text === seleccionActual) {
+                    cmbFiltroEstados.currentIndex = i;
+                    break;
+                }
+            }
+        }
+    }
+
+    // Actualizar opciones de parcelas para el combobox de nuevo ciclo
+    function actualizarParcelasCombobox() {
+        // Aquí deberíamos cargar las parcelas desde el modelo de parcelas
+        // Por ahora, usaremos datos de ejemplo
+        parcelasModel.clear();
+        
+        // En una implementación real, estas parcelas vendrían de la base de datos
+        parcelasModel.append({ text: "Parcela 1", value: 1 });
+        parcelasModel.append({ text: "Parcela 2", value: 2 });
+        parcelasModel.append({ text: "Parcela 3", value: 3 });
+        
+        // Seleccionar el primero si hay elementos
+        if (parcelasModel.count > 0) {
+            cmbParcelas.currentIndex = 0;
+        }
+    }
+
+    // Actualizar opciones de variedades para el combobox de nuevo ciclo
+    function actualizarVariedadesCombobox() {
+        variedadesCicloModel.clear();
+        
+        for (let i = 0; i < variedadesModel.count; i++) {
+            const variedad = variedadesModel.get(i);
+            if (variedad.activo) {
+                variedadesCicloModel.append({
+                    text: variedad.nombre + " (" + variedad.nombre_tipo_cultivo + ")",
+                    value: variedad.id_variedad
+                });
+            }
+        }
+        
+        // Seleccionar el primero si hay elementos
+        if (variedadesCicloModel.count > 0) {
+            cmbVariedades.currentIndex = 0;
+        }
+    }
+
+    // Actualizar opciones de cultivos para el filtro del calendario
+    function actualizarCultivosFiltro() {
+        // Preservar selección actual si existe
+        const seleccionActual = cmbFiltroCultivosCalendario.currentValue;
+        
+        // Limpiar modelo excepto el primer elemento "Todos los cultivos"
+        while (cultivosFiltroModel.count > 1) {
+            cultivosFiltroModel.remove(1);
+        }
+        
+        // Recopilar todos los tipos de cultivo usados en ciclos
+        const tiposUsados = new Set();
+        for (let i = 0; i < ciclosModel.count; i++) {
+            const ciclo = ciclosModel.get(i);
+            if (ciclo.activo) {
+                tiposUsados.add(ciclo.nombre_tipo_cultivo);
+            }
+        }
+        
+        // Añadir tipos usados al modelo
+        tiposUsados.forEach(nombreTipo => {
+            cultivosFiltroModel.append({
+                text: nombreTipo,
+                value: nombreTipo
+            });
+        });
+        
+        // Restaurar selección si posible
+        if (seleccionActual) {
+            for (let i = 0; i < cultivosFiltroModel.count; i++) {
+                if (cultivosFiltroModel.get(i).value === seleccionActual) {
+                    cmbFiltroCultivosCalendario.currentIndex = i;
+                    break;
+                }
+            }
+        }
+    }
+
+    // Función para cargar eventos del calendario desde los ciclos
+    function cargarEventosCalendario() {
+        eventosPorFecha = {}
+        
+        for (let i = 0; i < ciclosModel.count; i++) {
+            const ciclo = ciclosModel.get(i)
+            if (!ciclo.activo) continue
             
-            showMessage("Ciclo eliminado correctamente");
+            // Añadir evento de siembra
+            if (ciclo.fecha_siembra && ciclo.fecha_siembra !== "") {
+                const fechaSiembra = parseDBDate(ciclo.fecha_siembra)
+                if (fechaSiembra) {
+                    const key = fechaSiembra.getFullYear() + "-" + (fechaSiembra.getMonth() + 1) + "-" + fechaSiembra.getDate()
+                    if (!eventosPorFecha[key]) eventosPorFecha[key] = []
+                    eventosPorFecha[key].push({
+                        text: "Siembra " + ciclo.nombre_variedad,
+                        color: "#2E7D32"
+                    })
+                }
+            }
+            
+            // Añadir evento de cosecha estimada
+            if (ciclo.fecha_cosecha_estimada && ciclo.fecha_cosecha_estimada !== "") {
+                const fechaCosecha = parseDBDate(ciclo.fecha_cosecha_estimada)
+                if (fechaCosecha) {
+                    const key = fechaCosecha.getFullYear() + "-" + (fechaCosecha.getMonth() + 1) + "-" + fechaCosecha.getDate()
+                    if (!eventosPorFecha[key]) eventosPorFecha[key] = []
+                    eventosPorFecha[key].push({
+                        text: "Cosecha " + ciclo.nombre_variedad,
+                        color: "#FF9800"
+                    })
+                }
+            }
+            
+            // Añadir evento de poda (verificar que exista y no esté vacío)
+            if (ciclo.fecha_poda && ciclo.fecha_poda !== "") {
+                const fechaPoda = parseDBDate(ciclo.fecha_poda)
+                if (fechaPoda) {
+                    const key = fechaPoda.getFullYear() + "-" + (fechaPoda.getMonth() + 1) + "-" + fechaPoda.getDate()
+                    if (!eventosPorFecha[key]) eventosPorFecha[key] = []
+                    eventosPorFecha[key].push({
+                        text: "Poda " + ciclo.nombre_variedad,
+                        color: "#9C27B0"
+                    })
+                }
+            }
+            
+            // ... Hacer lo mismo para las otras fechas opcionales
         }
+        
+        // Asegúrate de que el calendario se actualice después de cargar los eventos
+        actualizarCalendario()
     }
-    
-    // Función para obtener nombres de tipos de cultivo para el ComboBox
-    function getTiposCultivoNombres() {
-        var nombres = [];
-        for (var i = 0; i < tiposCultivoModel.count; i++) {
-            nombres.push(tiposCultivoModel.get(i).nombre);
+
+    // Función para parsear fechas de la base de datos (formato YYYY-MM-DD)
+    function parseDBDate(dateStr) {
+        // Si la fecha está en formato DD/MM/YYYY
+        if (dateStr.includes('/')) {
+            const parts = dateStr.split('/');
+            if (parts.length === 3) {
+                const day = parseInt(parts[0], 10);
+                const month = parseInt(parts[1], 10) - 1; // Los meses en JS empiezan en 0
+                const year = parseInt(parts[2], 10);
+                return new Date(year, month, day);
+            }
+        } 
+        // Si la fecha está en formato YYYY-MM-DD
+        else if (dateStr.includes('-')) {
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                const year = parseInt(parts[0], 10);
+                const month = parseInt(parts[1], 10) - 1; // Los meses en JS empiezan en 0
+                const day = parseInt(parts[2], 10);
+                return new Date(year, month, day);
+            }
         }
         
-        if (nombres.length === 0) {
-            nombres.push("Sin tipos disponibles");
+        return null;
+    }
+
+    // Función para obtener eventos para un día específico
+    function getEventsForDay(day, month, year) {
+        // Filtrar por tipo de cultivo si está seleccionado
+        const filtroTipo = cmbFiltroCultivosCalendario.currentIndex > 0 ? 
+                        cmbFiltroCultivosCalendario.currentText : null;
+        
+        const key = year + "-" + (month + 1) + "-" + day;
+        if (eventosPorFecha[key]) {
+            if (filtroTipo) {
+                // Solo retornar eventos del tipo de cultivo seleccionado
+                return eventosPorFecha[key].filter(evento => 
+                    evento.text.includes(filtroTipo));
+            } else {
+                return eventosPorFecha[key];
+            }
         }
-        
-        return nombres;
+        return [];
     }
-    
-    // Función para guardar nuevo tipo de cultivo
-    function guardarNuevoTipoCultivo() {
-        // Validar datos
-        if (txtNombreTipo.text.trim() === "") {
-            showMessage("Por favor, ingrese al menos el nombre del tipo de cultivo")
-            return
-        }
-        
-        
-        // Crear un objeto con toda la información del tipo de cultivo
-        var datosTipoCultivo = {
-            tipoId: tiposCultivoModel.count + 1,
-            nombre: nuevoTipoCultivo.nombre,
-            nombreCientifico: nuevoTipoCultivo.nombreCientifico || "",
-            tiempoCosechaMin: nuevoTipoCultivo.tiempoCosechaMin || 0,
-            tiempoCosechaMax: nuevoTipoCultivo.tiempoCosechaMax || 0,
-            descripcion: nuevoTipoCultivo.descripcion || ""
-        };
-        
-        console.log("Guardando tipo de cultivo:", JSON.stringify(datosTipoCultivo));
-        
-        // Añadir al modelo local
-        tiposCultivoModel.append(datosTipoCultivo)
-        
-        // Ocultar formulario de edición
-        mostrarFilaEdicionTipo = false
-        
-        // Mensaje de éxito
-        showMessage("Tipo de cultivo guardado correctamente")
-    }
-    
-    // Función para guardar nueva variedad
-    function guardarNuevaVariedad() {
-        // La validación se hace ahora en el botón Guardar del diálogo
-        
-        // INTEGRACIÓN CON SQL SERVER:
-        // Aquí es donde conectarías con tu base de datos SQL Server
-        // Ejemplo:
-        // let db = QSqlDatabase.addDatabase("QODBC")
-        // db.setDatabaseName("DRIVER={SQL Server};SERVER=tuServidor;DATABASE=tuBaseDeDatos;UID=usuario;PWD=contraseña")
-        // if (!db.open()) {
-        //     console.error("Error de conexión a la base de datos:", db.lastError().text)
-        //     mensajeValidacionVariedad.text = "Error de conexión a la base de datos"
-        //     return
-        // }
-        //
-        // Obtener el tipo_id correspondiente al nombre seleccionado
-        // let tipoId = -1
-        // let query = QSqlQuery()
-        // query.prepare("SELECT id FROM tipos_cultivo WHERE nombre = ?")
-        // query.addBindValue(nuevaVariedad.tipo)
-        // if (query.exec() && query.first()) {
-        //     tipoId = query.value("id")
-        // }
-        //
-        // query.prepare("INSERT INTO variedades (tipo_id, nombre, tiempo_produccion, rendimiento, resistencia, fecha_registro, descripcion) VALUES (?, ?, ?, ?, ?, ?, ?)")
-        // query.addBindValue(tipoId)
-        // query.addBindValue(nuevaVariedad.nombre)
-        // query.addBindValue(nuevaVariedad.tiempoProduccion)
-        // query.addBindValue(nuevaVariedad.rendimiento)
-        // query.addBindValue(nuevaVariedad.resistencia)
-        // query.addBindValue(txtFechaRegistro.text)
-        // query.addBindValue(txtDescripcionVariedad.text)
-        //
-        // if (!query.exec()) {
-        //     console.error("Error al insertar variedad:", query.lastError().text)
-        //     mensajeValidacionVariedad.text = "Error al guardar la variedad"
-        //     return
-        // }
-        //
-        // // Obtener el ID generado
-        // query.exec("SELECT @@IDENTITY as id")
-        // let variedadId = -1
-        // if (query.first()) {
-        //     variedadId = query.value("id")
-        // }
-        //
-        // db.close()
-        
-        // Crear un objeto con toda la información de la variedad
-        var datosVariedad = {
-            variedadId: variedadesModel.count + 1,
-            tipo: nuevaVariedad.tipo,
-            nombre: nuevaVariedad.nombre,
-            tiempoProduccion: nuevaVariedad.tiempoProduccion.toString(),
-            rendimiento: nuevaVariedad.rendimiento,
-            resistencia: nuevaVariedad.resistencia,
-            resistenciaColor: nuevaVariedad.resistenciaColor,
-            fechaRegistro: txtFechaRegistro.text,
-            descripcion: txtDescripcionVariedad.text || ""
-        };
-        
-        console.log("Guardando variedad:", JSON.stringify(datosVariedad));
-        
-        // Añadir al modelo local
-        variedadesModel.append(datosVariedad)
-        
-        // Cerrar el diálogo
-        dialogNuevaVariedad.close()
-        
-        // Mensaje de éxito
-        showMessage("Variedad guardada correctamente")
-    }
-    
+
     // Función para actualizar el calendario
     function actualizarCalendario() {
         // Calcular el primer día del mes
@@ -2308,13 +2597,13 @@ Rectangle {
                 celda.diaNumero = diaMes > 0 && diaMes <= diasEnMes ? diaMes : 0;
                 celda.esDiaMesActual = diaMes > 0 && diaMes <= diasEnMes;
                 celda.esDiaActual = celda.esDiaMesActual && 
-                                   fechaActual.getMonth() === hoy.getMonth() && 
-                                   fechaActual.getFullYear() === hoy.getFullYear() && 
-                                   diaMes === hoy.getDate();
+                                fechaActual.getMonth() === hoy.getMonth() && 
+                                fechaActual.getFullYear() === hoy.getFullYear() && 
+                                diaMes === hoy.getDate();
             }
         }
     }
-    
+
     // Función para obtener el nombre del mes
     function obtenerNombreMes(mes) {
         var meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", 
@@ -2322,140 +2611,477 @@ Rectangle {
         return meses[mes];
     }
 
-    // Función para simular eventos del calendario
-    function getEventsForDay(day, month, year) {
-        // Por ahora devolvemos eventos de ejemplo
-        var events = [];
-        if (day === 5) {
-            events.push({text: "Siembra Limón", color: "#2E7D32"});
-        } else if (day === 10) {
-            events.push({text: "Cosecha Naranja", color: "#FF9800"});
-            events.push({text: "Fertilización", color: "#2196F3"});
-        } else if (day === 15) {
-            events.push({text: "Fumigación", color: "#F44336"});
-        } else if (day === 20) {
-            events.push({text: "Poda Mandarina", color: "#9C27B0"});
-        }
-        return events;
-        
-        // INTEGRACIÓN CON SQL SERVER:
-        // En el futuro, aquí se conectaría con la base de datos
-        // Ejemplo:
-        // let events = [];
-        // let db = QSqlDatabase.addDatabase("QODBC")
-        // db.setDatabaseName("DRIVER={SQL Server};SERVER=tuServidor;DATABASE=tuBaseDeDatos;UID=usuario;PWD=contraseña")
-        // if (db.open()) {
-        //     let query = QSqlQuery()
-        //     query.prepare("SELECT * FROM eventos_calendario WHERE DAY(fecha) = ? AND MONTH(fecha) = ? AND YEAR(fecha) = ?")
-        //     query.addBindValue(day)
-        //     query.addBindValue(month + 1) // Se suma 1 porque los meses en JS empiezan desde 0
-        //     query.addBindValue(year)
-        //
-        //     if (query.exec()) {
-        //         while (query.next()) {
-        //             events.push({
-        //                 text: query.value("nombre_evento"),
-        //                 color: query.value("color") || "#2E7D32" // Color por defecto si no hay uno definido
-        //             });
-        //         }
-        //     }
-        //     db.close()
-        // }
-        // return events;
+    // Función para formatear la fecha actual
+    function getFormattedDate() {
+        var today = new Date();
+        var dd = String(today.getDate()).padStart(2, '0');
+        var mm = String(today.getMonth() + 1).padStart(2, '0'); // Los meses empiezan en 0
+        var yyyy = today.getFullYear();
+        return dd + '/' + mm + '/' + yyyy;
     }
-    //
-        // Función para guardar nuevo ciclo
+
+    // Funciones de interacción con la BD a través del modelo Python
+
+    // Guardar nuevo tipo de cultivo
+    function guardarNuevoTipoCultivo() {
+        // Validar datos
+        if (nuevoTipoCultivo.nombre.trim() === "") {
+            showMessage("Por favor, ingrese al menos el nombre del tipo de cultivo");
+            return;
+        }
+        
+        // Convertir objeto a JSON para enviarlo al modelo Python
+        const tipoJSON = JSON.stringify(nuevoTipoCultivo);
+        
+        // Llamar al método del modelo Python
+        const success = cultivos.agregar_tipo_cultivo(tipoJSON);
+        
+        if (success) {
+            // Recargar tipos de cultivo
+            cultivos.cargar_tipos_cultivo();
+            cargarTiposCultivo();
+            
+            // Ocultar formulario de edición
+            mostrarFilaEdicionTipo = false;
+            
+            // Mensaje de éxito
+            showMessage("Tipo de cultivo guardado correctamente");
+        } else {
+            showMessage("Error al guardar el tipo de cultivo");
+        }
+    }
+
+    // Actualizar tipo de cultivo existente
+    function actualizarTipoCultivo() {
+        // Verificar que haya un tipo seleccionado
+        if (tiposCultivoListView.currentIndex < 0) {
+            showMessage("Por favor, seleccione un tipo de cultivo para actualizar");
+            return;
+        }
+        
+        // Obtener el ID del tipo seleccionado
+        const tipo = tiposCultivoModel.get(tiposCultivoListView.currentIndex);
+        const id_tipo = tipo.id_tipo_cultivo;
+        
+        // Crear objeto con los datos actualizados
+        const datosActualizados = {
+            nombre: txtNombreTipo.text,
+            nombre_cientifico: txtNombreCientifico.text,
+            tiempo_cosecha_min: spinTiempoMin.value,
+            tiempo_cosecha_max: spinTiempoMax.value,
+            descripcion: txtDescripcion.text,
+            activo: chkActivo.checked
+        };
+        
+        // Convertir objeto a JSON
+        const tipoJSON = JSON.stringify(datosActualizados);
+        
+        // Llamar al método del modelo Python
+        const success = cultivos.actualizar_tipo_cultivo(id_tipo, tipoJSON);
+        
+        if (success) {
+            // Recargar tipos de cultivo
+            cultivos.cargar_tipos_cultivo();
+            cargarTiposCultivo();
+            
+            // Mensaje de éxito
+            showMessage("Tipo de cultivo actualizado correctamente");
+        } else {
+            showMessage("Error al actualizar el tipo de cultivo");
+        }
+    }
+
+    // Eliminar tipo de cultivo
+    function eliminarTipoCultivo(id_tipo) {
+        // Llamar al método del modelo Python
+        const success = cultivos.eliminar_tipo_cultivo(id_tipo);
+        
+        if (success) {
+            // Recargar tipos de cultivo
+            cultivos.cargar_tipos_cultivo();
+            cargarTiposCultivo();
+            
+            // Mensaje de éxito
+            showMessage("Tipo de cultivo eliminado correctamente");
+        } else {
+            showMessage("No se puede eliminar el tipo de cultivo. Puede tener variedades asociadas.");
+        }
+    }
+
+    // Desactivar tipo de cultivo
+    function desactivarTipoCultivo(id_tipo) {
+        // Llamar al método del modelo Python
+        const success = cultivos.desactivar_tipo_cultivo(id_tipo);
+        
+        if (success) {
+            // Recargar tipos de cultivo
+            cultivos.cargar_tipos_cultivo();
+            cargarTiposCultivo();
+            
+            // Mensaje de éxito
+            showMessage("Tipo de cultivo desactivado correctamente");
+        } else {
+            showMessage("Error al desactivar el tipo de cultivo");
+        }
+    }
+
+    // Guardar nueva variedad
+    function guardarNuevaVariedad() {
+        // Validaciones hechas en el botón Guardar del diálogo
+        
+        // Convertir objeto a JSON
+        const variedadJSON = JSON.stringify(nuevaVariedad);
+        
+        // Llamar al método del modelo Python
+        const success = cultivos.agregar_variedad_cultivo(variedadJSON);
+        
+        if (success) {
+            // Recargar variedades
+            cultivos.cargar_variedades();
+            cargarVariedades();
+            
+            // Cerrar el diálogo
+            dialogNuevaVariedad.close();
+            
+            // Mensaje de éxito
+            showMessage("Variedad guardada correctamente");
+        } else {
+            mensajeValidacionVariedad.text = "Error al guardar la variedad";
+        }
+    }
+
+    // Editar variedad existente
+    function editarVariedad(variedad) {
+        // Abrir diálogo con datos cargados
+        dialogNuevaVariedad.title = "Editar Variedad";
+        
+        // Cargar datos de la variedad en los campos
+        cmbTipoCultivo.currentIndex = getTipoIndex(variedad.id_tipo_cultivo);
+        txtNombreVariedad.text = variedad.nombre;
+        spinTiempoProduccion.value = variedad.tiempo_produccion || 0;
+        txtRendimiento.text = variedad.rendimiento_esperado ? variedad.rendimiento_esperado.toString() : "";
+        cmbResistencia.currentIndex = getResistenciaIndex(variedad.resistencia_zona);
+        
+        // Guardar ID para actualización
+        nuevaVariedad = {
+            id_tipo_cultivo: variedad.id_tipo_cultivo,
+            nombre: variedad.nombre,
+            tiempo_produccion: variedad.tiempo_produccion || 0,
+            rendimiento_esperado: variedad.rendimiento_esperado || 0.0,
+            resistencia_zona: variedad.resistencia_zona || "Media",
+            activo: variedad.activo
+        };
+        
+        // Variable para identificar que estamos en modo edición
+        dialogNuevaVariedad.editing = true;
+        dialogNuevaVariedad.variedadId = variedad.id_variedad;
+        
+        dialogNuevaVariedad.open();
+    }
+
+    // Función para obtener índice de tipo de cultivo en combobox
+    function getTipoIndex(id_tipo_cultivo) {
+        for (let i = 0; i < tiposVariedadModel.count; i++) {
+            if (tiposVariedadModel.get(i).value === id_tipo_cultivo) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
+    // Función para obtener índice de resistencia en combobox
+    function getResistenciaIndex(resistencia) {
+        const resistencias = ["Alta", "Media", "Baja"];
+        const index = resistencias.indexOf(resistencia);
+        return index >= 0 ? index : 1; // Por defecto "Media"
+    }
+
+    // Eliminar variedad
+    function eliminarVariedad(id_variedad) {
+        // Llamar al método del modelo Python
+        const success = cultivos.eliminar_variedad_cultivo(id_variedad);
+        
+        if (success) {
+            // Recargar variedades
+            cultivos.cargar_variedades();
+            cargarVariedades();
+            
+            // Mensaje de éxito
+            showMessage("Variedad eliminada correctamente");
+        } else {
+            showMessage("No se puede eliminar la variedad. Puede tener ciclos de producción asociados.");
+        }
+    }
+
+    // Guardar nuevo ciclo de producción
     function guardarNuevoCiclo() {
-        // Validar datos adicionales si es necesario
+        // Validaciones hechas en el botón Guardar del diálogo
         
-        // INTEGRACIÓN CON SQL SERVER:
-        // Aquí es donde conectarías con tu base de datos SQL Server
+        // Convertir objeto a JSON
+        const cicloJSON = JSON.stringify(nuevoCiclo);
         
-        // Crear un objeto con toda la información del ciclo
-        var datosCiclo = {
-            id_ciclo: ciclosModel.count + 1,
-            id_parcela: nuevoCiclo.id_parcela,
-            nombre_parcela: cmbParcelas.currentText,
-            id_variedad: nuevoCiclo.id_variedad,
-            nombre_variedad: cmbVariedades.currentText,
+        // Llamar al método del modelo Python
+        const success = cultivos.agregar_ciclo_produccion(cicloJSON);
+        
+        if (success) {
+            // Recargar ciclos
+            cultivos.cargar_ciclos_produccion();
+            cargarCiclosProduccion();
+            
+            // Cerrar el diálogo
+            dialogCicloProduccion.close();
+            
+            // Mensaje de éxito
+            showMessage("Ciclo de producción guardado correctamente");
+        } else {
+            mensajeValidacionCiclo.text = "Error al guardar el ciclo de producción";
+        }
+    }
+
+    // Actualizar ciclo de producción existente
+    function actualizarCiclo() {
+        // Crear objeto con los datos actualizados
+        const datosActualizados = {
+            id_parcela: parcelasModel.get(cmbParcelas.currentIndex).value,
+            id_variedad: variedadesCicloModel.get(cmbVariedades.currentIndex).value,
             fecha_siembra: txtFechaSiembra.text,
             fecha_cosecha_estimada: txtFechaCosechaEst.text,
             fecha_cosecha_real: txtFechaCosechaReal.text,
-            area_sembrada: txtAreaSembrada.text,
+            area_sembrada: parseFloat(txtAreaSembrada.text),
             densidad_siembra: spinDensidad.value,
             estado: cmbEstado.currentText,
             activo: ciclo_chkActivo.checked,
             fecha_floracion: txtFechaFloracion.text,
             fecha_poda: txtFechaPoda.text,
             fecha_limpieza: txtFechaLimpieza.text,
-            frecuencia_limpieza_maleza: spinFrecuenciaLimpieza.value,
+            frecuencia_limpieza: spinFrecuenciaLimpieza.value
         };
         
-        console.log("Guardando ciclo de producción:", JSON.stringify(datosCiclo));
+        // Convertir objeto a JSON
+        const cicloJSON = JSON.stringify(datosActualizados);
         
-        // Añadir al modelo local
-        ciclosModel.append(datosCiclo);
+        // Llamar al método del modelo Python
+        const success = cultivos.actualizar_ciclo_produccion(dialogCicloProduccion.cicloId, cicloJSON);
         
-        // Cerrar el diálogo
-        dialogCicloProduccion.close();
-        
-        // Mensaje de éxito
-        showMessage("Ciclo de producción guardado correctamente");
+        if (success) {
+            // Recargar ciclos
+            cultivos.cargar_ciclos_produccion();
+            cargarCiclosProduccion();
+            
+            // Cerrar el diálogo
+            dialogCicloProduccion.close();
+            
+            // Mensaje de éxito
+            showMessage("Ciclo de producción actualizado correctamente");
+        } else {
+            mensajeValidacionCiclo.text = "Error al actualizar el ciclo de producción";
+        }
     }
 
-    // Función para actualizar un ciclo existente
-    function actualizarCiclo() {
-        // Validar datos adicionales si es necesario
+    // Eliminar ciclo de producción
+    function eliminarCiclo(id_ciclo) {
+        // Llamar al método del modelo Python
+        const success = cultivos.eliminar_ciclo_produccion(id_ciclo);
         
-        // INTEGRACIÓN CON SQL SERVER:
-        // Aquí es donde conectarías con tu base de datos SQL Server
+        if (success) {
+            // Recargar ciclos
+            cultivos.cargar_ciclos_produccion();
+            cargarCiclosProduccion();
+            
+            // Mensaje de éxito
+            showMessage("Ciclo de producción eliminado correctamente");
+        } else {
+            showMessage("Error al eliminar el ciclo de producción");
+        }
+    }
+
+    // Funciones de filtrado
+
+    // Filtrar tipos de cultivo por texto de búsqueda
+    function filtrarTiposCultivo() {
+        const textoBusqueda = txtBuscarTipoCultivo.text.toLowerCase();
         
-        // En un sistema real, aquí iría la actualización en la base de datos
+        // Recargar todos los tipos
+        cargarTiposCultivo();
         
-        // Actualizar en el modelo local
-        for (let i = 0; i < ciclosModel.count; i++) {
-            if (ciclosModel.get(i).id_ciclo === dialogCicloProduccion.cicloId) {
-                ciclosModel.setProperty(i, "nombre_parcela", cmbParcelas.currentText);
-                ciclosModel.setProperty(i, "nombre_variedad", cmbVariedades.currentText);
-                ciclosModel.setProperty(i, "fecha_siembra", txtFechaSiembra.text);
-                ciclosModel.setProperty(i, "fecha_cosecha_estimada", txtFechaCosechaEst.text);
-                ciclosModel.setProperty(i, "fecha_cosecha_real", txtFechaCosechaReal.text);
-                ciclosModel.setProperty(i, "area_sembrada", txtAreaSembrada.text);
-                ciclosModel.setProperty(i, "densidad_siembra", spinDensidad.value);
-                ciclosModel.setProperty(i, "estado", cmbEstado.currentText);
-                ciclosModel.setProperty(i, "activo", ciclo_chkActivo.checked);
-                ciclosModel.setProperty(i, "fecha_floracion", txtFechaFloracion.text);
-                ciclosModel.setProperty(i, "fecha_poda", txtFechaPoda.text);
-                ciclosModel.setProperty(i, "fecha_limpieza", txtFechaLimpieza.text);
-                ciclosModel.setProperty(i, "frecuencia_limpieza_maleza", spinFrecuenciaLimpieza.value);
-                break;
+        // Si no hay texto de búsqueda, no filtramos
+        if (textoBusqueda === "") return;
+        
+        // Crear una lista temporal con los tipos filtrados
+        const tiposFiltrados = [];
+        
+        for (let i = 0; i < tiposCultivoModel.count; i++) {
+            const tipo = tiposCultivoModel.get(i);
+            if (tipo.nombre.toLowerCase().includes(textoBusqueda) ||
+                (tipo.nombre_cientifico && tipo.nombre_cientifico.toLowerCase().includes(textoBusqueda)) ||
+                (tipo.descripcion && tipo.descripcion.toLowerCase().includes(textoBusqueda))) {
+                tiposFiltrados.push(tipo);
             }
         }
         
-        // Cerrar el diálogo
-        dialogCicloProduccion.close();
-        
-        // Mensaje de éxito
-        showMessage("Ciclo de producción actualizado correctamente");
+        // Limpiar y volver a llenar el modelo con los tipos filtrados
+        tiposCultivoModel.clear();
+        for (let i = 0; i < tiposFiltrados.length; i++) {
+            tiposCultivoModel.append(tiposFiltrados[i]);
+        }
     }
 
-    // Modelos de datos (vacíos inicialmente)
-    ListModel {
-        id: tiposCultivoModel
-        // Se agregarán elementos cuando el usuario los cree
+    // Filtrar variedades por texto de búsqueda
+    function filtrarVariedades() {
+        const textoBusqueda = txtBuscarVariedad.text.toLowerCase();
+        
+        // Recargar todas las variedades
+        cargarVariedades();
+        
+        // Aplicar filtro de tipo si está activo
+        if (cmbFiltroTipos.currentIndex > 0) {
+            filtrarVariedadesPorTipo();
+        }
+        
+        // Si no hay texto de búsqueda, no filtramos más
+        if (textoBusqueda === "") return;
+        
+        // Crear una lista temporal con las variedades filtradas
+        const variedadesFiltradas = [];
+        
+        for (let i = 0; i < variedadesModel.count; i++) {
+            const variedad = variedadesModel.get(i);
+            if (variedad.nombre.toLowerCase().includes(textoBusqueda) ||
+                variedad.nombre_tipo_cultivo.toLowerCase().includes(textoBusqueda)) {
+                variedadesFiltradas.push(variedad);
+            }
+        }
+        
+        // Limpiar y volver a llenar el modelo con las variedades filtradas
+        variedadesModel.clear();
+        for (let i = 0; i < variedadesFiltradas.length; i++) {
+            variedadesModel.append(variedadesFiltradas[i]);
+        }
     }
 
-    // Modelo de Variedades de Cultivo
-    ListModel {
-        id: variedadesModel
-        // Se agregarán elementos cuando el usuario los cree
-    }
-    // Modelo de Ciclos de Producción
-    ListModel {
-        id: ciclosModel
-        // Se agregarán elementos cuando el usuario los cree
-    }
+    // Filtrar variedades por tipo de cultivo
+    function filtrarVariedadesPorTipo() {
+        // Si está seleccionado "Todos los tipos", recargar todas las variedades
+        if (cmbFiltroTipos.currentIndex === 0) {
+            cargarVariedades();
+            return;
+        }
         
+        // Obtener ID del tipo seleccionado
+        const idTipo = cmbFiltroTipos.currentValue;
+        
+        // Recargar variedades desde Python filtrando por tipo
+        cultivos.cargar_variedades_por_tipo(idTipo);
+        cargarVariedades();
+        
+        // Volver a aplicar filtro de búsqueda si existe
+        if (txtBuscarVariedad.text !== "") {
+            filtrarVariedades();
+        }
+    }
+
+    // Filtrar ciclos por texto de búsqueda
+    function filtrarCiclos() {
+        const textoBusqueda = txtBuscarCiclo.text.toLowerCase();
+        
+        // Recargar todos los ciclos
+        cargarCiclosProduccion();
+        
+        // Aplicar filtro de estado si está activo
+        if (cmbFiltroEstados.currentIndex > 0) {
+            filtrarCiclosPorEstado();
+        }
+        
+        // Si no hay texto de búsqueda, no filtramos más
+        if (textoBusqueda === "") return;
+        
+        // Crear una lista temporal con los ciclos filtrados
+        const ciclosFiltrados = [];
+        
+        for (let i = 0; i < ciclosModel.count; i++) {
+            const ciclo = ciclosModel.get(i);
+            if (ciclo.nombre_parcela.toLowerCase().includes(textoBusqueda) ||
+                ciclo.nombre_variedad.toLowerCase().includes(textoBusqueda) ||
+                ciclo.nombre_tipo_cultivo.toLowerCase().includes(textoBusqueda) ||
+                ciclo.estado.toLowerCase().includes(textoBusqueda)) {
+                ciclosFiltrados.push(ciclo);
+            }
+        }
+        
+        // Limpiar y volver a llenar el modelo con los ciclos filtrados
+        ciclosModel.clear();
+        for (let i = 0; i < ciclosFiltrados.length; i++) {
+            ciclosModel.append(ciclosFiltrados[i]);
+        }
+    }
+
+    // Filtrar ciclos por estado
+    function filtrarCiclosPorEstado() {
+        // Si está seleccionado "Todos los estados", recargar todos los ciclos
+        if (cmbFiltroEstados.currentIndex === 0) {
+            cargarCiclosProduccion();
+            return;
+        }
+        
+        // Obtener estado seleccionado
+        const estado = cmbFiltroEstados.currentText;
+        
+        // Recargar ciclos desde Python filtrando por estado
+        cultivos.cargar_ciclos_por_estado(estado);
+        cargarCiclosProduccion();
+        
+        // Volver a aplicar filtro de búsqueda si existe
+        if (txtBuscarCiclo.text !== "") {
+            filtrarCiclos();
+        }
+    }
+
+    // Cargar detalles de un tipo de cultivo seleccionado
+    function cargarDetallesTipoCultivo(tipo) {
+        txtNombreTipo.text = tipo.nombre;
+        txtNombreCientifico.text = tipo.nombre_cientifico || "";
+        spinTiempoMin.value = tipo.tiempo_cosecha_min || 0;
+        spinTiempoMax.value = tipo.tiempo_cosecha_max || 0;
+        chkActivo.checked = tipo.activo;
+        txtDescripcion.text = tipo.descripcion || "";
+    }
+
+    // Funciones de exportación
+
+    // Exportar variedades a CSV
+    function exportarVariedades() {
+        // Implementación básica - En una aplicación real se usaría un diálogo de guardar
+        let csv = "ID,Tipo,Nombre,Tiempo (días),Rendimiento (ton/ha),Resistencia\n";
+        
+        for (let i = 0; i < variedadesModel.count; i++) {
+            const v = variedadesModel.get(i);
+            csv += `${v.id_variedad},${v.nombre_tipo_cultivo},${v.nombre},${v.tiempo_produccion || 0},${v.rendimiento_esperado || 0},${v.resistencia_zona}\n`;
+        }
+        
+        // En una aplicación real, aquí guardaríamos el CSV a un archivo
+        console.log("Exportar variedades a CSV:");
+        console.log(csv);
+        
+        showMessage("Función de exportación a CSV implementada. Revise la consola para ver el resultado.");
+    }
+
+    // Exportar ciclos a CSV
+    function exportarCiclos() {
+        // Implementación básica - En una aplicación real se usaría un diálogo de guardar
+        let csv = "ID,Parcela,Variedad,Fecha Siembra,Fecha Cosecha Est.,Área (ha),Densidad,Estado\n";
+        
+        for (let i = 0; i < ciclosModel.count; i++) {
+            const c = ciclosModel.get(i);
+            csv += `${c.id_ciclo},${c.nombre_parcela},${c.nombre_variedad},${c.fecha_siembra || ""},${c.fecha_cosecha_estimada || ""},${c.area_sembrada},${c.densidad_siembra || 0},${c.estado}\n`;
+        }
+        
+        // En una aplicación real, aquí guardaríamos el CSV a un archivo
+        console.log("Exportar ciclos a CSV:");
+        console.log(csv);
+        
+        showMessage("Función de exportación a CSV implementada. Revise la consola para ver el resultado.");
+    }
+
     // Componente para mostrar mensajes
     Rectangle {
         id: messageToast
@@ -2487,29 +3113,11 @@ Rectangle {
             onTriggered: messageToast.visible = false
         }
     }
-    
+
     // Función para mostrar mensajes
     function showMessage(message) {
         messageToast.text = message
         messageToast.visible = true
         messageToastTimer.restart()
-    }
-    
-    // Inicializar el calendario cuando se carga el componente
-    Component.onCompleted: {
-        actualizarCalendario();
-    }
-        // Función para formatear la fecha actual
-    function getFormattedDate() {
-        var today = new Date();
-        var dd = String(today.getDate()).padStart(2, '0');
-        var mm = String(today.getMonth() + 1).padStart(2, '0'); // Los meses empiezan en 0
-        var yyyy = today.getFullYear();
-        return dd + '/' + mm + '/' + yyyy;
-    }
-    
-
-    function padZero(num) {
-        return num < 10 ? "0" + num : num;
     }
 }

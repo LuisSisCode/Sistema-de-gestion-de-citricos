@@ -112,21 +112,16 @@ CREATE TABLE CategoriaAgroquimicos (
 CREATE TABLE ProductosAgroquimicos (
     id_producto INT IDENTITY(1,1) PRIMARY KEY,
     id_categoria INT NOT NULL,
-    nombre_comercial VARCHAR(100) NOT NULL,
-    fabricante VARCHAR(100) NULL,
-    ingrediente_activo VARCHAR(100) NOT NULL,
-    concentracion VARCHAR(50) NOT NULL,
-    formulacion VARCHAR(50) NULL,
-    unidad_medida VARCHAR(20) NOT NULL,
-    registro_oficial VARCHAR(50) NULL,
-    periodo_reingreso INT NULL,
-    periodo_carencia INT NULL,
-    precio_unitario DECIMAL(10,2) NULL,
-    stock_actual DECIMAL(10,2) DEFAULT 0,
-    fecha_registro DATE NOT NULL,
-    notas TEXT NULL,
-    activo BIT NOT NULL DEFAULT 1,
-    CONSTRAINT FK_ProductosAgroquimicos_CategoriaAgroquimicos FOREIGN KEY (id_categoria) REFERENCES CategoriaAgroquimicos(id_categoria)
+    nombre_comercial VARCHAR(50) NOT NULL,
+    formulacion VARCHAR(20) DEFAULT 'Líquido',
+    unidad CHAR(3) NOT NULL CHECK (unidad IN ('L', 'Kg')),
+    precio DECIMAL(8,2) NOT NULL,
+    stock DECIMAL(10,2) DEFAULT 0,
+    registro VARCHAR(15) DEFAULT 'PENDIENTE',
+    notas VARCHAR(100),
+    fecha_registro DATE DEFAULT GETDATE(),
+    activo BIT DEFAULT 1,
+    FOREIGN KEY (id_categoria) REFERENCES CategoriaAgroquimicos(id_categoria)
 );
 
 -- 7. Gesti�n de Mezclas de Agroqu�micos
@@ -139,9 +134,8 @@ CREATE TABLE MezclasAgroquimicos (
     objetivo VARCHAR(100) NULL,
     indicaciones TEXT NULL,
     fecha_creacion DATE NOT NULL,
-    creado_por INT NULL,
     activo BIT NOT NULL DEFAULT 1,
-    CONSTRAINT FK_MezclasAgroquimicos_Usuarios FOREIGN KEY (creado_por) REFERENCES Usuarios(id_usuario)
+    nota VARCHAR(200) NULL  -- Nueva columna
 );
 
 CREATE TABLE DetallesMezcla (

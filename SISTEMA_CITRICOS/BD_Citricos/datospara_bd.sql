@@ -75,6 +75,53 @@ VALUES
 (3, 'Criollo', 160, 12.0, 'Susceptible a gomosis', 1),
 (3, 'Persa', 180, 22.5, 'Resistente a verrugosis', 1);
 
+-- Ciclos de producción para Naranjas
+INSERT INTO CiclosProduccion (id_parcela, id_variedad, fecha_siembra, fecha_cosecha_estimada, fecha_cosecha_real, area_sembrada, densidad_siembra, estado, activo, fecha_floracion, fecha_poda, fecha_limpieza, frecuencia_limpieza)
+VALUES 
+(1, 1, '2022-03-15', '2023-01-25', NULL, 3.5, 250, 'En Desarrollo', 1, '2022-08-10', '2022-05-20', '2022-09-15', 3);
+
+INSERT INTO CiclosProduccion (id_parcela, id_variedad, fecha_siembra, fecha_cosecha_estimada, fecha_cosecha_real, area_sembrada, densidad_siembra, estado, activo, fecha_floracion, fecha_poda, fecha_limpieza, frecuencia_limpieza)
+VALUES 
+(1, 2, '2021-09-20', '2022-06-15', '2022-07-02', 2.8, 230, 'Finalizado', 1, '2022-01-15', '2021-11-10', '2022-02-20', 2);
+
+-- Ciclos de producción para Mandarinas
+INSERT INTO CiclosProduccion (id_parcela, id_variedad, fecha_siembra, fecha_cosecha_estimada, fecha_cosecha_real, area_sembrada, densidad_siembra, estado, activo, fecha_floracion, fecha_poda, fecha_limpieza, frecuencia_limpieza)
+VALUES 
+(2, 3, '2023-04-10', '2024-01-05', NULL, 2.2, 280, 'Sembrado', 1, '2023-09-20', NULL, '2023-06-15', 2);
+
+INSERT INTO CiclosProduccion (id_parcela, id_variedad, fecha_siembra, fecha_cosecha_estimada, fecha_cosecha_real, area_sembrada, densidad_siembra, estado, activo, fecha_floracion, fecha_poda, fecha_limpieza, frecuencia_limpieza)
+VALUES 
+(2, 5, '2022-08-05', '2023-03-25', '2023-04-10', 1.8, 260, 'Finalizado', 1, '2023-01-10', '2022-11-20', '2023-02-05', 3);
+
+INSERT INTO CiclosProduccion (id_parcela, id_variedad, fecha_siembra, fecha_cosecha_estimada, fecha_cosecha_real, area_sembrada, densidad_siembra, estado, activo, fecha_floracion, fecha_poda, fecha_limpieza, frecuencia_limpieza)
+VALUES 
+(3, 7, '2023-02-20', '2024-01-15', NULL, 1.5, 240, 'En Desarrollo', 1, '2023-07-10', '2023-04-25', '2023-08-15', 2);
+
+-- Ciclos de producción para Limones
+INSERT INTO CiclosProduccion (id_parcela, id_variedad, fecha_siembra, fecha_cosecha_estimada, fecha_cosecha_real, area_sembrada, densidad_siembra, estado, activo, fecha_floracion, fecha_poda, fecha_limpieza, frecuencia_limpieza)
+VALUES 
+(1, 8, '2023-05-10', '2023-10-15', NULL, 1.2, 300, 'En Desarrollo', 1, '2023-07-20', NULL, '2023-06-25', 1);
+
+INSERT INTO CiclosProduccion (id_parcela, id_variedad, fecha_siembra, fecha_cosecha_estimada, fecha_cosecha_real, area_sembrada, densidad_siembra, estado, activo, fecha_floracion, fecha_poda, fecha_limpieza, frecuencia_limpieza)
+VALUES 
+(3, 9, '2022-10-05', '2023-04-12', '2023-04-20', 1.0, 320, 'Finalizado', 1, '2023-01-05', '2022-12-10', '2023-02-15', 2);
+
+-- Ciclo de producción planificado
+INSERT INTO CiclosProduccion (id_parcela, id_variedad, fecha_siembra, fecha_cosecha_estimada, fecha_cosecha_real, area_sembrada, densidad_siembra, estado, activo, fecha_floracion, fecha_poda, fecha_limpieza, frecuencia_limpieza)
+VALUES 
+(2, 4, '2023-09-15', '2024-04-22', NULL, 2.5, 270, 'Planificado', 1, NULL, NULL, NULL, 2);
+
+-- Alternativa usando texto exacto de la restricción
+INSERT INTO CiclosProduccion (id_parcela, id_variedad, fecha_siembra, fecha_cosecha_estimada, fecha_cosecha_real, area_sembrada, densidad_siembra, estado, activo, fecha_floracion, fecha_poda, fecha_limpieza, frecuencia_limpieza)
+VALUES 
+(3, 6, '2023-08-10', '2024-05-15', NULL, 1.7, 250, 'En Preparaci?n', 1, NULL, NULL, NULL, 3);
+
+-- Ciclo en cosecha
+INSERT INTO CiclosProduccion (id_parcela, id_variedad, fecha_siembra, fecha_cosecha_estimada, fecha_cosecha_real, area_sembrada, densidad_siembra, estado, activo, fecha_floracion, fecha_poda, fecha_limpieza, frecuencia_limpieza)
+VALUES 
+(1, 3, '2022-06-20', '2023-03-10', NULL, 2.0, 290, 'En Cosecha', 1, '2022-11-15', '2022-08-05', '2023-01-12', 2);
+
+
 4. Categorías de Agroquímicos y Productos
 -- Insertar categorías de agroquímicos
 INSERT INTO CategoriaAgroquimicos (nombre, descripcion, activo)
@@ -89,45 +136,49 @@ VALUES ('Herbicida', 'Productos para el control de malezas', 1);
 INSERT INTO CategoriaAgroquimicos (nombre, descripcion, activo)
 VALUES ('Fertilizante', 'Productos para la nutrición de los cultivos', 1);
 
--- Insertar productos agroquímicos
-INSERT INTO ProductosAgroquimicos (id_categoria, nombre_comercial, fabricante, ingrediente_activo, concentracion, formulacion, unidad_medida, registro_oficial, periodo_reingreso, periodo_carencia, precio_unitario, stock_actual, fecha_registro, notas, activo)
-VALUES (1, 'CiperPlus', 'AgroChemical', 'Cipermetrina', '25%', 'Concentrado Emulsionable', 'Litro', 'REG-123456', 24, 15, 180.00, 15.5, '2023-01-10', 'Efectivo contra mosca blanca y pulgones', 1);
+-- Productos con nombres locales y realistas para Yapacaní
+INSERT INTO ProductosAgroquimicos 
+(id_categoria, nombre_comercial, formulacion, unidad, precio, stock, registro, notas)
+VALUES
+-- Insecticida (Ej: para minador de hojas en cítricos)
+(1, 'Cipertrina 25EC', 'Líquido', 'L', 85.00, 20.0, 'SENASAG-2023', 'Contra minador y mosca blanca (usar 2ml/L)'),
 
-INSERT INTO ProductosAgroquimicos (id_categoria, nombre_comercial, fabricante, ingrediente_activo, concentracion, formulacion, unidad_medida, registro_oficial, periodo_reingreso, periodo_carencia, precio_unitario, stock_actual, fecha_registro, notas, activo)
-VALUES (2, 'FungiStop', 'BioProtect', 'Mancozeb', '80%', 'Polvo Mojable', 'Kilogramo', 'REG-234567', 48, 21, 95.00, 22.0, '2023-02-15', 'Prevención de antracnosis y gomosis', 1);
+-- Fungicida (Ej: para antracnosis en mandarinas)
+(2, 'Cobrestar WP', 'Polvo', 'Kg', 70.00, 15.0, 'SENASAG-4567', 'Mezclar 3g por litro de agua'),
 
-INSERT INTO ProductosAgroquimicos (id_categoria, nombre_comercial, fabricante, ingrediente_activo, concentracion, formulacion, unidad_medida, registro_oficial, periodo_reingreso, periodo_carencia, precio_unitario, stock_actual, fecha_registro, notas, activo)
-VALUES (3, 'HerbaKill', 'GreenSolutions', 'Glifosato', '48%', 'Solución Concentrada', 'Litro', 'REG-345678', 12, 0, 120.00, 30.0, '2023-03-20', 'Control de malezas post-emergente', 1);
+-- Herbicida (Ej: para malezas en huertos)
+(3, 'Glifosato 48SL', 'Líquido', 'L', 110.00, 25.0, 'SENASAG-8910', 'Aplicar con cuidado en base de árboles'),
 
-INSERT INTO ProductosAgroquimicos (id_categoria, nombre_comercial, fabricante, ingrediente_activo, concentracion, formulacion, unidad_medida, registro_oficial, periodo_reingreso, periodo_carencia, precio_unitario, stock_actual, fecha_registro, notas, activo)
-VALUES (4, 'CitriGrow', 'NutriPlant', 'NPK + Microelementos', '20-10-10', 'Granulado', 'Kilogramo', 'REG-456789', 0, 0, 75.00, 150.0, '2023-04-05', 'Fertilizante balanceado para cítricos en desarrollo', 1);
+-- Fertilizante (Ej: para limones y naranjas)
+(4, 'CitroMag', 'Granulado', 'Kg', 90.00, 200.0, 'SENASAG-1122', '15-5-20 NPK + Magnesio para fruta jugosa');
 
 
-
-5. Tipos de plagas y mezclas
--- Insertar tipos de plagas y malezas
+5-- Plagas/Enfermedades con nombres locales
 INSERT INTO TiposPlagasMalezas (nombre, descripcion, categoria, activo)
-VALUES ('Mosca blanca', 'Insecto chupador que afecta hojas nuevas y transmite virus', 'Plaga', 1);
+VALUES 
+('Piojillo volador', 'Insecto que chupa savia en brotes nuevos. Se ve como polvo blanco', 'Plaga', 1),  -- Mosca blanca
+('Sangrado de tronco', 'Hongo que hace rezumar el tronco con goma espesa', 'Enfermedad', 1),  -- Gomosis
+('Yuyo estrella', 'Maleza dura que forma matas. Raíces profundas', 'Maleza', 1);  -- Pasto estrella
 
-INSERT INTO TiposPlagasMalezas (nombre, descripcion, categoria, activo)
-VALUES ('Gomosis', 'Enfermedad fúngica que afecta el tronco y ramas principales', 'Enfermedad', 1);
+-- Mezclas comunes usadas por agricultores
+INSERT INTO MezclasAgroquimicos 
+(nombre, descripcion, cantidad_agua, area_aplicacion, objetivo, indicaciones, fecha_creacion, activo, nota)
+VALUES 
+('Caldo para piojillo','Mezcla económica con jabón para controlar piojillo en limón sutil', 20.0, 0.2, 'Control piojillo en post-cosecha', 'Aplicar con bomba de espalda. Repetir a los 7 días', '2023-10-01', 
+ 1, 'Incluir jabón agrícola como adherente'),  -- Nueva nota
 
-INSERT INTO TiposPlagasMalezas (nombre, descripcion, categoria, activo)
-VALUES ('Pasto estrella', 'Maleza invasiva de difícil control en cítricos', 'Maleza', 1);
-
--- Insertar mezclas de agroquímicos
-INSERT INTO MezclasAgroquimicos (nombre, descripcion, cantidad_agua, area_aplicacion, objetivo, indicaciones, fecha_creacion, creado_por, activo)
-VALUES ('Control Mosca Blanca', 'Mezcla para control efectivo de mosca blanca en cítricos', 200.0, 1.0, 'Control de mosca blanca en todas las etapas', 'Aplicar en horas tempranas o tarde, evitar días ventosos', '2023-05-10', 1, 1);
-
-INSERT INTO MezclasAgroquimicos (nombre, descripcion, cantidad_agua, area_aplicacion, objetivo, indicaciones, fecha_creacion, creado_por, activo)
-VALUES ('Prevención Gomosis', 'Tratamiento preventivo contra gomosis en troncos y ramas', 100.0, 0.5, 'Prevenir infecciones de gomosis', 'Aplicar directamente en troncos y base de ramas principales', '2023-06-15', 3, 1);
-
--- Insertar detalles de mezcla
-INSERT INTO DetallesMezcla (id_mezcla, id_producto, cantidad, unidad_medida, observaciones)
-VALUES (1, 1, 0.5, 'Litro', 'Diluir primero en 5 litros de agua antes de completar el tanque');
+('Lavado de troncos', 'Mezcla curativa para troncos con sangrado', 10.0, 0.1, 'Sanar heridas por gomosis', 'Cepillar tronco antes de aplicar', '2023-09-15', 1, 'Aplicar con brocha de cerdas naturales');  -- Nueva nota
+-- Detalles de mezclas con productos locales
 
 INSERT INTO DetallesMezcla (id_mezcla, id_producto, cantidad, unidad_medida, observaciones)
-VALUES (2, 2, 0.75, 'Kilogramo', 'Mezclar con adherente para mejor fijación');
+VALUES 
+(2, 1, 100, 'ml', 'Cipertrina 25EC + 200g jabón agrícola'),  
+(2, 4, 50, 'g', 'CitroMag como adherente (opcional)');   
+
+INSERT INTO DetallesMezcla (id_mezcla, id_producto, cantidad, unidad_medida, observaciones)
+VALUES 
+(3, 2, 500, 'g', 'Cobrestar WP mezclado con 10L agua tibia'), 
+(3, 3, 30, 'ml', 'Glifosato 48SL para limpiar maleza alrededor'); 
 
 
 6. Categorías de Calidad y Métodos de Pago

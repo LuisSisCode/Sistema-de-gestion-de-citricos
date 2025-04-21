@@ -6,6 +6,9 @@ from PySide6.QtQml import QQmlApplicationEngine
 
 from usuario_roles_model import UsuariosRolesModel
 from agricultores_parcelas_model import AgricultoresParcelas
+from cultivos_model import CultivosModel
+from agroquimicos_model import AgroquimicosModel
+from datetime import datetime
 
 os.environ["QT_LOGGING_RULES"] = "*.debug=false"
 
@@ -127,6 +130,14 @@ def main():
     # Crear y registrar el modelo de agricultores y parcelas
     agricultores_parcelas_model = AgricultoresParcelas()
     engine.rootContext().setContextProperty("agricultoresparcelas", agricultores_parcelas_model)
+
+    # Crear y registrar el modelo de cultivos
+    cultivos_model = CultivosModel()
+    engine.rootContext().setContextProperty("cultivos", cultivos_model)
+
+    # Crear y registrar el modelo de AGROQUIMICOS
+    agroquimicos_model = AgroquimicosModel
+    engine.rootContext().setContextProperty("agroquimicos", agroquimicos_model)
     
     # Imprimir el directorio de trabajo actual (útil para depuración)
     print(f"Directorio de trabajo actual: {os.getcwd()}")

@@ -250,7 +250,7 @@ Rectangle {
                             }
 
                             Text {
-                                width: parent.width * 0.20
+                                width: parent.width * 0.15
                                 height: parent.height
                                 text: "Nombre Completo"
                                 font.bold: true
@@ -286,7 +286,7 @@ Rectangle {
                             }
 
                             Text {
-                                width: parent.width * 0.15
+                                width: parent.width * 0.20
                                 height: parent.height
                                 text: "Direcciones"
                                 font.bold: true
@@ -295,7 +295,7 @@ Rectangle {
                             }
 
                             Text {
-                                width: parent.width * 0.10
+                                width: parent.width * 0.20
                                 height: parent.height
                                 text: "Acciones"
                                 font.bold: true
@@ -332,7 +332,7 @@ Rectangle {
 
                             // Columna Nombre Completo
                             Rectangle {
-                                width: parent.width * 0.25
+                                width: parent.width * 0.15
                                 height: parent.height
                                 color: "transparent"
                                 
@@ -348,7 +348,7 @@ Rectangle {
 
                             // Columna Identificación
                             Rectangle {
-                                width: parent.width * 0.15
+                                width: parent.width * 0.10
                                 height: parent.height
                                 color: "transparent"
                                 
@@ -364,7 +364,7 @@ Rectangle {
 
                             // Columna Teléfono
                             Rectangle {
-                                width: parent.width * 0.15
+                                width: parent.width * 0.10
                                 height: parent.height
                                 color: "transparent"
                                 
@@ -380,7 +380,7 @@ Rectangle {
 
                             // Columna Correo
                             Rectangle {
-                                width: parent.width * 0.25
+                                width: parent.width * 0.20
                                 height: parent.height
                                 color: "transparent"
                                 
@@ -396,7 +396,7 @@ Rectangle {
 
                             // Columna Direccion
                             Rectangle {
-                                width: parent.width * 0.25
+                                width: parent.width * 0.20
                                 height: parent.height
                                 color: "transparent"
                                 
@@ -413,7 +413,7 @@ Rectangle {
 
                             // Columna Acciones
                             Rectangle {
-                                width: parent.width * 0.15
+                                width: parent.width * 0.20
                                 height: parent.height
                                 color: "transparent"
                                 
@@ -740,7 +740,7 @@ Rectangle {
         title: "Nuevo Agricultor"
         modal: true
         width: 500
-        height: 520
+        height: 600
         property bool isEditMode: false
         x: (parent.width - width) / 2
         y: (parent.height - height) / 2
@@ -840,7 +840,19 @@ Rectangle {
                         inputMethodHints: Qt.ImhEmailCharactersOnly
                         onTextChanged: nuevoAgricultor.correo = text
                     }
-                    
+                    // Dirección
+                    Text {
+                        text: "Dirección:"
+                        Layout.alignment: Qt.AlignRight
+                    }
+
+                    TextField {
+                        id: txtDireccion
+                        placeholderText: "Ingrese dirección"
+                        Layout.fillWidth: true
+                        onTextChanged: nuevoAgricultor.direccion = text
+                    }
+                 
                     // Es Propietario
                     Text {
                         text: "Es propietario:"
@@ -939,6 +951,7 @@ Rectangle {
             txtIdentificacion.text = ""
             txtTelefono.text = ""
             txtCorreo.text = ""
+            txtDireccion.text = ""
             chkPropietario.checked = false
             mensajeValidacionAgricultor.text = ""
             isEditMode = false

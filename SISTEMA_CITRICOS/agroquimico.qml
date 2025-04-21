@@ -7,17 +7,18 @@ Rectangle {
     anchors.fill: parent
     color: "#F8F9FA"
 
-    // Propiedades para manejo de nuevos elementos
     property var nuevoProducto: {
-        "productId": "",
-        "nombreComercial": "",
-        "categoria": "",
-        "ingredienteActivo": "",
+        "id_producto": "",
+        "id_categoria": "",
+        "nombre_comercial": "",
+        "formulacion": "Líquido",
+        "unidad": "L",
+        "precio": 0,
         "stock": 0,
-        "unidad": "Litro",
-        "precioUnitario": 0,
-        "periodoCarencia": 0,
-        "stockMinimo": 0
+        "registro": "PENDIENTE",
+        "notas": "",
+        "fecha_registro": obtenerFechaActual(),
+        "activo": true
     }
     
     // Propiedades para nueva categoría
@@ -370,7 +371,7 @@ Rectangle {
                                 }
                                 
                                 Text {
-                                    width: parent.width * 0.15
+                                    width: parent.width * 0.10
                                     height: parent.height
                                     text: "Categoría"
                                     font.bold: true
@@ -379,9 +380,9 @@ Rectangle {
                                 }
                                 
                                 Text {
-                                    width: parent.width * 0.15
+                                    width: parent.width * 0.10
                                     height: parent.height
-                                    text: "Ingrediente Activo"
+                                    text: "Formulación"
                                     font.bold: true
                                     verticalAlignment: Text.AlignVCenter
                                     leftPadding: 10
@@ -408,7 +409,353 @@ Rectangle {
                                 Text {
                                     width: parent.width * 0.15
                                     height: parent.height
-                                    text: "Período Carencia"
+                                    text: "Registro"
+                                    font.bold: true
+                                    verticalAlignment: Text.AlignVCenter
+                                    leftPadding: 10
+                                }
+                                
+                                Text {
+                                    width: parent.width * 0.15
+                                    height: parent.height
+                                    text: "Notas"
+                                    font.bold: true
+                                    verticalAlignment: Text.AlignVCenter
+                                    leftPadding: 10
+                                }
+                                
+                                Text {
+                                    width: parent.width * 0.10
+                                    height: parent.height
+                                    text: "Acciones"
+                                    font.bold: true
+                                    verticalAlignment: Text.AlignVCenter
+                                    horizontalAlignment: Text.AlignHCenter
+                                }
+                            }
+                        }
+                        // Delegado para cada fila
+                        delegate: Rectangle {
+                            width: parent.width
+                            height: 50
+                            color: index % 2 === 0 ? "#FFFFFF" : "#F9F9F9"
+                            
+                            // Usamos Row con Rectangles para cada columna
+                            Row {
+                                anchors.fill: parent
+                                spacing: 0
+                                
+                                // ID
+                                Rectangle {
+                                    width: parent.width * 0.05
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: id_producto // Cambiado de productId a id_producto
+                                        verticalAlignment: Text.AlignVCenter
+                                        horizontalAlignment: Text.AlignHCenter
+                                    }
+                                }
+                                
+                                // Nombre Comercial
+                                Rectangle {
+                                    width: parent.width * 0.15
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.left: parent.left
+                                        anchors.leftMargin: 10
+                                        text: nombre_comercial // Cambiado de nombreComercial a nombre_comercial
+                                        elide: Text.ElideRight
+                                        width: parent.width - 20
+                                    }
+                                }
+                                
+                                // Categoría - Aquí necesitarás obtener el nombre de la categoría, no solo el ID
+                                Rectangle {
+                                    width: parent.width * 0.10
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.left: parent.left
+                                        anchors.leftMargin: 10
+                                        text: obtenerNombreCategoria(id_categoria) // Función auxiliar que deberías implementar
+                                        elide: Text.ElideRight
+                                        width: parent.width - 20
+                                    }
+                                }
+                                
+                                // Formulación (en lugar de Ingrediente Activo)
+                                Rectangle {
+                                    width: parent.width * 0.10
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.left: parent.left
+                                        anchors.leftMargin: 10
+                                        text: formulacion // Nuevo campo de la tabla
+                                        elide: Text.ElideRight
+                                        width: parent.width - 20
+                                    }
+                                }
+                                
+                                // Stock
+                                Rectangle {
+                                    width: parent.width * 0.10
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.left: parent.left
+                                        anchors.leftMargin: 10
+                                        text: stock + " " + unidad
+                                        // Si deseas mantener el color según nivel de stock:
+                                        // Asumiendo que tienes un campo para stockMinimo o lo calculas
+                                        color: stock < (stockMinimo || 0) ? "#F44336" : "#424242"
+                                        font.bold: stock < (stockMinimo || 0)
+                                        elide: Text.ElideRight
+                                        width: parent.width - 20
+                                    }
+                                }
+                                
+                                // Precio Unitario
+                                Rectangle {
+                                    width: parent.width * 0.10
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.left: parent.left
+                                        anchors.leftMargin: 10
+                                        text: "Bs. " + precio // Cambiado de precioUnitario a precio
+                                        elide: Text.ElideRight
+                                        width: parent.width - 20
+                                    }
+                                }
+                                
+                                // Registro (en lugar de Período Carencia)
+                                Rectangle {
+                                    width: parent.width * 0.15
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.left: parent.left
+                                        anchors.leftMargin: 10
+                                        text: registro // Cambiado a campo de registro
+                                        elide: Text.ElideRight
+                                        width: parent.width - 20
+                                    }
+                                }
+                                
+                                // Notas
+                                Rectangle {
+                                    width: parent.width * 0.15
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.left: parent.left
+                                        anchors.leftMargin: 10
+                                        text: notas // Nuevo campo para notas
+                                        elide: Text.ElideRight
+                                        width: parent.width - 20
+                                    }
+                                }
+                                
+                                // Acciones
+                                Rectangle {
+                                    width: parent.width * 0.10
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Row {
+                                        spacing: 10
+                                        anchors.centerIn: parent
+                                        
+                                        Button {
+                                            width: 36
+                                            height: 36
+                                            icon.source: "Image/Image_UI_interfaz/Inconos/agregar.svg"
+                                            flat: true
+                                            ToolTip.visible: hovered
+                                            ToolTip.text: "Agregar Stock"
+                                            onClicked: {
+                                                // Aquí podrías abrir un diálogo para agregar stock
+                                                showMessage("Función para agregar stock no implementada")
+                                            }
+                                        }
+                                        
+                                        Button {
+                                            width: 36
+                                            height: 36
+                                            icon.source: "Image/Image_UI_interfaz/Inconos/editar.svg"
+                                            flat: true
+                                            ToolTip.visible: hovered
+                                            ToolTip.text: "Editar"
+                                            onClicked: {
+                                                // Aquí podrías abrir un diálogo para editar
+                                                showMessage("Función para editar producto no implementada")
+                                            }
+                                        }
+                                        
+                                        Button {
+                                            width: 36
+                                            height: 36
+                                            icon.source: "Image/Image_UI_interfaz/Inconos/basura.svg"
+                                            flat: true
+                                            ToolTip.visible: hovered
+                                            ToolTip.text: "Eliminar"
+                                            onClicked: {
+                                                // Mostrar diálogo de confirmación
+                                                confirmDeleteProductoDialog.productoId = id_producto
+                                                confirmDeleteProductoDialog.nombreProducto = nombre_comercial
+                                                confirmDeleteProductoDialog.open()
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Mensaje cuando no hay datos
+                        Text {
+                            anchors.centerIn: parent
+                            text: "No hay productos registrados.\nHaga clic en 'Nuevo Producto' para agregar uno."
+                            color: "#757575"
+                            font.pixelSize: 14
+                            horizontalAlignment: Text.AlignHCenter
+                            visible: productosModel.count === 0
+                        }
+                    }
+                }
+            }
+        }
+
+        // Página de Categorías
+        Item {
+            ColumnLayout {
+                anchors.fill: parent
+                spacing: 20
+                
+                // Barra de acción
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 50
+                    color: "white"
+                    radius: 25
+                    border.color: "#EEEEEE"
+                    
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 15
+                        
+                        Button {
+                            text: "Nueva Categoría"
+                            icon.source: "Image/Image_UI_interfaz/Inconos/agregar.svg"
+                            implicitHeight: 36
+                            background: Rectangle {
+                                color: "#f5922f"
+                                radius: height / 2
+                            }
+                            onClicked: {
+                                // Inicializa los valores para la nueva categoría
+                                nuevaCategoria = {
+                                    "id_categoria": "",
+                                    "nombre": "",
+                                    "descripcion": "",
+                                    "activo": true
+                                }
+                                
+                                // Mostrar diálogo de nueva categoría
+                                dialogNuevaCategoria.open()
+                            }
+                        }
+                        
+                        TextField {
+                            Layout.preferredWidth: 250
+                            placeholderText: "Buscar categoría..."
+                            implicitHeight: 36
+                            background: Rectangle {
+                                color: "#b2c4c9"
+                                radius: height / 2
+                            }
+                        }
+                        
+                        Item { Layout.fillWidth: true }
+                    }
+                }
+                
+                // Tabla de categorías
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    color: "white"
+                    radius: 5
+                    border.color: "#EEEEEE"
+                    
+                    ListView {
+                        id: categoriasListView
+                        anchors.fill: parent
+                        anchors.margins: 1
+                        clip: true
+                        model: categoriasModel
+                        headerPositioning: ListView.OverlayHeader
+                        
+                        // Cabecera de la tabla
+                        header: Rectangle {
+                            width: parent.width
+                            height: 40
+                            color: "#F5F5F5"
+                            z: 2
+                            
+                            Row {
+                                anchors.fill: parent
+                                
+                                Text {
+                                    width: parent.width * 0.10
+                                    height: parent.height
+                                    text: "ID"
+                                    font.bold: true
+                                    verticalAlignment: Text.AlignVCenter
+                                    horizontalAlignment: Text.AlignHCenter
+                                }
+                                
+                                Text {
+                                    width: parent.width * 0.20
+                                    height: parent.height
+                                    text: "Nombre"
+                                    font.bold: true
+                                    verticalAlignment: Text.AlignVCenter
+                                    leftPadding: 10
+                                }
+                                
+                                Text {
+                                    width: parent.width * 0.40
+                                    height: parent.height
+                                    text: "Descripción"
+                                    font.bold: true
+                                    verticalAlignment: Text.AlignVCenter
+                                    leftPadding: 10
+                                }
+                                
+                                Text {
+                                    width: parent.width * 0.15
+                                    height: parent.height
+                                    text: "Estado"
                                     font.bold: true
                                     verticalAlignment: Text.AlignVCenter
                                     leftPadding: 10
@@ -438,19 +785,52 @@ Rectangle {
                                 
                                 // ID
                                 Rectangle {
-                                    width: parent.width * 0.05
+                                    width: parent.width * 0.10
                                     height: parent.height
                                     color: "transparent"
                                     
                                     Text {
                                         anchors.centerIn: parent
-                                        text: productId
+                                        text: id_categoria
                                         verticalAlignment: Text.AlignVCenter
                                         horizontalAlignment: Text.AlignHCenter
                                     }
                                 }
                                 
-                                // Nombre Comercial
+                                // Nombre
+                                Rectangle {
+                                    width: parent.width * 0.20
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.left: parent.left
+                                        anchors.leftMargin: 10
+                                        text: nombre
+                                        font.bold: true
+                                        elide: Text.ElideRight
+                                        width: parent.width - 20
+                                    }
+                                }
+                                
+                                // Descripción
+                                Rectangle {
+                                    width: parent.width * 0.40
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.left: parent.left
+                                        anchors.leftMargin: 10
+                                        text: descripcion
+                                        elide: Text.ElideRight
+                                        width: parent.width - 20
+                                    }
+                                }
+                                
+                                // Estado
                                 Rectangle {
                                     width: parent.width * 0.15
                                     height: parent.height
@@ -460,91 +840,9 @@ Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
                                         anchors.left: parent.left
                                         anchors.leftMargin: 10
-                                        text: nombreComercial
-                                        elide: Text.ElideRight
-                                        width: parent.width - 20
-                                    }
-                                }
-                                
-                                // Categoría
-                                Rectangle {
-                                    width: parent.width * 0.15
-                                    height: parent.height
-                                    color: "transparent"
-                                    
-                                    Text {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        anchors.left: parent.left
-                                        anchors.leftMargin: 10
-                                        text: categoria
-                                        elide: Text.ElideRight
-                                        width: parent.width - 20
-                                    }
-                                }
-                                
-                                // Ingrediente Activo
-                                Rectangle {
-                                    width: parent.width * 0.15
-                                    height: parent.height
-                                    color: "transparent"
-                                    
-                                    Text {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        anchors.left: parent.left
-                                        anchors.leftMargin: 10
-                                        text: ingredienteActivo
-                                        elide: Text.ElideRight
-                                        width: parent.width - 20
-                                    }
-                                }
-                                
-                                // Stock
-                                Rectangle {
-                                    width: parent.width * 0.10
-                                    height: parent.height
-                                    color: "transparent"
-                                    
-                                    Text {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        anchors.left: parent.left
-                                        anchors.leftMargin: 10
-                                        text: stock + " " + unidad
-                                        color: stock < stockMinimo ? "#F44336" : "#424242"
-                                        font.bold: stock < stockMinimo
-                                        elide: Text.ElideRight
-                                        width: parent.width - 20
-                                    }
-                                }
-                                
-                                // Precio Unitario
-                                Rectangle {
-                                    width: parent.width * 0.10
-                                    height: parent.height
-                                    color: "transparent"
-                                    
-                                    Text {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        anchors.left: parent.left
-                                        anchors.leftMargin: 10
-                                        text: "Bs. " + precioUnitario
-                                        elide: Text.ElideRight
-                                        width: parent.width - 20
-                                    }
-                                }
-                                
-                                // Período Carencia
-                                Rectangle {
-                                    width: parent.width * 0.15
-                                    height: parent.height
-                                    color: "transparent"
-                                    
-                                    Text {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        anchors.left: parent.left
-                                        anchors.leftMargin: 10
-                                        text: periodoCarencia + " días"
-                                        elide: Text.ElideRight
-                                        width: parent.width - 20
+                                        text: activo ? "Activo" : "Inactivo"
+                                        color: activo ? "#4CAF50" : "#F44336"
+                                        font.bold: true
                                     }
                                 }
                                 
@@ -561,24 +859,14 @@ Rectangle {
                                         Button {
                                             width: 36
                                             height: 36
-                                            icon.source: "Image/Image_UI_interfaz/Inconos/agregar.svg"
-                                            flat: true
-                                            ToolTip.visible: hovered
-                                            ToolTip.text: "Agregar Stock"
-                                            onClicked: {
-                                                // Aquí podríamos abrir un diálogo para agregar stock
-                                                showMessage("Función para agregar stock no implementada")
-                                            }
-                                        }
-                                        
-                                        Button {
-                                            width: 36
-                                            height: 36
                                             icon.source: "Image/Image_UI_interfaz/Inconos/editar.svg"
                                             flat: true
                                             ToolTip.visible: hovered
                                             ToolTip.text: "Editar"
-                                            onClicked: showMessage("Función para editar producto no implementada")
+                                            onClicked: {
+                                                // Aquí podrías abrir un diálogo para editar la categoría
+                                                editarCategoria(id_categoria);
+                                            }
                                         }
                                         
                                         Button {
@@ -590,9 +878,21 @@ Rectangle {
                                             ToolTip.text: "Eliminar"
                                             onClicked: {
                                                 // Mostrar diálogo de confirmación
-                                                confirmDeleteProductoDialog.productoId = productId
-                                                confirmDeleteProductoDialog.nombreProducto = nombreComercial
-                                                confirmDeleteProductoDialog.open()
+                                                confirmDeleteCategoriaDialog.categoriaId = id_categoria;
+                                                confirmDeleteCategoriaDialog.nombreCategoria = nombre;
+                                                confirmDeleteCategoriaDialog.open();
+                                            }
+                                        }
+                                        
+                                        Button {
+                                            width: 36
+                                            height: 36
+                                            icon.source: activo ? "Image/Image_UI_interfaz/Inconos/check.svg" : "Image/Image_UI_interfaz/Inconos/close.svg"
+                                            flat: true
+                                            ToolTip.visible: hovered
+                                            ToolTip.text: activo ? "Desactivar" : "Activar"
+                                            onClicked: {
+                                                cambiarEstadoCategoria(id_categoria, !activo);
                                             }
                                         }
                                     }
@@ -603,113 +903,7 @@ Rectangle {
                         // Mensaje cuando no hay datos
                         Text {
                             anchors.centerIn: parent
-                            text: "No hay productos registrados.\nHaga clic en 'Nuevo Producto' para agregar uno."
-                            color: "#757575"
-                            font.pixelSize: 14
-                            horizontalAlignment: Text.AlignHCenter
-                            visible: productosModel.count === 0
-                        }
-                    }
-                }
-            }
-        }
-
-        // Página de Categorías
-        Item {
-            // Dividir en dos columnas: lista y detalles
-            Rectangle {
-                id: categoriasList
-                width: parent.width * 0.3
-                height: parent.height
-                color: "white"
-                radius: 5
-                border.color: "#EEEEEE"
-
-                ColumnLayout {
-                    anchors.fill: parent
-                    anchors.margins: 15
-                    spacing: 15
-
-                    // Cabecera de la lista
-                    RowLayout {
-                        Layout.fillWidth: true
-                        
-                        Text {
-                            text: "Categorías"
-                            font.pixelSize: 18
-                            font.bold: true
-                        }
-                        
-                        Item { Layout.fillWidth: true }
-                        
-                        Button {
-                            text: "Nueva"
-                            icon.source: "Image/Image_UI_interfaz/Inconos/agregar.svg"
-                            implicitHeight: 36
-                            background: Rectangle {
-                                color: "#f5922f"
-                                radius: height / 2
-                            }
-                            onClicked: {
-                                // Inicializa los valores para la nueva categoría
-                                nuevaCategoria = {
-                                    "categoriaId": "",
-                                    "nombre": "",
-                                    "descripcion": "",
-                                    "activo": true
-                                }
-                                
-                                // Mostrar diálogo de nueva categoría
-                                dialogNuevaCategoria.open()
-                            }
-                        }
-                    }
-                    
-                    // Lista de categorías
-                    ListView {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        clip: true
-                        model: categoriasModel
-                        spacing: 5
-                        
-                        delegate: Rectangle {
-                            width: parent.width
-                            height: 60
-                            color: ListView.isCurrentItem ? "#E3F2FD" : "transparent"
-                            radius: 4
-                            
-                            ColumnLayout {
-                                anchors.fill: parent
-                                anchors.margins: 10
-                                spacing: 2
-                                
-                                Text {
-                                    text: nombre
-                                    font.pixelSize: 16
-                                    font.bold: true
-                                }
-                                
-                                Text {
-                                    text: descripcion
-                                    font.pixelSize: 12
-                                    color: "#757575"
-                                    elide: Text.ElideRight
-                                }
-                            }
-                            
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: {
-                                    parent.ListView.view.currentIndex = index
-                                }
-                            }
-                        }
-                        
-                        // Mensaje cuando no hay datos
-                        Text {
-                            anchors.centerIn: parent
-                            text: "No hay categorías registradas.\nHaga clic en 'Nueva' para agregar una."
+                            text: "No hay categorías registradas.\nHaga clic en 'Nueva Categoría' para agregar una."
                             color: "#757575"
                             font.pixelSize: 14
                             horizontalAlignment: Text.AlignHCenter
@@ -719,123 +913,116 @@ Rectangle {
                 }
             }
             
-            // Panel de detalles
-            Rectangle {
-                anchors.left: categoriasList.right
-                anchors.leftMargin: 20
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
-                color: "white"
-                radius: 5
-                border.color: "#EEEEEE"
+            // Función para editar categoría
+            function editarCategoria(categoriaId) {
+                // Buscar la categoría en el modelo
+                for (let i = 0; i < categoriasModel.count; i++) {
+                    if (categoriasModel.get(i).id_categoria === categoriaId) {
+                        // Cargar datos en el objeto nuevaCategoria para edición
+                        nuevaCategoria = {
+                            "id_categoria": categoriasModel.get(i).id_categoria,
+                            "nombre": categoriasModel.get(i).nombre,
+                            "descripcion": categoriasModel.get(i).descripcion,
+                            "activo": categoriasModel.get(i).activo
+                        };
+                        
+                        // Abrir diálogo en modo edición
+                        dialogNuevaCategoria.title = "Editar Categoría";
+                        dialogNuevaCategoria.modoEdicion = true;
+                        dialogNuevaCategoria.open();
+                        break;
+                    }
+                }
+            }
+            
+            // Función para cambiar el estado de una categoría
+            function cambiarEstadoCategoria(categoriaId, nuevoEstado) {
+                // Buscar la categoría en el modelo
+                for (let i = 0; i < categoriasModel.count; i++) {
+                    if (categoriasModel.get(i).id_categoria === categoriaId) {
+                        // En una aplicación real, aquí harías una actualización en la base de datos
+                        
+                        // Por ahora, solo actualizamos el modelo local
+                        categoriasModel.setProperty(i, "activo", nuevoEstado);
+                        
+                        showMessage("Estado de categoría actualizado");
+                        break;
+                    }
+                }
+            }
+        }
+
+        // DIÁLOGO DE CONFIRMACIÓN PARA ELIMINAR CATEGORÍA
+        Dialog {
+            id: confirmDeleteCategoriaDialog
+            title: "Confirmar eliminación"
+            modal: true
+            
+            property int categoriaId: -1
+            property string nombreCategoria: ""
+            
+            contentItem: Item {
+                implicitWidth: 400
+                implicitHeight: 100
                 
-                ColumnLayout {
+                Column {
                     anchors.fill: parent
                     anchors.margins: 20
                     spacing: 20
                     
-                    // Cabecera de detalles
                     Text {
-                        text: "Detalles de la Categoría"
-                        font.pixelSize: 20
-                        font.bold: true
+                        width: parent.width
+                        text: "¿Está seguro que desea eliminar la categoría '" + confirmDeleteCategoriaDialog.nombreCategoria + "'?"
+                        font.pixelSize: 14
+                        wrapMode: Text.WordWrap
                     }
                     
-                    // Formulario
-                    GridLayout {
-                        Layout.fillWidth: true
-                        columns: 2
-                        rowSpacing: 15
-                        columnSpacing: 20
-                        
-                        // Nombre
-                        Text {
-                            text: "Nombre:"
-                            font.pixelSize: 14
-                        }
-                        
-                        TextField {
-                            Layout.fillWidth: true
-                            placeholderText: "Nombre de la categoría"
-                            enabled: categoriasModel.count > 0
-                        }
-                        
-                        // Estado
-                        Text {
-                            text: "Estado:"
-                            font.pixelSize: 14
-                        }
-                        
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 10
-                            
-                            CheckBox {
-                                text: "Activo"
-                                checked: true
-                                enabled: categoriasModel.count > 0
-                            }
-                        }
-                        
-                        // Descripción
-                        Text {
-                            text: "Descripción:"
-                            font.pixelSize: 14
-                        }
-                        
-                        TextArea {
-                            Layout.fillWidth: true
-                            Layout.rowSpan: 3
-                            Layout.minimumHeight: 100
-                            placeholderText: "Descripción de la categoría..."
-                            wrapMode: TextArea.Wrap
-                            enabled: categoriasModel.count > 0
-                        }
-                    }
-                    
-                    // Estadísticas de uso (vacío)
-                    Rectangle {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 200
-                        color: "#F5F5F5"
-                        radius: 5
-                        
-                        Text {
-                            anchors.centerIn: parent
-                            text: categoriasModel.count > 0 
-                                ? "Seleccione una categoría para ver sus estadísticas"
-                                : "No hay categorías registradas"
-                            color: "#757575"
-                            font.pixelSize: 14
-                        }
-                    }
-                    
-                    // Botones de acción
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Layout.alignment: Qt.AlignRight
-                        spacing: 10
-                        
-                        Button {
-                            text: "Cancelar"
-                            implicitHeight: 36
-                            flat: true
-                            enabled: categoriasModel.count > 0
-                        }
-                        
-                        Button {
-                            text: "Guardar Cambios"
-                            implicitHeight: 36
-                            background: Rectangle {
-                                color: "#4CAF50"
-                                radius: height / 2
-                            }
-                            enabled: categoriasModel.count > 0
-                            onClicked: showMessage("Función para guardar categoría no implementada")
-                        }
+                    Text {
+                        width: parent.width
+                        text: "Esta acción no se puede deshacer."
+                        font.pixelSize: 14
+                        font.italic: true
+                        color: "#F44336"
+                        wrapMode: Text.WordWrap
                     }
                 }
+            }
+            
+            footer: DialogButtonBox {
+                Button {
+                    text: "Cancelar"
+                    DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
+                }
+                
+                Button {
+                    text: "Eliminar"
+                    DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
+                    background: Rectangle {
+                        color: "#F44336"
+                        radius: 5
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        color: "white"
+                        font.bold: true
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                }
+            }
+            
+            onAccepted: {
+                // En una aplicación real, aquí harías una eliminación en la base de datos
+                
+                // Eliminar del modelo local
+                for (let i = 0; i < categoriasModel.count; i++) {
+                    if (categoriasModel.get(i).id_categoria === categoriaId) {
+                        categoriasModel.remove(i);
+                        break;
+                    }
+                }
+                
+                showMessage("Categoría eliminada correctamente");
             }
         }
 
@@ -986,7 +1173,7 @@ Rectangle {
                                 RowLayout {
                                     Layout.fillWidth: true
                                     spacing: 5
-Text {
+                                    Text {
                                         text: "Área de aplicación:"
                                         font.pixelSize: 12
                                         color: "#757575"
@@ -1418,7 +1605,7 @@ Text {
         title: "Nuevo Producto Fitosanitario"
         modal: true
         width: 500
-        height: 550
+        height: 700
         x: (parent.width - width) / 2
         y: (parent.height - height) / 2
         
@@ -1457,7 +1644,7 @@ Text {
                         id: txtNombreComercial
                         placeholderText: "Ingrese nombre comercial"
                         Layout.fillWidth: true
-                        onTextChanged: nuevoProducto.nombreComercial = text
+                        onTextChanged: nuevoProducto.nombre_comercial = text
                     }
                     
                     // Categoría
@@ -1469,21 +1656,27 @@ Text {
                     ComboBox {
                         id: cmbCategoria
                         Layout.fillWidth: true
-                        model: ["Herbicida", "Insecticida", "Fungicida", "Fertilizante"]
-                        onCurrentTextChanged: nuevoProducto.categoria = currentText
+                        model: categoriasModel
+                        textRole: "nombre"
+                        valueRole: "id_categoria"
+                        onCurrentIndexChanged: {
+                            if (currentIndex >= 0) {
+                                nuevoProducto.id_categoria = currentValue
+                            }
+                        }
                     }
                     
-                    // Ingrediente Activo
+                    // Formulación (en lugar de Ingrediente Activo)
                     Text {
-                        text: "Ingrediente Activo:"
+                        text: "Formulación:"
                         Layout.alignment: Qt.AlignRight
                     }
                     
-                    TextField {
-                        id: txtIngredienteActivo
-                        placeholderText: "Ingrese ingrediente activo"
+                    ComboBox {
+                        id: cmbFormulacion
                         Layout.fillWidth: true
-                        onTextChanged: nuevoProducto.ingredienteActivo = text
+                        model: ["Líquido", "Polvo", "Granulado", "Emulsión"]
+                        onCurrentTextChanged: nuevoProducto.formulacion = currentText
                     }
                     
                     // Stock Inicial
@@ -1507,14 +1700,8 @@ Text {
                         ComboBox {
                             id: cmbUnidad
                             Layout.preferredWidth: 60
-                            model: ["Lt", "Kg", "Und"]
-                            onCurrentTextChanged: {
-                                switch (currentText) {
-                                    case "Lt": nuevoProducto.unidad = "Litro"; break;
-                                    case "Kg": nuevoProducto.unidad = "Kilogramo"; break;
-                                    case "Und": nuevoProducto.unidad = "Unidad"; break;
-                                }
-                            }
+                            model: ["L", "Kg"]
+                            onCurrentTextChanged: nuevoProducto.unidad = currentText
                         }
                     }
                     
@@ -1525,39 +1712,24 @@ Text {
                     }
                     
                     TextField {
-                        id: txtPrecioUnitario
+                        id: txtPrecio
                         placeholderText: "Ingrese precio unitario"
                         Layout.fillWidth: true
                         validator: DoubleValidator { bottom: 0 }
-                        onTextChanged: nuevoProducto.precioUnitario = parseFloat(text) || 0
+                        onTextChanged: nuevoProducto.precio = parseFloat(text) || 0
                     }
                     
-                    // Período Carencia
+                    // Registro 
                     Text {
-                        text: "Período Carencia (días):"
+                        text: "N° Registro:"
                         Layout.alignment: Qt.AlignRight
                     }
                     
                     TextField {
-                        id: txtPeriodoCarencia
-                        placeholderText: "Ingrese período de carencia"
+                        id: txtRegistro
+                        placeholderText: "Ingrese N° de registro"
                         Layout.fillWidth: true
-                        validator: IntValidator { bottom: 0 }
-                        onTextChanged: nuevoProducto.periodoCarencia = parseInt(text) || 0
-                    }
-                    
-                    // Stock Mínimo
-                    Text {
-                        text: "Stock Mínimo:"
-                        Layout.alignment: Qt.AlignRight
-                    }
-                    
-                    TextField {
-                        id: txtStockMinimo
-                        placeholderText: "Ingrese stock mínimo"
-                        Layout.fillWidth: true
-                        validator: DoubleValidator { bottom: 0 }
-                        onTextChanged: nuevoProducto.stockMinimo = parseFloat(text) || 0
+                        onTextChanged: nuevoProducto.registro = text || "PENDIENTE"
                     }
                     
                     // Fecha de Registro
@@ -1572,20 +1744,35 @@ Text {
                         Layout.fillWidth: true
                         readOnly: true
                         text: obtenerFechaActual()
+                        onTextChanged: nuevoProducto.fecha_registro = text
                     }
                     
-                    // Observaciones
+                    // Estado
                     Text {
-                        text: "Observaciones:"
+                        text: "Estado:"
+                        Layout.alignment: Qt.AlignRight
+                    }
+                    
+                    CheckBox {
+                        id: chkActivo
+                        text: "Activo"
+                        checked: true
+                        onCheckedChanged: nuevoProducto.activo = checked
+                    }
+                    
+                    // Notas (en lugar de Observaciones)
+                    Text {
+                        text: "Notas:"
                         Layout.alignment: Qt.AlignRight
                     }
                     
                     TextArea {
-                        id: txtObservacionesProducto
-                        placeholderText: "Observaciones adicionales (opcional)"
+                        id: txtNotas
+                        placeholderText: "Notas adicionales (opcional)"
                         Layout.fillWidth: true
                         Layout.preferredHeight: 80
                         wrapMode: TextArea.Wrap
+                        onTextChanged: nuevoProducto.notas = text
                     }
                 }
                 
@@ -1630,8 +1817,8 @@ Text {
                 }
                 onClicked: {
                     // Validación de campos obligatorios
-                    if (txtNombreComercial.text === "" || txtIngredienteActivo.text === "") {
-                        mensajeValidacionProducto.text = "Por favor, complete al menos el nombre comercial e ingrediente activo";
+                    if (txtNombreComercial.text === "" || cmbCategoria.currentIndex < 0) {
+                        mensajeValidacionProducto.text = "Por favor, complete el nombre comercial y seleccione una categoría";
                         return;
                     }
                     
@@ -1643,14 +1830,14 @@ Text {
         // Resetea el formulario al cerrar
         onClosed: {
             txtNombreComercial.text = ""
-            txtIngredienteActivo.text = ""
             txtStock.text = ""
-            txtPrecioUnitario.text = ""
-            txtPeriodoCarencia.text = ""
-            txtStockMinimo.text = ""
-            txtObservacionesProducto.text = ""
+            txtPrecio.text = ""
+            txtRegistro.text = ""
+            txtNotas.text = ""
             cmbCategoria.currentIndex = 0
+            cmbFormulacion.currentIndex = 0
             cmbUnidad.currentIndex = 0
+            chkActivo.checked = true
             mensajeValidacionProducto.text = ""
         }
     }
@@ -1661,9 +1848,12 @@ Text {
         title: "Nueva Categoría"
         modal: true
         width: 450
-        height: 350
+        height:500
         x: (parent.width - width) / 2
         y: (parent.height - height) / 2
+        
+        // Propiedad para saber si estamos en modo edición
+        property bool modoEdicion: false
         
         // Contenido del diálogo
         contentItem: Rectangle {
@@ -1676,7 +1866,7 @@ Text {
                 
                 // Título
                 Text {
-                    text: "Agregar Nueva Categoría"
+                    text: dialogNuevaCategoria.modoEdicion ? "Editar Categoría" : "Agregar Nueva Categoría"
                     font.pixelSize: 18
                     font.bold: true
                     width: parent.width
@@ -1700,6 +1890,7 @@ Text {
                         id: txtNombreCategoria
                         placeholderText: "Ingrese nombre de la categoría"
                         Layout.fillWidth: true
+                        text: dialogNuevaCategoria.modoEdicion ? nuevaCategoria.nombre : ""
                         onTextChanged: nuevaCategoria.nombre = text
                     }
                     
@@ -1712,7 +1903,7 @@ Text {
                     CheckBox {
                         id: chkActivoCategoria
                         text: "Activo"
-                        checked: true
+                        checked: dialogNuevaCategoria.modoEdicion ? nuevaCategoria.activo : true
                         onCheckedChanged: nuevaCategoria.activo = checked
                     }
                     
@@ -1728,6 +1919,7 @@ Text {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 100
                         wrapMode: TextArea.Wrap
+                        text: dialogNuevaCategoria.modoEdicion ? nuevaCategoria.descripcion : ""
                         onTextChanged: nuevaCategoria.descripcion = text
                     }
                 }
@@ -1758,7 +1950,7 @@ Text {
             }
             
             Button {
-                text: "Guardar"
+                text: dialogNuevaCategoria.modoEdicion ? "Actualizar" : "Guardar"
                 DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
                 background: Rectangle {
                     color: "#4CAF50"
@@ -1778,7 +1970,11 @@ Text {
                         return;
                     }
                     
-                    guardarNuevaCategoria();
+                    if (dialogNuevaCategoria.modoEdicion) {
+                        actualizarCategoria();
+                    } else {
+                        guardarNuevaCategoria();
+                    }
                 }
             }
         }
@@ -1789,16 +1985,18 @@ Text {
             txtDescripcionCategoria.text = ""
             chkActivoCategoria.checked = true
             mensajeValidacionCategoria.text = ""
+            modoEdicion = false
+            title = "Nueva Categoría"
         }
     }
-    
+        
     // DIÁLOGO DE NUEVA MEZCLA
     Dialog {
         id: dialogNuevaMezcla
         title: "Nueva Mezcla"
         modal: true
         width: 550
-        height: 600
+        height: 700
         x: (parent.width - width) / 2
         y: (parent.height - height) / 2
         
@@ -2086,7 +2284,7 @@ Text {
         title: "Nuevo Tratamiento"
         modal: true
         width: 500
-        height: 450
+        height: 600
         x: (parent.width - width) / 2
         y: (parent.height - height) / 2
         
@@ -2328,30 +2526,7 @@ Text {
             }
         }
         
-        onAccepted: {
-            // INTEGRACIÓN CON SQL SERVER:
-            // Aquí ejecutaríamos la consulta DELETE en SQL Server
-            // Ejemplo:
-            // let db = QSqlDatabase.addDatabase("QODBC")
-            // db.setDatabaseName("DRIVER={SQL Server};SERVER=tuServidor;DATABASE=tuBaseDeDatos;UID=usuario;PWD=contraseña")
-            // if (db.open()) {
-            //     let query = QSqlQuery()
-            //     query.prepare("DELETE FROM productos WHERE id = ?")
-            //     query.addBindValue(productoId)
-            //     
-            //     if (!query.exec()) {
-            //         console.error("Error al eliminar producto:", query.lastError().text)
-            //         showMessage("Error al eliminar el producto")
-            //         return
-            //     }
-            //     
-            //     db.close()
-            // } else {
-            //     console.error("Error de conexión a la base de datos:", db.lastError().text)
-            //     showMessage("Error de conexión a la base de datos")
-            //     return
-            // }
-            
+        onAccepted: {     
             console.log("Eliminando producto con ID:", productoId);
             
             // Eliminar del modelo local
@@ -2444,65 +2619,25 @@ Text {
     
     // Función para guardar nuevo producto
     function guardarNuevoProducto() {
-        // La validación se hace ahora en el botón Guardar del diálogo
-        
-        // INTEGRACIÓN CON SQL SERVER:
-        // Aquí es donde conectarías con tu base de datos SQL Server
-        // Ejemplo:
-        // let db = QSqlDatabase.addDatabase("QODBC")
-        // db.setDatabaseName("DRIVER={SQL Server};SERVER=tuServidor;DATABASE=tuBaseDeDatos;UID=usuario;PWD=contraseña")
-        // if (!db.open()) {
-        //     console.error("Error de conexión a la base de datos:", db.lastError().text)
-        //     mensajeValidacionProducto.text = "Error de conexión a la base de datos"
-        //     return
-        // }
-        //
-        // let query = QSqlQuery()
-        // query.prepare("INSERT INTO productos (nombre_comercial, categoria, ingrediente_activo, stock, unidad, precio_unitario, periodo_carencia, stock_minimo, fecha_registro, observaciones) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-        // query.addBindValue(nuevoProducto.nombreComercial)
-        // query.addBindValue(nuevoProducto.categoria)
-        // query.addBindValue(nuevoProducto.ingredienteActivo)
-        // query.addBindValue(nuevoProducto.stock)
-        // query.addBindValue(nuevoProducto.unidad)
-        // query.addBindValue(nuevoProducto.precioUnitario)
-        // query.addBindValue(nuevoProducto.periodoCarencia)
-        // query.addBindValue(nuevoProducto.stockMinimo)
-        // query.addBindValue(txtFechaRegistroProducto.text)
-        // query.addBindValue(txtObservacionesProducto.text)
-        //
-        // if (!query.exec()) {
-        //     console.error("Error al insertar producto:", query.lastError().text)
-        //     mensajeValidacionProducto.text = "Error al guardar el producto"
-        //     return
-        // }
-        //
-        // // Obtener el ID generado
-        // query.exec("SELECT @@IDENTITY as id")
-        // let productoId = -1
-        // if (query.first()) {
-        //     productoId = query.value("id")
-        // }
-        //
-        // db.close()
-        
-        // Crear un objeto con toda la información del producto
+        // Crear un objeto con toda la información del producto según la estructura de la tabla
         var datosProducto = {
-            productId: productosModel.count + 1,  // ID temporal
-            nombreComercial: nuevoProducto.nombreComercial,
-            categoria: nuevoProducto.categoria || cmbCategoria.currentText,
-            ingredienteActivo: nuevoProducto.ingredienteActivo,
-            stock: nuevoProducto.stock,
+            id_producto: productosModel.count + 1,  // ID temporal (normalmente generado por la BD)
+            id_categoria: nuevoProducto.id_categoria,
+            nombre_comercial: nuevoProducto.nombre_comercial,
+            formulacion: nuevoProducto.formulacion || cmbFormulacion.currentText,
             unidad: nuevoProducto.unidad,
-            precioUnitario: nuevoProducto.precioUnitario,
-            periodoCarencia: nuevoProducto.periodoCarencia,
-            stockMinimo: nuevoProducto.stockMinimo,
-            fechaRegistro: txtFechaRegistroProducto.text,
-            observaciones: txtObservacionesProducto.text || ""
+            precio: nuevoProducto.precio,
+            stock: nuevoProducto.stock,
+            registro: nuevoProducto.registro || txtRegistro.text || "PENDIENTE",
+            notas: nuevoProducto.notas,
+            fecha_registro: nuevoProducto.fecha_registro,
+            activo: nuevoProducto.activo
         };
         
         console.log("Guardando producto:", JSON.stringify(datosProducto));
         
-        // Añadir al modelo local
+        // Aquí iría el código para insertar en la base de datos SQL Server
+        // Por ahora, solo añadimos al modelo local
         productosModel.append(datosProducto)
         
         // Cerrar el diálogo
@@ -2514,37 +2649,24 @@ Text {
     
     // Función para guardar nueva categoría
     function guardarNuevaCategoria() {
-        // La validación se hace en el botón Guardar del diálogo
-        
-        // INTEGRACIÓN CON SQL SERVER (similar a las otras funciones)
-        
-        // Crear un objeto con toda la información de la categoría
         var datosCategoria = {
-            categoriaId: categoriasModel.count + 1,  // ID temporal
+            id_categoria: categoriasModel.count + 1,  // ID temporal (en producción lo generaría la BD)
             nombre: nuevaCategoria.nombre,
             descripcion: nuevaCategoria.descripcion || "",
             activo: nuevaCategoria.activo
         };
         
         console.log("Guardando categoría:", JSON.stringify(datosCategoria));
-        
-        // Añadir al modelo local
         categoriasModel.append(datosCategoria)
-        
         // Cerrar el diálogo
         dialogNuevaCategoria.close()
-        
+     
         // Mensaje de éxito
         showMessage("Categoría guardada correctamente")
     }
     
     // Función para guardar nueva mezcla
     function guardarNuevaMezcla() {
-        // La validación se hace en el botón Guardar del diálogo
-        
-        // INTEGRACIÓN CON SQL SERVER (similar a las otras funciones)
-        
-        // Crear un objeto con toda la información de la mezcla
         var datosMezcla = {
             mezclaId: mezclasModel.count + 1,  // ID temporal
             nombre: nuevaMezcla.nombre,
@@ -2556,11 +2678,7 @@ Text {
         };
         
         console.log("Guardando mezcla:", JSON.stringify(datosMezcla));
-        
-        // Añadir al modelo local
         mezclasModel.append(datosMezcla)
-        
-        // Cerrar el diálogo
         dialogNuevaMezcla.close()
         
         // Mensaje de éxito
@@ -2569,11 +2687,6 @@ Text {
     
     // Función para guardar nuevo tratamiento
     function guardarNuevoTratamiento() {
-        // La validación se hace en el botón Guardar del diálogo
-        
-        // INTEGRACIÓN CON SQL SERVER (similar a las otras funciones)
-        
-        // Crear un objeto con toda la información del tratamiento
         var datosTratamiento = {
             tratamientoId: tratamientosModel.count + 1,  // ID temporal
             fecha: nuevoTratamiento.fecha,
@@ -2674,4 +2787,4 @@ Text {
         messageToast.visible = true
         messageToastTimer.restart()
     }
-}                                                                       
+}                                     
