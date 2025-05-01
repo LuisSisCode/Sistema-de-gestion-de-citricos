@@ -1,7 +1,10 @@
-# login.py
+# login.py - Modificado para lanzar la aplicación principal después del login exitoso
+from datetime import datetime
 import sys
 import os
+import subprocess
 from pathlib import Path
+from user_session import save_current_user
 
 # Importamos los módulos necesarios de PySide6
 from PySide6.QtCore import QObject, Slot, Property, Signal, QUrl
@@ -80,7 +83,7 @@ class Backend(QObject):
             if user:
                 id_usuario, nombre, apellido, rol = user
                 self._status = f"Bienvenido, {nombre} {apellido} ({rol})"
-                
+                self._save_current_user(id_usuario, nombre, apellido, rol)
                 # Actualizar último acceso
                 try:
                     update_query = """
@@ -96,6 +99,11 @@ class Backend(QObject):
                 print("Usuario y Contraseña Correcta :)")
                 self.statusChanged.emit(self._status)
                 self.loginSuccess.emit(True)
+                
+                # Cerrar la ventana de login y abrir la aplicación principal
+                QGuiApplication.instance().quit()
+                self._launch_main_application()
+                
             else:
                 print("Usuario o contraseña incorrecto")
                 self._status = "Usuario o contraseña incorrectos."
@@ -109,6 +117,46 @@ class Backend(QObject):
             self.statusChanged.emit(self._status)
             self.loginSuccess.emit(False)
             print(f"Error de login: {e}")
+    def _save_current_user(self, id_usuario, nombre, apellido, rol):
+        """Guarda la información del usuario actual para que esté disponible en toda la aplicación"""
+        try:
+            # Opción 1: Usar un archivo temporal
+            import json
+            user_data = {
+                "id_usuario": id_usuario,
+                "nombre": nombre,
+                "apellido": apellido,
+                "rol": rol,
+                "login_time": datetime.now().isoformat()
+            }
+            
+            with open("current_user.json", "w") as f:
+                json.dump(user_data, f)
+                
+            print(f"Información del usuario guardada: ID={id_usuario}, Nombre={nombre} {apellido}")
+        except Exception as e:
+            print(f"Error al guardar información del usuario: {e}")
+    
+    def _launch_main_application(self):
+        """Lanza la aplicación principal después de un login exitoso"""
+        try:
+            # Obtiene la ruta del directorio actual
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            main_script = os.path.join(current_dir, "main.py")
+            
+            # Verifica que el archivo main.py existe
+            if not os.path.exists(main_script):
+                print(f"Error: No se encontró el archivo principal en {main_script}")
+                return
+                
+            # Lanza el proceso de la aplicación principal
+            print(f"Iniciando aplicación principal: {main_script}")
+            
+            # Usar el mismo intérprete de Python que está ejecutando este script
+            python_executable = sys.executable
+            subprocess.Popen([python_executable, main_script])
+        except Exception as e:
+            print(f"Error al iniciar la aplicación principal: {e}")
     
     def __del__(self):
         """Cerrar la conexión a la base de datos cuando se destruye el objeto"""

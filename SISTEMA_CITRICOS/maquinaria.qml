@@ -122,19 +122,39 @@ Rectangle {
                         Button {
                             text: "Nuevo Equipo"
                             implicitHeight: 36
-                            onClicked: dialogNuevoEquipo.open()
+                            onClicked: {
+                                dialogNuevoEquipo.nuevoEquipo = {
+                                    codigo: "",
+                                    nombre: "",
+                                    tipo: "",
+                                    marca: "",
+                                    tipo_combustible: "",
+                                    estado: "Operativo"
+                                };
+                                dialogNuevoEquipo.open();
+                            }
                         }
                         
                         TextField {
+                            id: txtBuscarEquipo
                             Layout.preferredWidth: 250
                             placeholderText: "Buscar equipo..."
                             implicitHeight: 36
+                            onTextChanged: {
+                                // Filtrar equipos por nombre o código
+                                filtrarMaquinaria(text);
+                            }
                         }
                         
                         ComboBox {
+                            id: cmbFiltroTipoEquipo
                             Layout.preferredWidth: 200
                             model: ["Todos los tipos", "Tractor", "Fumigadora", "Bomba de riego"]
                             implicitHeight: 36
+                            onCurrentTextChanged: {
+                                // Filtrar por tipo de equipo
+                                filtrarMaquinaria(txtBuscarEquipo.text);
+                            }
                         }
                         
                         Item { Layout.fillWidth: true }
@@ -216,9 +236,18 @@ Rectangle {
                                 }
                                 
                                 Text {
-                                    width: parent.width * 0.2
+                                    width: parent.width * 0.15
                                     height: parent.height
                                     text: "Estado"
+                                    font.bold: true
+                                    verticalAlignment: Text.AlignVCenter
+                                    leftPadding: 10
+                                }
+                                
+                                Text {
+                                    width: parent.width * 0.05
+                                    height: parent.height
+                                    text: "Acciones"
                                     font.bold: true
                                     verticalAlignment: Text.AlignVCenter
                                     leftPadding: 10
@@ -231,6 +260,13 @@ Rectangle {
                             width: parent.width
                             height: 50
                             color: index % 2 === 0 ? "#FFFFFF" : "#F9F9F9"
+                            
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    equiposListView.currentIndex = index;
+                                }
+                            }
                             
                             Row {
                                 anchors.fill: parent
@@ -270,13 +306,13 @@ Rectangle {
                                 Text {
                                     width: parent.width * 0.13
                                     height: parent.height
-                                    text: combustible
+                                    text: tipo_combustible || ""
                                     verticalAlignment: Text.AlignVCenter
                                     leftPadding: 10
                                 }
                                 
                                 Rectangle {
-                                    width: parent.width * 0.2
+                                    width: parent.width * 0.15
                                     height: parent.height
                                     color: "transparent"
                                     
@@ -298,7 +334,42 @@ Rectangle {
                                         }
                                     }
                                 }
+                                
+                                // Botones de acción
+                                Row {
+                                    width: parent.width * 0.05
+                                    height: parent.height
+                                    spacing: 5
+                                    
+                                    Button {
+                                        width: 30
+                                        height: 30
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: "✏️"
+                                        onClicked: {
+                                            editarMaquinaria(index);
+                                        }
+                                    }
+                                    
+                                    Button {
+                                        width: 30
+                                        height: 30
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: "🗑️"
+                                        onClicked: {
+                                            eliminarMaquinaria(id_maquinaria);
+                                        }
+                                    }
+                                }
                             }
+                        }
+                        
+                        // Mensaje cuando la lista está vacía
+                        Text {
+                            anchors.centerIn: parent
+                            text: "No hay equipos registrados. Haga clic en 'Nuevo Equipo' para agregar uno."
+                            visible: equiposListView.count === 0
+                            color: "#757575"
                         }
                     }
                 }
@@ -327,19 +398,41 @@ Rectangle {
                         Button {
                             text: "Nuevo Mantenimiento"
                             implicitHeight: 36
-                            onClicked: dialogNuevoMantenimiento.open()
+                            onClicked: {
+                                dialogNuevoMantenimiento.nuevoMantenimiento = {
+                                    id_mantenimiento: "",
+                                    id_maquinaria: "",
+                                    tipo: "Preventivo",
+                                    fecha_realizada: new Date().toLocaleDateString(Qt.locale(), "yyyy-MM-dd"),
+                                    descripcion: "",
+                                    costo_total: "",
+                                    responsable: 1, // ID de usuario actual
+                                    estado: "Programado"
+                                };
+                                dialogNuevoMantenimiento.open();
+                            }
                         }
                         
                         TextField {
+                            id: txtBuscarMantenimiento
                             Layout.preferredWidth: 250
                             placeholderText: "Buscar mantenimiento..."
                             implicitHeight: 36
+                            onTextChanged: {
+                                // Filtrar mantenimientos
+                                filtrarMantenimientos(text);
+                            }
                         }
                         
                         ComboBox {
+                            id: cmbFiltroEquipoMantenimiento
                             Layout.preferredWidth: 200
-                            model: ["Todos los equipos", "Tractor John Deere", "Fumigadora a Motor", "Bomba de Riego 10HP"]
+                            model: obtenerNombresMaquinaria()
                             implicitHeight: 36
+                            onCurrentTextChanged: {
+                                // Filtrar por equipo
+                                filtrarMantenimientos(txtBuscarMantenimiento.text);
+                            }
                         }
                         
                         Item { Layout.fillWidth: true }
@@ -412,7 +505,7 @@ Rectangle {
                                 }
                                 
                                 Text {
-                                    width: parent.width * 0.3
+                                    width: parent.width * 0.25
                                     height: parent.height
                                     text: "Descripción"
                                     font.bold: true
@@ -437,6 +530,15 @@ Rectangle {
                                     verticalAlignment: Text.AlignVCenter
                                     leftPadding: 10
                                 }
+                                
+                                Text {
+                                    width: parent.width * 0.05
+                                    height: parent.height
+                                    text: "Acciones"
+                                    font.bold: true
+                                    verticalAlignment: Text.AlignVCenter
+                                    leftPadding: 10
+                                }
                             }
                         }
                         
@@ -446,13 +548,20 @@ Rectangle {
                             height: 50
                             color: index % 2 === 0 ? "#FFFFFF" : "#F9F9F9"
                             
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    mantenimientoListView.currentIndex = index;
+                                }
+                            }
+                            
                             Row {
                                 anchors.fill: parent
                                 
                                 Text {
                                     width: parent.width * 0.05
                                     height: parent.height
-                                    text: id
+                                    text: id_mantenimiento
                                     verticalAlignment: Text.AlignVCenter
                                     horizontalAlignment: Text.AlignHCenter
                                 }
@@ -460,7 +569,7 @@ Rectangle {
                                 Text {
                                     width: parent.width * 0.25
                                     height: parent.height
-                                    text: equipo
+                                    text: nombre_maquinaria
                                     verticalAlignment: Text.AlignVCenter
                                     leftPadding: 10
                                 }
@@ -476,13 +585,13 @@ Rectangle {
                                 Text {
                                     width: parent.width * 0.1
                                     height: parent.height
-                                    text: fecha
+                                    text: fecha_realizada || "Pendiente"
                                     verticalAlignment: Text.AlignVCenter
                                     leftPadding: 10
                                 }
                                 
                                 Text {
-                                    width: parent.width * 0.3
+                                    width: parent.width * 0.25
                                     height: parent.height
                                     text: descripcion
                                     verticalAlignment: Text.AlignVCenter
@@ -493,7 +602,7 @@ Rectangle {
                                 Text {
                                     width: parent.width * 0.1
                                     height: parent.height
-                                    text: "Bs. " + costo
+                                    text: "Bs. " + costo_total.toFixed(2)
                                     verticalAlignment: Text.AlignVCenter
                                     leftPadding: 10
                                 }
@@ -506,7 +615,46 @@ Rectangle {
                                     leftPadding: 10
                                     color: estado === "Completado" ? "#4CAF50" : "#FF9800"
                                 }
+                                
+                                // Botones de acción
+                                Row {
+                                    width: parent.width * 0.05
+                                    height: parent.height
+                                    spacing: 5
+                                    
+                                    Button {
+                                        width: 30
+                                        height: 30
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: "✏️"
+                                        onClicked: {
+                                            editarMantenimiento(index);
+                                        }
+                                    }
+                                    
+                                    Button {
+                                        width: 30
+                                        height: 30
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: estado === "Programado" ? "✓" : "🗑️" 
+                                        onClicked: {
+                                            if (estado === "Programado") {
+                                                completarMantenimiento(id_mantenimiento);
+                                            } else {
+                                                eliminarMantenimiento(id_mantenimiento);
+                                            }
+                                        }
+                                    }
+                                }
                             }
+                        }
+                        
+                        // Mensaje cuando la lista está vacía
+                        Text {
+                            anchors.centerIn: parent
+                            text: "No hay mantenimientos registrados. Haga clic en 'Nuevo Mantenimiento' para agregar uno."
+                            visible: mantenimientoListView.count === 0
+                            color: "#757575"
                         }
                     }
                 }
@@ -535,13 +683,32 @@ Rectangle {
                         Button {
                             text: "Nueva Compra"
                             implicitHeight: 36
-                            onClicked: dialogNuevoCombustible.open()
+                            onClicked: {
+                                dialogNuevoCombustible.nuevaCompra = {
+                                    id_compra: "",
+                                    tipo_combustible: "Gasolina",
+                                    fecha_compra: new Date().toLocaleDateString(Qt.locale(), "yyyy-MM-dd"),
+                                    cantidad: "",
+                                    unidad_medida: "Litros",
+                                    precio_unitario: "",
+                                    precio_total: "",
+                                    proveedor: "",
+                                    responsable: 1, // ID usuario actual
+                                    observaciones: ""
+                                };
+                                dialogNuevoCombustible.open();
+                            }
                         }
                         
                         ComboBox {
+                            id: cmbFiltroTipoCombustible
                             Layout.preferredWidth: 200
                             model: ["Todos los tipos", "Gasolina", "Diésel"]
                             implicitHeight: 36
+                            onCurrentTextChanged: {
+                                // Filtrar por tipo de combustible
+                                filtrarComprasCombustible();
+                            }
                         }
                         
                         Item { Layout.fillWidth: true }
@@ -574,7 +741,8 @@ Rectangle {
                             }
                             
                             Text {
-                                text: "210 litros"
+                                id: txtConsumoGasolina
+                                text: "0 litros"
                                 font.pixelSize: 22
                                 font.bold: true
                                 horizontalAlignment: Text.AlignHCenter
@@ -603,7 +771,8 @@ Rectangle {
                             }
                             
                             Text {
-                                text: "310 litros"
+                                id: txtConsumoDiesel
+                                text: "0 litros"
                                 font.pixelSize: 22
                                 font.bold: true
                                 horizontalAlignment: Text.AlignHCenter
@@ -632,7 +801,8 @@ Rectangle {
                             }
                             
                             Text {
-                                text: "Bs. 5.460"
+                                id: txtGastoTotal
+                                text: "Bs. 0"
                                 font.pixelSize: 22
                                 font.bold: true
                                 horizontalAlignment: Text.AlignHCenter
@@ -734,9 +904,18 @@ Rectangle {
                                 }
                                 
                                 Text {
-                                    width: parent.width * 0.25
+                                    width: parent.width * 0.2
                                     height: parent.height
                                     text: "Proveedor"
+                                    font.bold: true
+                                    verticalAlignment: Text.AlignVCenter
+                                    leftPadding: 10
+                                }
+                                
+                                Text {
+                                    width: parent.width * 0.05
+                                    height: parent.height
+                                    text: "Acciones"
                                     font.bold: true
                                     verticalAlignment: Text.AlignVCenter
                                     leftPadding: 10
@@ -750,13 +929,21 @@ Rectangle {
                             height: 50
                             color: index % 2 === 0 ? "#FFFFFF" : "#F9F9F9"
                             
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    combustibleListView.currentIndex = index;
+                                }
+                            }
+                            
                             Row {
                                 anchors.fill: parent
+                                
                                 
                                 Text {
                                     width: parent.width * 0.05
                                     height: parent.height
-                                    text: id
+                                    text: id_compra
                                     verticalAlignment: Text.AlignVCenter
                                     horizontalAlignment: Text.AlignHCenter
                                 }
@@ -764,7 +951,7 @@ Rectangle {
                                 Text {
                                     width: parent.width * 0.15
                                     height: parent.height
-                                    text: tipo
+                                    text: tipo_combustible
                                     verticalAlignment: Text.AlignVCenter
                                     leftPadding: 10
                                 }
@@ -772,7 +959,7 @@ Rectangle {
                                 Text {
                                     width: parent.width * 0.15
                                     height: parent.height
-                                    text: fecha
+                                    text: fecha_compra
                                     verticalAlignment: Text.AlignVCenter
                                     leftPadding: 10
                                 }
@@ -780,7 +967,7 @@ Rectangle {
                                 Text {
                                     width: parent.width * 0.1
                                     height: parent.height
-                                    text: cantidad + " " + unidad
+                                    text: cantidad.toFixed(2) + " " + unidad_medida
                                     verticalAlignment: Text.AlignVCenter
                                     leftPadding: 10
                                 }
@@ -788,7 +975,7 @@ Rectangle {
                                 Text {
                                     width: parent.width * 0.15
                                     height: parent.height
-                                    text: "Bs. " + precioUnitario
+                                    text: "Bs. " + precio_unitario.toFixed(2)
                                     verticalAlignment: Text.AlignVCenter
                                     leftPadding: 10
                                 }
@@ -796,25 +983,439 @@ Rectangle {
                                 Text {
                                     width: parent.width * 0.15
                                     height: parent.height
-                                    text: "Bs. " + total
+                                    text: "Bs. " + precio_total.toFixed(2)
                                     verticalAlignment: Text.AlignVCenter
                                     leftPadding: 10
                                 }
                                 
                                 Text {
-                                    width: parent.width * 0.25
+                                    width: parent.width * 0.2
                                     height: parent.height
-                                    text: proveedor
+                                    text: proveedor || ""
                                     verticalAlignment: Text.AlignVCenter
                                     leftPadding: 10
                                     elide: Text.ElideRight
                                 }
+                                
+                                // Botones de acción
+                                Row {
+                                    width: parent.width * 0.05
+                                    height: parent.height
+                                    spacing: 5
+                                    
+                                    Button {
+                                        width: 30
+                                        height: 30
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: "✏️"
+                                        onClicked: {
+                                            editarCompraCombustible(index);
+                                        }
+                                    }
+                                    
+                                    Button {
+                                        width: 30
+                                        height: 30
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: "🗑️"
+                                        onClicked: {
+                                            eliminarCompraCombustible(id_compra);
+                                        }
+                                    }
+                                }
                             }
+                        }
+                        
+                        // Mensaje cuando la lista está vacía
+                        Text {
+                            anchors.centerIn: parent
+                            text: "No hay compras de combustible registradas. Haga clic en 'Nueva Compra' para agregar una."
+                            visible: combustibleListView.count === 0
+                            color: "#757575"
                         }
                     }
                 }
             }
         }
+    }
+    
+    // Funciones para manipulación de datos
+    
+    // Función para cargar los datos de maquinaria desde el modelo al ListModel
+    function cargarMaquinariaDesdeModelo() {
+        equiposModel.clear();
+        var maquinarias = maquinariaModel.maquinaria;
+        for (var i = 0; i < maquinarias.length; i++) {
+            var maquina = maquinarias[i];
+            equiposModel.append({
+                id_maquinaria: maquina.id_maquinaria,
+                codigo: maquina.codigo,
+                nombre: maquina.nombre,
+                tipo: maquina.tipo,
+                marca: maquina.marca,
+                tipo_combustible: maquina.tipo_combustible,
+                estado: maquina.estado,
+                ubicacion_actual: maquina.ubicacion_actual,
+                activo: maquina.activo
+            });
+        }
+    }
+    
+    // Función para cargar los datos de mantenimientos desde el modelo al ListModel
+    function cargarMantenimientosDesdeModelo() {
+        mantenimientoModel.clear();
+        var mantenimientos = maquinariaModel.mantenimientos;
+        for (var i = 0; i < mantenimientos.length; i++) {
+            var mantenimiento = mantenimientos[i];
+            mantenimientoModel.append({
+                id_mantenimiento: mantenimiento.id_mantenimiento,
+                id_maquinaria: mantenimiento.id_maquinaria,
+                nombre_maquinaria: mantenimiento.nombre_maquinaria,
+                tipo: mantenimiento.tipo,
+                fecha_realizada: mantenimiento.fecha_realizada,
+                descripcion: mantenimiento.descripcion,
+                costo_total: mantenimiento.costo_total,
+                responsable: mantenimiento.responsable,
+                nombre_responsable: mantenimiento.nombre_responsable,
+                estado: mantenimiento.estado
+            });
+        }
+    }
+    
+    // Función para cargar los datos de compras de combustible desde el modelo al ListModel
+    function cargarComprasCombustibleDesdeModelo() {
+        combustibleModel.clear();
+        var compras = maquinariaModel.compras;
+        for (var i = 0; i < compras.length; i++) {
+            var compra = compras[i];
+            combustibleModel.append({
+                id_compra: compra.id_compra,
+                tipo_combustible: compra.tipo_combustible,
+                fecha_compra: compra.fecha_compra,
+                cantidad: compra.cantidad,
+                unidad_medida: compra.unidad_medida,
+                precio_unitario: compra.precio_unitario,
+                precio_total: compra.precio_total,
+                proveedor: compra.proveedor,
+                responsable: compra.responsable,
+                nombre_responsable: compra.nombre_responsable,
+                observaciones: compra.observaciones
+            });
+        }
+        actualizarResumenCombustible();
+    }
+    
+    // Función para actualizar el resumen de combustible en los textos
+    function actualizarResumenCombustible() {
+        var resumen = maquinariaModel.resumen_combustible;
+        var consumoGasolina = 0;
+        var consumoDiesel = 0;
+        var gastoTotal = 0;
+        
+        // Calcular consumos y gastos
+        if (resumen["Gasolina"]) {
+            consumoGasolina = resumen["Gasolina"].total_cantidad || 0;
+            gastoTotal += resumen["Gasolina"].total_costo || 0;
+        }
+        
+        if (resumen["Diésel"]) {
+            consumoDiesel = resumen["Diésel"].total_cantidad || 0;
+            gastoTotal += resumen["Diésel"].total_costo || 0;
+        }
+        
+        // Actualizar los textos
+        txtConsumoGasolina.text = consumoGasolina.toFixed(2) + " litros";
+        txtConsumoDiesel.text = consumoDiesel.toFixed(2) + " litros";
+        txtGastoTotal.text = "Bs. " + gastoTotal.toFixed(2);
+    }
+    
+    // Función para filtrar maquinaria
+    function filtrarMaquinaria(texto) {
+        var tipo = cmbFiltroTipoEquipo.currentText;
+        equiposModel.clear();
+        
+        var maquinarias = maquinariaModel.maquinaria;
+        for (var i = 0; i < maquinarias.length; i++) {
+            var maquina = maquinarias[i];
+            
+            // Aplicar filtro de tipo
+            if (tipo !== "Todos los tipos" && maquina.tipo !== tipo) {
+                continue;
+            }
+            
+            // Aplicar filtro de texto
+            if (texto && !(
+                maquina.codigo.toLowerCase().includes(texto.toLowerCase()) ||
+                maquina.nombre.toLowerCase().includes(texto.toLowerCase())
+            )) {
+                continue;
+            }
+            
+            equiposModel.append({
+                id_maquinaria: maquina.id_maquinaria,
+                codigo: maquina.codigo,
+                nombre: maquina.nombre,
+                tipo: maquina.tipo,
+                marca: maquina.marca,
+                tipo_combustible: maquina.tipo_combustible,
+                estado: maquina.estado,
+                ubicacion_actual: maquina.ubicacion_actual,
+                activo: maquina.activo
+            });
+        }
+    }
+    
+    // Función para filtrar mantenimientos
+    function filtrarMantenimientos(texto) {
+        var equipoSeleccionado = cmbFiltroEquipoMantenimiento.currentText;
+        mantenimientoModel.clear();
+        
+        var mantenimientos = maquinariaModel.mantenimientos;
+        for (var i = 0; i < mantenimientos.length; i++) {
+            var mantenimiento = mantenimientos[i];
+            
+            // Aplicar filtro de equipo
+            if (equipoSeleccionado !== "Todos los equipos" && mantenimiento.nombre_maquinaria !== equipoSeleccionado) {
+                continue;
+            }
+            
+            // Aplicar filtro de texto
+            if (texto && !(
+                mantenimiento.descripcion.toLowerCase().includes(texto.toLowerCase()) ||
+                (mantenimiento.nombre_responsable && mantenimiento.nombre_responsable.toLowerCase().includes(texto.toLowerCase()))
+            )) {
+                continue;
+            }
+            
+            mantenimientoModel.append({
+                id_mantenimiento: mantenimiento.id_mantenimiento,
+                id_maquinaria: mantenimiento.id_maquinaria,
+                nombre_maquinaria: mantenimiento.nombre_maquinaria,
+                tipo: mantenimiento.tipo,
+                fecha_realizada: mantenimiento.fecha_realizada,
+                descripcion: mantenimiento.descripcion,
+                costo_total: mantenimiento.costo_total,
+                responsable: mantenimiento.responsable,
+                nombre_responsable: mantenimiento.nombre_responsable,
+                estado: mantenimiento.estado
+            });
+        }
+    }
+    
+    
+    
+    // Funciones para editar y eliminar
+    function editarMaquinaria(index) {
+        var item = equiposModel.get(index);
+        dialogNuevoEquipo.nuevoEquipo = {
+            id_maquinaria: item.id_maquinaria,
+            codigo: item.codigo,
+            nombre: item.nombre,
+            tipo: item.tipo,
+            marca: item.marca,
+            tipo_combustible: item.tipo_combustible,
+            estado: item.estado,
+            ubicacion_actual: item.ubicacion_actual,
+            activo: item.activo
+        };
+        
+        // Establecer valores en los campos del diálogo
+        txtCodigoEquipo.text = item.codigo;
+        txtNombreEquipo.text = item.nombre;
+        txtMarcaEquipo.text = item.marca;
+        
+        // Establecer índices en los combos
+        for (var i = 0; i < cmbTipoEquipo.model.length; i++) {
+            if (cmbTipoEquipo.model[i] === item.tipo) {
+                cmbTipoEquipo.currentIndex = i;
+                break;
+            }
+        }
+        
+        for (var j = 0; j < cmbCombustibleEquipo.model.length; j++) {
+            if (cmbCombustibleEquipo.model[j] === item.tipo_combustible) {
+                cmbCombustibleEquipo.currentIndex = j;
+                break;
+            }
+        }
+        
+        for (var k = 0; k < cmbEstadoEquipo.model.length; k++) {
+            if (cmbEstadoEquipo.model[k] === item.estado) {
+                cmbEstadoEquipo.currentIndex = k;
+                break;
+            }
+        }
+        
+        dialogNuevoEquipo.open();
+    }
+    
+    function eliminarMaquinaria(id_maquinaria) {
+        var confirmDialog = Qt.createComponent("qrc:/components/ConfirmDialog.qml").createObject(maquinariaRoot, {
+            title: "Eliminar equipo",
+            message: "¿Está seguro que desea eliminar este equipo? Esta acción no se puede deshacer.",
+            confirmButtonText: "Eliminar",
+            cancelButtonText: "Cancelar"
+        });
+        
+        confirmDialog.confirmed.connect(function() {
+            if (maquinariaModel.desactivar_maquinaria(id_maquinaria)) {
+                maquinariaModel.cargar_maquinaria();
+                cargarMaquinariaDesdeModelo();
+            }
+        });
+        
+        confirmDialog.open();
+    }
+    
+    function editarMantenimiento(index) {
+        var item = mantenimientoModel.get(index);
+        dialogNuevoMantenimiento.nuevoMantenimiento = {
+            id_mantenimiento: item.id_mantenimiento,
+            id_maquinaria: item.id_maquinaria,
+            nombre_maquinaria: item.nombre_maquinaria,
+            tipo: item.tipo,
+            fecha_realizada: item.fecha_realizada,
+            descripcion: item.descripcion,
+            costo_total: item.costo_total,
+            responsable: item.responsable,
+            estado: item.estado
+        };
+        
+        // Establecer valores en los campos del diálogo
+        txtIDMantenimiento.text = item.id_mantenimiento;
+        txtDescripcionMantenimiento.text = item.descripcion;
+        txtCostoMantenimiento.text = item.costo_total;
+        
+        if (item.fecha_realizada) {
+            txtFechaMantenimiento.text = item.fecha_realizada;
+        }
+        
+        // Establecer índices en los combos
+        for (var i = 0; i < cmbEquipoMantenimiento.model.length; i++) {
+            if (cmbEquipoMantenimiento.model[i] === item.nombre_maquinaria) {
+                cmbEquipoMantenimiento.currentIndex = i;
+                break;
+            }
+        }
+        
+        for (var j = 0; j < cmbTipoMantenimiento.model.length; j++) {
+            if (cmbTipoMantenimiento.model[j] === item.tipo) {
+                cmbTipoMantenimiento.currentIndex = j;
+                break;
+            }
+        }
+        
+        for (var k = 0; k < cmbEstadoMantenimiento.model.length; k++) {
+            if (cmbEstadoMantenimiento.model[k] === item.estado) {
+                cmbEstadoMantenimiento.currentIndex = k;
+                break;
+            }
+        }
+        
+        dialogNuevoMantenimiento.open();
+    }
+    
+    function completarMantenimiento(id_mantenimiento) {
+        var confirmDialog = Qt.createComponent("qrc:/components/ConfirmDialog.qml").createObject(maquinariaRoot, {
+            title: "Completar mantenimiento",
+            message: "¿Marcar este mantenimiento como completado?",
+            confirmButtonText: "Completar",
+            cancelButtonText: "Cancelar"
+        });
+        
+        confirmDialog.confirmed.connect(function() {
+            var mantenimientoData = {
+                estado: "Completado",
+                fecha_realizada: new Date().toLocaleDateString(Qt.locale(), "yyyy-MM-dd")
+            };
+            
+            if (maquinariaModel.actualizar_mantenimiento(id_mantenimiento, JSON.stringify(mantenimientoData))) {
+                maquinariaModel.cargar_mantenimientos();
+                maquinariaModel.cargar_maquinaria();
+                cargarMantenimientosDesdeModelo();
+                cargarMaquinariaDesdeModelo();
+            }
+        });
+        
+        confirmDialog.open();
+    }
+    
+    function eliminarMantenimiento(id_mantenimiento) {
+        var confirmDialog = Qt.createComponent("qrc:/components/ConfirmDialog.qml").createObject(maquinariaRoot, {
+            title: "Eliminar mantenimiento",
+            message: "¿Está seguro que desea eliminar este registro de mantenimiento? Esta acción no se puede deshacer.",
+            confirmButtonText: "Eliminar",
+            cancelButtonText: "Cancelar"
+        });
+        
+        confirmDialog.confirmed.connect(function() {
+            // Aquí iría la llamada a la función de eliminar mantenimiento cuando exista en el modelo
+            // Por ahora solo recargamos los datos
+            maquinariaModel.cargar_mantenimientos();
+            cargarMantenimientosDesdeModelo();
+        });
+        
+        confirmDialog.open();
+    }
+    
+    function editarCompraCombustible(index) {
+        var item = combustibleModel.get(index);
+        dialogNuevoCombustible.nuevaCompra = {
+            id_compra: item.id_compra,
+            tipo_combustible: item.tipo_combustible,
+            fecha_compra: item.fecha_compra,
+            cantidad: item.cantidad,
+            unidad_medida: item.unidad_medida,
+            precio_unitario: item.precio_unitario,
+            precio_total: item.precio_total,
+            proveedor: item.proveedor,
+            responsable: item.responsable,
+            observaciones: item.observaciones
+        };
+        
+        // Establecer valores en los campos del diálogo
+        txtIDCombustible.text = item.id_compra;
+        txtFechaCombustible.text = item.fecha_compra;
+        txtCantidadCombustible.text = item.cantidad;
+        txtPrecioUnitarioCombustible.text = item.precio_unitario;
+        txtTotalCombustible.text = item.precio_total;
+        txtProveedorCombustible.text = item.proveedor || "";
+        
+        // Establecer índices en los combos
+        for (var i = 0; i < cmbTipoCombustible.model.length; i++) {
+            if (cmbTipoCombustible.model[i] === item.tipo_combustible) {
+                cmbTipoCombustible.currentIndex = i;
+                break;
+            }
+        }
+        
+        for (var j = 0; j < cmbUnidadCombustible.model.length; j++) {
+            if (cmbUnidadCombustible.model[j] === item.unidad_medida) {
+                cmbUnidadCombustible.currentIndex = j;
+                break;
+            }
+        }
+        
+        dialogNuevoCombustible.open();
+    }
+    
+    function eliminarCompraCombustible(id_compra) {
+        var confirmDialog = Qt.createComponent("qrc:/components/ConfirmDialog.qml").createObject(maquinariaRoot, {
+            title: "Eliminar compra",
+            message: "¿Está seguro que desea eliminar este registro de compra de combustible? Esta acción no se puede deshacer.",
+            confirmButtonText: "Eliminar",
+            cancelButtonText: "Cancelar"
+        });
+        
+        confirmDialog.confirmed.connect(function() {
+            if (maquinariaModel.eliminar_compra_combustible(id_compra)) {
+                maquinariaModel.cargar_compras_combustible();
+                maquinariaModel.cargar_resumen_combustible();
+                cargarComprasCombustibleDesdeModelo();
+            }
+        });
+        
+        confirmDialog.open();
     }
     
     // DIÁLOGO DE NUEVO EQUIPO
@@ -823,7 +1424,7 @@ Rectangle {
         title: "Nuevo Equipo"
         modal: true
         width: 500
-        height: 480
+        height: 600
         x: (parent.width - width) / 2
         y: (parent.height - height) / 2
         
@@ -833,7 +1434,7 @@ Rectangle {
             nombre: "",
             tipo: "",
             marca: "",
-            combustible: "",
+            tipo_combustible: "",
             estado: "Operativo"
         })
         
@@ -871,7 +1472,7 @@ Rectangle {
                 
                 // Título
                 Text {
-                    text: "Agregar Nuevo Equipo"
+                    text: dialogNuevoEquipo.nuevoEquipo.id_maquinaria ? "Editar Equipo" : "Agregar Nuevo Equipo"
                     font.pixelSize: 18
                     font.bold: true
                     width: parent.width
@@ -897,7 +1498,7 @@ Rectangle {
                         model: ["Tractor", "Fumigadora", "Bomba de riego", "Otro"]
                         onCurrentTextChanged: {
                             dialogNuevoEquipo.nuevoEquipo.tipo = currentText
-                            if (currentText) {
+                            if (currentText && !dialogNuevoEquipo.nuevoEquipo.id_maquinaria) {
                                 txtCodigoEquipo.text = dialogNuevoEquipo.generarCodigo(currentText)
                             }
                         }
@@ -913,7 +1514,7 @@ Rectangle {
                         id: txtCodigoEquipo
                         placeholderText: "Código automático"
                         Layout.fillWidth: true
-                        readOnly: true
+                        readOnly: dialogNuevoEquipo.nuevoEquipo.id_maquinaria ? true : false
                         onTextChanged: dialogNuevoEquipo.nuevoEquipo.codigo = text
                     }
                     
@@ -953,7 +1554,7 @@ Rectangle {
                         id: cmbCombustibleEquipo
                         Layout.fillWidth: true
                         model: ["Gasolina", "Diésel", "Eléctrico", "Ninguno"]
-                        onCurrentTextChanged: dialogNuevoEquipo.nuevoEquipo.combustible = currentText
+                        onCurrentTextChanged: dialogNuevoEquipo.nuevoEquipo.tipo_combustible = currentText
                     }
                     
                     // Estado
@@ -969,18 +1570,17 @@ Rectangle {
                         onCurrentTextChanged: dialogNuevoEquipo.nuevoEquipo.estado = currentText
                     }
                     
-                    // Observaciones
+                    // Ubicación actual
                     Text {
-                        text: "Observaciones:"
+                        text: "Ubicación actual:"
                         Layout.alignment: Qt.AlignRight
                     }
                     
-                    TextArea {
-                        id: txtObservacionesEquipo
-                        placeholderText: "Observaciones adicionales (opcional)"
+                    TextField {
+                        id: txtUbicacionEquipo
+                        placeholderText: "Ingrese ubicación actual del equipo"
                         Layout.fillWidth: true
-                        Layout.minimumHeight: 80
-                        wrapMode: TextArea.Wrap
+                        onTextChanged: dialogNuevoEquipo.nuevoEquipo.ubicacion_actual = text
                     }
                 }
                 
@@ -1025,18 +1625,37 @@ Rectangle {
                         return;
                     }
                     
-                    // Agregar nuevo equipo al modelo
-                    equiposModel.append({
+                    // Preparar los datos para enviar al modelo
+                    var maquinariaData = {
                         codigo: dialogNuevoEquipo.nuevoEquipo.codigo,
                         nombre: dialogNuevoEquipo.nuevoEquipo.nombre,
                         tipo: dialogNuevoEquipo.nuevoEquipo.tipo,
                         marca: dialogNuevoEquipo.nuevoEquipo.marca,
-                        combustible: dialogNuevoEquipo.nuevoEquipo.combustible,
-                        estado: dialogNuevoEquipo.nuevoEquipo.estado
-                    });
+                        tipo_combustible: dialogNuevoEquipo.nuevoEquipo.tipo_combustible,
+                        estado: dialogNuevoEquipo.nuevoEquipo.estado,
+                        ubicacion_actual: dialogNuevoEquipo.nuevoEquipo.ubicacion_actual
+                    };
                     
-                    // Cerrar diálogo
-                    dialogNuevoEquipo.close();
+                    var success = false;
+                    if (dialogNuevoEquipo.nuevoEquipo.id_maquinaria) {
+                        // Actualizar maquinaria existente
+                        success = maquinariaModel.actualizar_maquinaria(
+                            dialogNuevoEquipo.nuevoEquipo.id_maquinaria, 
+                            JSON.stringify(maquinariaData)
+                        );
+                    } else {
+                        // Agregar nueva maquinaria
+                        success = maquinariaModel.agregar_maquinaria(JSON.stringify(maquinariaData));
+                    }
+                    
+                    if (success) {
+                        // Recargar los datos
+                        maquinariaModel.cargar_maquinaria();
+                        cargarMaquinariaDesdeModelo();
+                        dialogNuevoEquipo.close();
+                    } else {
+                        mensajeValidacionEquipo.text = "Error al guardar el equipo. Intente nuevamente.";
+                    }
                 }
             }
         }
@@ -1048,33 +1667,31 @@ Rectangle {
         title: "Nuevo Mantenimiento"
         modal: true
         width: 500
-        height: 550
+        height: 600
         x: (parent.width - width) / 2
         y: (parent.height - height) / 2
         
         // Variables para almacenar datos temporales
         property var nuevoMantenimiento: ({
-            id: "",
-            equipo: "",
-            tipo: "",
-            fecha: "",
+            id_mantenimiento: "",
+            id_maquinaria: "",
+            tipo: "Preventivo",
+            fecha_realizada: "",
             descripcion: "",
-            costo: "",
+            costo_total: "",
+            responsable: 1,
             estado: "Programado"
         })
         
-        // Función para generar un nuevo ID
-        function generarID() {
-            return (mantenimientoModel.count + 1).toString();
-        }
-        
-        // Función para formatear la fecha actual
-        function getFormattedDate() {
-            var today = new Date();
-            var dd = String(today.getDate()).padStart(2, '0');
-            var mm = String(today.getMonth() + 1).padStart(2, '0'); // Los meses empiezan en 0
-            var yyyy = today.getFullYear();
-            return dd + '/' + mm + '/' + yyyy;
+        // Función para obtener ID de maquinaria por nombre
+        function obtenerIdMaquinariaPorNombre(nombre) {
+            var maquinarias = maquinariaModel.maquinaria;
+            for (var i = 0; i < maquinarias.length; i++) {
+                if (maquinarias[i].nombre === nombre) {
+                    return maquinarias[i].id_maquinaria;
+                }
+            }
+            return null;
         }
         
         // Contenido del diálogo
@@ -1088,7 +1705,7 @@ Rectangle {
                 
                 // Título
                 Text {
-                    text: "Agregar Nuevo Mantenimiento"
+                    text: dialogNuevoMantenimiento.nuevoMantenimiento.id_mantenimiento ? "Editar Mantenimiento" : "Agregar Nuevo Mantenimiento"
                     font.pixelSize: 18
                     font.bold: true
                     width: parent.width
@@ -1102,19 +1719,19 @@ Rectangle {
                     columnSpacing: 10
                     rowSpacing: 15
                     
-                    // ID mantenimiento
+                    // ID mantenimiento (solo visible en edición)
                     Text {
                         text: "ID:"
                         Layout.alignment: Qt.AlignRight
+                        visible: dialogNuevoMantenimiento.nuevoMantenimiento.id_mantenimiento !== ""
                     }
                     
                     TextField {
                         id: txtIDMantenimiento
                         placeholderText: "ID automático"
                         Layout.fillWidth: true
-                        text: dialogNuevoMantenimiento.generarID()
                         readOnly: true
-                        onTextChanged: dialogNuevoMantenimiento.nuevoMantenimiento.id = text
+                        visible: dialogNuevoMantenimiento.nuevoMantenimiento.id_mantenimiento !== ""
                     }
                     
                     // Equipo
@@ -1126,14 +1743,14 @@ Rectangle {
                     ComboBox {
                         id: cmbEquipoMantenimiento
                         Layout.fillWidth: true
-                        model: {
-                            let equipos = []
-                            for(let i = 0; i < equiposModel.count; i++) {
-                                equipos.push(equiposModel.get(i).nombre)
+                        model: obtenerNombresMaquinaria().filter(function(item) { return item !== "Todos los equipos"; })
+                        onCurrentTextChanged: {
+                            var id = dialogNuevoMantenimiento.obtenerIdMaquinariaPorNombre(currentText);
+                            if (id) {
+                                dialogNuevoMantenimiento.nuevoMantenimiento.id_maquinaria = id;
+                                dialogNuevoMantenimiento.nuevoMantenimiento.nombre_maquinaria = currentText;
                             }
-                            return equipos
                         }
-                        onCurrentTextChanged: dialogNuevoMantenimiento.nuevoMantenimiento.equipo = currentText
                     }
                     
                     // Tipo de mantenimiento
@@ -1145,7 +1762,7 @@ Rectangle {
                     ComboBox {
                         id: cmbTipoMantenimiento
                         Layout.fillWidth: true
-                        model: ["Preventivo", "Correctivo", "Predictivo"]
+                        model: ["Preventivo", "Correctivo"]
                         onCurrentTextChanged: dialogNuevoMantenimiento.nuevoMantenimiento.tipo = currentText
                     }
                     
@@ -1157,10 +1774,10 @@ Rectangle {
                     
                     TextField {
                         id: txtFechaMantenimiento
-                        placeholderText: "DD/MM/AAAA"
+                        placeholderText: "YYYY-MM-DD"
                         Layout.fillWidth: true
-                        text: dialogNuevoMantenimiento.getFormattedDate()
-                        onTextChanged: dialogNuevoMantenimiento.nuevoMantenimiento.fecha = text
+                        text: new Date().toLocaleDateString(Qt.locale(), "yyyy-MM-dd")
+                        onTextChanged: dialogNuevoMantenimiento.nuevoMantenimiento.fecha_realizada = text
                     }
                     
                     // Descripción
@@ -1189,7 +1806,7 @@ Rectangle {
                         placeholderText: "Ingrese costo estimado"
                         Layout.fillWidth: true
                         validator: DoubleValidator { bottom: 0 }
-                        onTextChanged: dialogNuevoMantenimiento.nuevoMantenimiento.costo = text
+                        onTextChanged: dialogNuevoMantenimiento.nuevoMantenimiento.costo_total = parseFloat(text)
                     }
                     
                     // Estado
@@ -1201,20 +1818,8 @@ Rectangle {
                     ComboBox {
                         id: cmbEstadoMantenimiento
                         Layout.fillWidth: true
-                        model: ["Programado", "En progreso", "Completado"]
+                        model: ["Programado", "Completado"]
                         onCurrentTextChanged: dialogNuevoMantenimiento.nuevoMantenimiento.estado = currentText
-                    }
-                    
-                    // Técnico responsable
-                    Text {
-                        text: "Técnico responsable:"
-                        Layout.alignment: Qt.AlignRight
-                    }
-                    
-                    TextField {
-                        id: txtTecnicoMantenimiento
-                        placeholderText: "Nombre del técnico (opcional)"
-                        Layout.fillWidth: true
                     }
                 }
                 
@@ -1253,26 +1858,47 @@ Rectangle {
                 }
                 onClicked: {
                     // Validación de campos obligatorios
-                    if (cmbEquipoMantenimiento.currentIndex < 0 || cmbTipoMantenimiento.currentIndex < 0 || 
-                        txtFechaMantenimiento.text === "" || txtDescripcionMantenimiento.text === "" ||
+                    if (!dialogNuevoMantenimiento.nuevoMantenimiento.id_maquinaria || 
+                        !dialogNuevoMantenimiento.nuevoMantenimiento.tipo || 
+                        txtDescripcionMantenimiento.text === "" ||
                         txtCostoMantenimiento.text === "") {
                         mensajeValidacionMantenimiento.text = "Por favor, complete todos los campos obligatorios";
                         return;
                     }
                     
-                    // Agregar nuevo mantenimiento al modelo
-                    mantenimientoModel.append({
-                        id: dialogNuevoMantenimiento.nuevoMantenimiento.id,
-                        equipo: dialogNuevoMantenimiento.nuevoMantenimiento.equipo,
+                    // Preparar los datos para enviar al modelo
+                    var mantenimientoData = {
+                        id_maquinaria: dialogNuevoMantenimiento.nuevoMantenimiento.id_maquinaria,
                         tipo: dialogNuevoMantenimiento.nuevoMantenimiento.tipo,
-                        fecha: dialogNuevoMantenimiento.nuevoMantenimiento.fecha,
+                        fecha_realizada: dialogNuevoMantenimiento.nuevoMantenimiento.estado === "Programado" ? null : dialogNuevoMantenimiento.nuevoMantenimiento.fecha_realizada,
                         descripcion: dialogNuevoMantenimiento.nuevoMantenimiento.descripcion,
-                        costo: dialogNuevoMantenimiento.nuevoMantenimiento.costo,
+                        costo_total: parseFloat(dialogNuevoMantenimiento.nuevoMantenimiento.costo_total),
+                        responsable: dialogNuevoMantenimiento.nuevoMantenimiento.responsable,
                         estado: dialogNuevoMantenimiento.nuevoMantenimiento.estado
-                    });
+                    };
                     
-                    // Cerrar diálogo
-                    dialogNuevoMantenimiento.close();
+                    var success = false;
+                    if (dialogNuevoMantenimiento.nuevoMantenimiento.id_mantenimiento) {
+                        // Actualizar mantenimiento existente
+                        success = maquinariaModel.actualizar_mantenimiento(
+                            dialogNuevoMantenimiento.nuevoMantenimiento.id_mantenimiento, 
+                            JSON.stringify(mantenimientoData)
+                        );
+                    } else {
+                        // Agregar nuevo mantenimiento
+                        success = maquinariaModel.registrar_mantenimiento(JSON.stringify(mantenimientoData));
+                    }
+                    
+                    if (success) {
+                        // Recargar los datos
+                        maquinariaModel.cargar_mantenimientos();
+                        maquinariaModel.cargar_maquinaria();
+                        cargarMantenimientosDesdeModelo();
+                        cargarMaquinariaDesdeModelo();
+                        dialogNuevoMantenimiento.close();
+                    } else {
+                        mensajeValidacionMantenimiento.text = "Error al guardar el mantenimiento. Intente nuevamente.";
+                    }
                 }
             }
         }
@@ -1284,35 +1910,23 @@ Rectangle {
         title: "Nueva Compra de Combustible"
         modal: true
         width: 500
-        height: 500
+        height: 600
         x: (parent.width - width) / 2
         y: (parent.height - height) / 2
         
         // Variables para almacenar datos temporales
         property var nuevaCompra: ({
-            id: "",
-            tipo: "",
-            fecha: "",
+            id_compra: "",
+            tipo_combustible: "Gasolina",
+            fecha_compra: "",
             cantidad: "",
-            unidad: "Litros",
-            precioUnitario: "",
-            total: "",
-            proveedor: ""
+            unidad_medida: "Litros",
+            precio_unitario: "",
+            precio_total: "",
+            proveedor: "",
+            responsable: 1,
+            observaciones: ""
         })
-        
-        // Función para generar un nuevo ID
-        function generarID() {
-            return (combustibleModel.count + 1).toString();
-        }
-        
-        // Función para formatear la fecha actual
-        function getFormattedDate() {
-            var today = new Date();
-            var dd = String(today.getDate()).padStart(2, '0');
-            var mm = String(today.getMonth() + 1).padStart(2, '0'); // Los meses empiezan en 0
-            var yyyy = today.getFullYear();
-            return dd + '/' + mm + '/' + yyyy;
-        }
         
         // Función para calcular el total
         function calcularTotal() {
@@ -1323,7 +1937,7 @@ Rectangle {
                 if (!isNaN(cantidad) && !isNaN(precioUnitario)) {
                     const total = (cantidad * precioUnitario).toFixed(2);
                     txtTotalCombustible.text = total;
-                    dialogNuevoCombustible.nuevaCompra.total = total;
+                    dialogNuevoCombustible.nuevaCompra.precio_total = parseFloat(total);
                 }
             }
         }
@@ -1339,7 +1953,7 @@ Rectangle {
                 
                 // Título
                 Text {
-                    text: "Registrar Nueva Compra de Combustible"
+                    text: dialogNuevoCombustible.nuevaCompra.id_compra ? "Editar Compra de Combustible" : "Registrar Nueva Compra de Combustible"
                     font.pixelSize: 18
                     font.bold: true
                     width: parent.width
@@ -1353,19 +1967,19 @@ Rectangle {
                     columnSpacing: 10
                     rowSpacing: 15
                     
-                    // ID compra
+                    // ID compra (solo visible en edición)
                     Text {
                         text: "ID:"
                         Layout.alignment: Qt.AlignRight
+                        visible: dialogNuevoCombustible.nuevaCompra.id_compra !== ""
                     }
                     
                     TextField {
                         id: txtIDCombustible
                         placeholderText: "ID automático"
                         Layout.fillWidth: true
-                        text: dialogNuevoCombustible.generarID()
                         readOnly: true
-                        onTextChanged: dialogNuevoCombustible.nuevaCompra.id = text
+                        visible: dialogNuevoCombustible.nuevaCompra.id_compra !== ""
                     }
                     
                     // Tipo de combustible
@@ -1378,7 +1992,7 @@ Rectangle {
                         id: cmbTipoCombustible
                         Layout.fillWidth: true
                         model: ["Gasolina", "Diésel"]
-                        onCurrentTextChanged: dialogNuevoCombustible.nuevaCompra.tipo = currentText
+                        onCurrentTextChanged: dialogNuevoCombustible.nuevaCompra.tipo_combustible = currentText
                     }
                     
                     // Fecha de compra
@@ -1389,10 +2003,10 @@ Rectangle {
                     
                     TextField {
                         id: txtFechaCombustible
-                        placeholderText: "DD/MM/AAAA"
+                        placeholderText: "YYYY-MM-DD"
                         Layout.fillWidth: true
-                        text: dialogNuevoCombustible.getFormattedDate()
-                        onTextChanged: dialogNuevoCombustible.nuevaCompra.fecha = text
+                        text: new Date().toLocaleDateString(Qt.locale(), "yyyy-MM-dd")
+                        onTextChanged: dialogNuevoCombustible.nuevaCompra.fecha_compra = text
                     }
                     
                     // Cantidad
@@ -1407,8 +2021,8 @@ Rectangle {
                         Layout.fillWidth: true
                         validator: DoubleValidator { bottom: 0 }
                         onTextChanged: {
-                            dialogNuevoCombustible.nuevaCompra.cantidad = text
-                            dialogNuevoCombustible.calcularTotal()
+                            dialogNuevoCombustible.nuevaCompra.cantidad = parseFloat(text) || 0;
+                            dialogNuevoCombustible.calcularTotal();
                         }
                     }
                     
@@ -1422,7 +2036,7 @@ Rectangle {
                         id: cmbUnidadCombustible
                         Layout.fillWidth: true
                         model: ["Litros", "Galones"]
-                        onCurrentTextChanged: dialogNuevoCombustible.nuevaCompra.unidad = currentText
+                        onCurrentTextChanged: dialogNuevoCombustible.nuevaCompra.unidad_medida = currentText
                     }
                     
                     // Precio unitario
@@ -1437,8 +2051,8 @@ Rectangle {
                         Layout.fillWidth: true
                         validator: DoubleValidator { bottom: 0 }
                         onTextChanged: {
-                            dialogNuevoCombustible.nuevaCompra.precioUnitario = text
-                            dialogNuevoCombustible.calcularTotal()
+                            dialogNuevoCombustible.nuevaCompra.precio_unitario = parseFloat(text) || 0;
+                            dialogNuevoCombustible.calcularTotal();
                         }
                     }
                     
@@ -1453,7 +2067,6 @@ Rectangle {
                         placeholderText: "Cálculo automático"
                         Layout.fillWidth: true
                         readOnly: true
-                        onTextChanged: dialogNuevoCombustible.nuevaCompra.total = text
                     }
                     
                     // Proveedor
@@ -1467,6 +2080,21 @@ Rectangle {
                         placeholderText: "Nombre del proveedor"
                         Layout.fillWidth: true
                         onTextChanged: dialogNuevoCombustible.nuevaCompra.proveedor = text
+                    }
+                    
+                    // Observaciones
+                    Text {
+                        text: "Observaciones:"
+                        Layout.alignment: Qt.AlignRight
+                    }
+                    
+                    TextArea {
+                        id: txtObservacionesCombustible
+                        placeholderText: "Observaciones adicionales (opcional)"
+                        Layout.fillWidth: true
+                        Layout.minimumHeight: 60
+                        wrapMode: TextArea.Wrap
+                        onTextChanged: dialogNuevoCombustible.nuevaCompra.observaciones = text
                     }
                 }
                 
@@ -1505,29 +2133,97 @@ Rectangle {
                 }
                 onClicked: {
                     // Validación de campos obligatorios
-                    if (cmbTipoCombustible.currentIndex < 0 || txtFechaCombustible.text === "" || 
-                        txtCantidadCombustible.text === "" || txtPrecioUnitarioCombustible.text === "" || 
-                        txtProveedorCombustible.text === "") {
+                    if (txtCantidadCombustible.text === "" || txtPrecioUnitarioCombustible.text === "" || 
+                        txtProveedorCombustible.text === "" || !dialogNuevoCombustible.nuevaCompra.tipo_combustible) {
                         mensajeValidacionCombustible.text = "Por favor, complete todos los campos obligatorios";
                         return;
                     }
                     
-                    // Agregar nueva compra de combustible al modelo
-                    combustibleModel.append({
-                        id: dialogNuevoCombustible.nuevaCompra.id,
-                        tipo: dialogNuevoCombustible.nuevaCompra.tipo,
-                        fecha: dialogNuevoCombustible.nuevaCompra.fecha,
-                        cantidad: dialogNuevoCombustible.nuevaCompra.cantidad,
-                        unidad: dialogNuevoCombustible.nuevaCompra.unidad,
-                        precioUnitario: dialogNuevoCombustible.nuevaCompra.precioUnitario,
-                        total: dialogNuevoCombustible.nuevaCompra.total,
-                        proveedor: dialogNuevoCombustible.nuevaCompra.proveedor
-                    });
+                    // Preparar los datos para enviar al modelo
+                    var compraData = {
+                        tipo_combustible: dialogNuevoCombustible.nuevaCompra.tipo_combustible,
+                        fecha_compra: dialogNuevoCombustible.nuevaCompra.fecha_compra,
+                        cantidad: parseFloat(dialogNuevoCombustible.nuevaCompra.cantidad),
+                        unidad_medida: dialogNuevoCombustible.nuevaCompra.unidad_medida,
+                        precio_unitario: parseFloat(dialogNuevoCombustible.nuevaCompra.precio_unitario),
+                        precio_total: parseFloat(dialogNuevoCombustible.nuevaCompra.precio_total),
+                        proveedor: dialogNuevoCombustible.nuevaCompra.proveedor,
+                        responsable: dialogNuevoCombustible.nuevaCompra.responsable,
+                        observaciones: dialogNuevoCombustible.nuevaCompra.observaciones
+                    };
                     
-                    // Cerrar diálogo
-                    dialogNuevoCombustible.close();
+                    var success = false;
+                    if (dialogNuevoCombustible.nuevaCompra.id_compra) {
+                        // Actualizar compra existente
+                        success = maquinariaModel.actualizar_compra_combustible(
+                            dialogNuevoCombustible.nuevaCompra.id_compra, 
+                            JSON.stringify(compraData)
+                        );
+                    } else {
+                        // Agregar nueva compra
+                        success = maquinariaModel.registrar_compra_combustible(JSON.stringify(compraData));
+                    }
+                    
+                    if (success) {
+                        // Recargar los datos
+                        maquinariaModel.cargar_compras_combustible();
+                        maquinariaModel.cargar_resumen_combustible();
+                        cargarComprasCombustibleDesdeModelo();
+                        dialogNuevoCombustible.close();
+                    } else {
+                        mensajeValidacionCombustible.text = "Error al guardar la compra de combustible. Intente nuevamente.";
+                    }
                 }
             }
         }
+    
+    // Cargar datos iniciales cuando se carga el componente
+        Component.onCompleted: {
+            cargarMaquinariaDesdeModelo();
+            cargarMantenimientosDesdeModelo();
+            cargarComprasCombustibleDesdeModelo();
+        }
     }
+
+// Función para filtrar compras de combustible
+    function filtrarComprasCombustible() {
+        var tipoSeleccionado = cmbFiltroTipoCombustible.currentText;
+        combustibleModel.clear();
+        
+        var compras = maquinariaModel.compras;
+        for (var i = 0; i < compras.length; i++) {
+            var compra = compras[i];
+            
+            // Aplicar filtro de tipo de combustible
+            if (tipoSeleccionado !== "Todos los tipos" && compra.tipo_combustible !== tipoSeleccionado) {
+                continue;
+            }
+            
+            combustibleModel.append({
+                id_compra: compra.id_compra,
+                tipo_combustible: compra.tipo_combustible,
+                fecha_compra: compra.fecha_compra,
+                cantidad: compra.cantidad,
+                unidad_medida: compra.unidad_medida,
+                precio_unitario: compra.precio_unitario,
+                precio_total: compra.precio_total,
+                proveedor: compra.proveedor,
+                responsable: compra.responsable,
+                nombre_responsable: compra.nombre_responsable,
+                observaciones: compra.observaciones
+            });
+        }
+    }
+    
+    // Función para obtener los nombres de la maquinaria para el combo
+    function obtenerNombresMaquinaria() {
+        var nombres = ["Todos los equipos"];
+        var maquinarias = maquinariaModel.maquinaria;
+        for (var i = 0; i < maquinarias.length; i++) {
+            nombres.push(maquinarias[i].nombre);
+        }
+        return nombres;
+    }
+    
+    
 }

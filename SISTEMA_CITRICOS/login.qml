@@ -21,6 +21,9 @@ ApplicationWindow {
     property color colorHover: "#74b9ff"
     property color colorSombra: "#80000000"
     property color colorHeaderBar: "#203436"
+    
+    // Propiedad para controlar animación de salida
+    property bool isClosing: false
 
     // Permite mover la ventana sin borde
     MouseArea {
@@ -347,6 +350,11 @@ ApplicationWindow {
                                         scale: 1
                                         Behavior on scale { NumberAnimation { duration: 200 } }
                                         onFocusChanged: if (activeFocus) scale = 1.02; else scale = 1
+                                        
+                                        // Permitir login con Enter
+                                        Keys.onReturnPressed: {
+                                            loginButton.clicked()
+                                        }
                                     }
                                     
                                     // Botón para mostrar/ocultar contraseña
@@ -443,11 +451,18 @@ ApplicationWindow {
                                     loginButton.enabled = false
                                     // Llamamos al backend para autenticar
                                     backend.login(usernameField.text, passwordField.text)
-                                    // Añadir aquí la animación de carga
-                                    
-                                    // Simular un delay de procesamiento
-                                    loginTimer.start()
+                                    // La transición ahora la maneja el backend
                                 }
+                            }
+                            
+                            // Indicador de carga
+                            BusyIndicator {
+                                id: loadingIndicator
+                                Layout.alignment: Qt.AlignHCenter
+                                running: !loginButton.enabled
+                                visible: running
+                                Layout.preferredHeight: 32
+                                Layout.preferredWidth: 32
                             }
                             
                             // Estado del Sistema
@@ -466,27 +481,27 @@ ApplicationWindow {
                                 Component.onCompleted: {
                                     opacity = 0.8
                                 }
+                            }
+                            
+                            Connections {
+                                target: backend
                                 
-                                Connections {
-                                    target: backend
-                                    function onStatusChanged(newStatus) {
-                                        statusText.opacity = 0
-                                        statusText.text = newStatus
-                                        statusText.opacity = 0.8
+                                function onStatusChanged(newStatus) {
+                                    statusText.opacity = 0
+                                    statusText.text = newStatus
+                                    statusText.opacity = 0.8
+                                }
+                                
+                                function onLoginSuccess(success) {
+                                    if (success) {
+                                        // Iniciar la animación de cierre
+                                        console.log("Login exitoso - preparando transición")
+                                        closeAnimation.start()
+                                    } else {
+                                        // Habilitar el botón nuevamente
+                                        loginButton.opacity = 1.0
+                                        loginButton.enabled = true
                                     }
-                                    function onLoginSuccess(success) {
-                                        if (success) {
-                                            // Habilitar el botón nuevamente
-                                            loginButton.opacity = 1.0
-                                            loginButton.enabled = true
-                                            // Aquí podrías navegar a la pantalla principal
-                                            console.log("Login exitoso - redirigir a pantalla principal")
-                                            //mainLoader.source = "main.qml" // Descomenta si tienes un loader
-                                        } else{
-                                            // Habilitar el botón nuevamente
-                                            loginButton.opacity = 1.0
-                                            loginButton.enabled = true
-                                        }
                                 }
                             }
                         }
@@ -496,15 +511,18 @@ ApplicationWindow {
         }
     }
     
-    // Timer para simular la autenticación
-    Timer {
-        id: loginTimer
-        interval: 2000
+    // Animación para cerrar la ventana con estilo
+    PropertyAnimation {
+        id: closeAnimation
+        target: mainWindow
+        property: "opacity"
+        from: 1
+        to: 0
+        duration: 500
+        easing.type: Easing.InQuad
         
-        onTriggered: {
-            //backend.login(usernameField.text)
-            loginButton.opacity = 1
-            loginButton.enabled = true
+        onFinished: {
+            // La aplicación se cerrará desde el backend
         }
     }
     
@@ -523,5 +541,4 @@ ApplicationWindow {
         duration: 800
         easing.type: Easing.OutQuad
     }
-}
 }

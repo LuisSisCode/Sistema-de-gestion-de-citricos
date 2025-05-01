@@ -10,6 +10,7 @@ Rectangle {
     // Propiedades para la edición de usuarios
     property var nuevoUsuario: { "id_rol": 5, "nombre": "", "apellido": "", "usuario": "", "correo": "", "contrasena": "" }
     property bool hayCambiosPendientes: false
+    property var usuarioEditando: null
     
     // Título de la página
     Rectangle {
@@ -75,12 +76,16 @@ Rectangle {
                 }
 
                 TextField {
+                    id : txtBuscarUsuarios
                     placeholderText: "Buscar usuario..."
                     implicitWidth: 450
                     implicitHeight: 25
                     background: Rectangle {
                         color: "#b2c4c9"
                         radius: height / 2
+                    }
+                    onTextChanged: {
+                        usuariosRolesModel.filtrar_usuarios(text)
                     }
                 }
             }
@@ -103,7 +108,7 @@ Rectangle {
                 anchors.fill: parent
                 anchors.margins: 1
                 clip: true
-                model: usuariosRolesModel.usuarios
+                model: usuariosRolesModel ? usuariosRolesModel.usuarios_filtrados : []
                 headerPositioning: ListView.OverlayHeader
 
                 // Cabecera de la tabla
@@ -174,7 +179,7 @@ Rectangle {
 
                 // Delegado para cada fila
                 delegate: Rectangle {
-                    width: parent.width
+                    width: usuariosRolesRoot.width
                     height: 50
                     color: index % 2 === 0 ? "#FFFFFF" : "#F9F9F9"
 
@@ -309,7 +314,7 @@ Rectangle {
                     color: "#757575"
                     font.pixelSize: 14
                     horizontalAlignment: Text.AlignHCenter
-                    visible: usuariosRolesModel.usuarios.length === 0
+                    visible: usuariosRolesModel && usuariosRolesModel.usuarios ? usuariosRolesModel.usuarios.length === 0 : true
                 }
             }
         }
@@ -461,7 +466,7 @@ Rectangle {
                             id: cmbRol
                             Layout.fillWidth: true
                             height: 36
-                            model: usuariosRolesModel.roles
+                            model: usuariosRolesModel ? usuariosRolesModel.roles : [] 
                             textRole: "nombre"
                             onCurrentIndexChanged: {
 
@@ -740,9 +745,8 @@ Dialog {
     modal: true
     width: 500
     height: 420
-    x: (parent.width - width) / 2
-    y: (parent.height - height) / 2
-    property var usuarioEditando: null
+    x: (usuariosRolesRoot.width - width) / 2
+    y: (usuariosRolesRoot.height - height) / 2
   
     // Método para preparar el diálogo antes de abrirlo
     function prepararEdicion(usuario) {
@@ -1026,4 +1030,3 @@ Dialog {
         }
 
     }    
-

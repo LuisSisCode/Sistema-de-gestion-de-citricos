@@ -71,7 +71,7 @@ CREATE TABLE VariedadesCultivo (
     nombre VARCHAR(50) NOT NULL,
     tiempo_produccion INT NULL,
     rendimiento_esperado DECIMAL(10,2) NULL,
-    resistencia_enfermedades VARCHAR(100) NULL,
+    resistencia_zona VARCHAR(100) NULL, -- baja, media, alta
     activo BIT NOT NULL DEFAULT 1,
     CONSTRAINT FK_VariedadesCultivo_TiposCultivo FOREIGN KEY (id_tipo_cultivo) REFERENCES TiposCultivo(id_tipo_cultivo)
 );
@@ -95,7 +95,7 @@ CREATE TABLE CiclosProduccion (
     fecha_floracion DATE NULL,
     fecha_poda DATE NULL,
     fecha_limpieza DATE NULL,            
-    frecuencia_limpieza INT NULL,          --(en días)
+    frecuencia_limpieza INT NULL,    
     -- Relaciones
     CONSTRAINT FK_CiclosProduccion_Parcelas FOREIGN KEY (id_parcela) REFERENCES Parcelas(id_parcela),
     CONSTRAINT FK_CiclosProduccion_VariedadesCultivo FOREIGN KEY (id_variedad) REFERENCES VariedadesCultivo(id_variedad)
@@ -205,7 +205,7 @@ CREATE TABLE CostosProduccion (
     CONSTRAINT FK_CostosProduccion_Usuarios FOREIGN KEY (registrado_por) REFERENCES Usuarios(id_usuario)
 );
 
--- 11. Gesti�n de Pagos
+-- 10. Gesti�n de Pagos
 CREATE TABLE MetodosPago (
     id_metodo INT IDENTITY(1,1) PRIMARY KEY,
     nombre VARCHAR(50) NOT NULL UNIQUE,
@@ -213,7 +213,7 @@ CREATE TABLE MetodosPago (
     activo BIT NOT NULL DEFAULT 1
 );
 
--- 12. Gesti�n de Producci�n (Lotes de Cosecha)
+-- 11. Gesti�n de Producci�n (Lotes de Cosecha)
 CREATE TABLE CategoriasCalidad (
     id_categoria INT IDENTITY(1,1) PRIMARY KEY,
     nombre VARCHAR(50) NOT NULL UNIQUE,
@@ -233,8 +233,6 @@ CREATE TABLE LotesCosecha (
     cantidad_disponible DECIMAL(10,2) NOT NULL,
     precio_unitario_sugerido DECIMAL(10,2) NULL,
     costo_produccion_unitario DECIMAL(10,2) NULL,
-    fecha_vencimiento DATE NULL,
-    ubicacion_almacenamiento VARCHAR(100) NULL,
     registrado_por INT NOT NULL,
     observaciones TEXT NULL,
     activo BIT NOT NULL DEFAULT 1,
@@ -243,30 +241,23 @@ CREATE TABLE LotesCosecha (
     CONSTRAINT FK_LotesCosecha_Usuarios FOREIGN KEY (registrado_por) REFERENCES Usuarios(id_usuario)
 );
 
--- 13. Gesti�n de Clientes
+-- 12. Gestión de Clientes (MODIFICADA)
 CREATE TABLE Clientes (
     id_cliente INT IDENTITY(1,1) PRIMARY KEY,
-    tipo VARCHAR(10) NOT NULL CHECK (tipo IN ('Persona', 'Empresa')),
     nombre VARCHAR(100) NOT NULL,
-    identificacion VARCHAR(20) NOT NULL UNIQUE,
     direccion VARCHAR(200) NULL,
     ciudad VARCHAR(100) NULL,
     estado_provincia VARCHAR(100) NULL,
-    codigo_postal VARCHAR(20) NULL,
     telefono VARCHAR(20) NULL,
     correo VARCHAR(100) NULL,
-    contacto_principal VARCHAR(100) NULL,
-    telefono_contacto VARCHAR(20) NULL,
     condiciones_pago VARCHAR(100) NULL,
-    limite_credito DECIMAL(12,2) NULL,
-    notas TEXT NULL,
     fecha_registro DATE NOT NULL,
     registrado_por INT NOT NULL,
     activo BIT NOT NULL DEFAULT 1,
     CONSTRAINT FK_Clientes_Usuarios FOREIGN KEY (registrado_por) REFERENCES Usuarios(id_usuario)
 );
 
--- 14. Gesti�n de Ventas
+14. Gestión de Ventas (MODIFICADA)
 CREATE TABLE EstadosVenta (
     id_estado INT IDENTITY(1,1) PRIMARY KEY,
     nombre VARCHAR(50) NOT NULL UNIQUE,
@@ -280,8 +271,6 @@ CREATE TABLE Ventas (
     codigo_venta VARCHAR(20) NOT NULL UNIQUE,
     fecha_venta DATE NOT NULL,
     subtotal DECIMAL(12,2) NOT NULL,
-    impuestos DECIMAL(12,2) NOT NULL,
-    descuento DECIMAL(12,2) NOT NULL DEFAULT 0,
     total DECIMAL(12,2) NOT NULL,
     condiciones_pago VARCHAR(100) NULL,
     fecha_entrega DATE NULL,
@@ -303,8 +292,6 @@ CREATE TABLE DetallesVenta (
     unidad_medida VARCHAR(20) NOT NULL,
     precio_unitario DECIMAL(10,2) NOT NULL,
     subtotal DECIMAL(12,2) NOT NULL,
-    impuesto DECIMAL(12,2) NULL,
-    descuento DECIMAL(12,2) DEFAULT 0,
     total DECIMAL(12,2) NOT NULL,
     observaciones TEXT NULL,
     CONSTRAINT FK_DetallesVenta_Ventas FOREIGN KEY (id_venta) REFERENCES Ventas(id_venta),

@@ -8,6 +8,8 @@ from usuario_roles_model import UsuariosRolesModel
 from agricultores_parcelas_model import AgricultoresParcelas
 from cultivos_model import CultivosModel
 from agroquimicos_model import AgroquimicosModel
+from maquinaria_model import MaquinariaModel
+from ventas_cliente_model import ClientesVentaModel
 from datetime import datetime
 
 os.environ["QT_LOGGING_RULES"] = "*.debug=false"
@@ -33,8 +35,7 @@ class ModuleManager(QObject):
             4: "agroquimico.qml",
             5: "ventas_cliente.qml",
             6: "maquinaria.qml",
-            7: "reportes.qml",
-            8: "configuracion.qml" # Incluyendo esto
+            7: "configuracion.qml" # Incluyendo esto
         }
     
     def set_root_object(self, root):
@@ -64,8 +65,7 @@ class ModuleManager(QObject):
         self.connect_button("btnAgroquimicos", 4)
         self.connect_button("btnVentas", 5)
         self.connect_button("btnMaquinaria", 6)
-        self.connect_button("btnReportes", 7)
-        self.connect_button("btnConfiguracion", 8)
+        self.connect_button("btnConfiguracion",7 )
         
         # Cargar el módulo inicial (inicio_content.qml)
         self.change_module(0)
@@ -136,9 +136,15 @@ def main():
     engine.rootContext().setContextProperty("cultivos", cultivos_model)
 
     # Crear y registrar el modelo de AGROQUIMICOS
-    agroquimicos_model = AgroquimicosModel
-    engine.rootContext().setContextProperty("agroquimicos", agroquimicos_model)
+    agroquimicos_model = AgroquimicosModel()
+    engine.rootContext().setContextProperty("agroquimicosModel", agroquimicos_model)
+
+    ventas_cliente_model = ClientesVentaModel()
+    engine.rootContext().setContextProperty("ventaModel", ventas_cliente_model) 
     
+    maquinaria_model=MaquinariaModel()
+    engine.rootContext().setContextProperty("maquinariaModel", maquinaria_model)
+
     # Imprimir el directorio de trabajo actual (útil para depuración)
     print(f"Directorio de trabajo actual: {os.getcwd()}")
     

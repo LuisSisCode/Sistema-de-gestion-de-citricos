@@ -1,11 +1,15 @@
 import QtQuick 2.15
 import QtQuick.Controls.Universal 2.15
 import QtQuick.Layouts 1.15
+import QtLocation 5.15
+import QtPositioning 5.15
 
 Rectangle {
     id: agricultorerParcelaRoot
     anchors.fill: parent
     color: "#F8F9FA"
+    property double latitudSeleccionada: 0
+    property double longitudSeleccionada: 0
     property var agricultoresparcelas  
     // Propiedades para la edición de agricultores
     property var nuevoAgricultor: {  
@@ -25,9 +29,13 @@ Rectangle {
         "propietario": "",
         "ubicacion": "",
         "area": 0,
-        "porcentajeUso": 0
+        "porcentajeUso": 0,
+        "latitud": 0,
+        "longitud": 0
     }
     
+    // agricultoresparcelas
+
     Component.onCompleted: {
         console.log("Modelo disponible:", agricultoresparcelas !== null)
         if (agricultoresparcelas) {
@@ -49,9 +57,11 @@ Rectangle {
     }
     
     Connections {
-        target: agricultoresparcelas
+        target: agricultoresparcelas ? agricultoresparcelas : null
         function onAgricultoresChanged() {
-            console.log("Agricultores actualizados:", agricultoresparcelas.agricultores.length)
+            if (agricultoresparcelas) {
+                console.log("Agricultores actualizados:", agricultoresparcelas.agricultores.length);
+            }
         }
         function onParcelasChanged() {
             console.log("Parcelas actualizadas:", agricultoresparcelas.parcelas.length)
@@ -197,12 +207,22 @@ Rectangle {
                     }
 
                     TextField {
+                        id: txtBuscarAgricultor
                         placeholderText: "Buscar agricultor..."
                         implicitWidth: 400
-                        implicitHeight: 25
+                        implicitHeight: 30
                         background: Rectangle {
                             color: "#b2c4c9"
                             radius: height / 2
+                        }
+                        onTextChanged: {
+                            if (text.length > 2) {
+                                var resultados = agricultoresparcelas.filtrar_agricultores_por_nombre(text)
+                                agricultoesListView.model = resultados
+                            } else if (text.length === 0) {
+                                // Restaurar la lista completa
+                                agricultoesListView.model = agricultoresparcelas.agricultores
+                            }
                         }
                     }
                 }
@@ -428,7 +448,32 @@ Rectangle {
                                         flat: true
                                         ToolTip.visible: hovered
                                         ToolTip.text: "Editar"
-                                        onClicked: showMessage("Función de edición no implementada")
+                                        onClicked:{
+                                            // Cargar datos del agricultor a editar
+                                            nuevoAgricultor = {
+                                                "id_agricultor": modelData.id_agricultor,
+                                                "nombre": modelData.nombre,
+                                                "apellido": modelData.apellido,
+                                                "identificacion": modelData.identificacion,
+                                                "telefono": modelData.telefono,
+                                                "correo": modelData.correo,
+                                                "direccion": modelData.direccion,
+                                                "esPropietario": modelData.esPropietario
+                                            }
+                                             // Actualizar controles del formulario
+                                            txtNombre.text = modelData.nombre
+                                            txtApellido.text = modelData.apellido
+                                            txtIdentificacion.text = modelData.identificacion
+                                            txtTelefono.text = modelData.telefono
+                                            txtCorreo.text = modelData.correo
+                                            txtDireccion.text = modelData.direccion
+                                            chkPropietario.checked = modelData.esPropietario
+                                            
+                                            // Configurar el diálogo para modo edición
+                                            dialogNuevoAgricultor.isEditMode = true
+                                            dialogNuevoAgricultor.title = "Editar Agricultor"
+                                            dialogNuevoAgricultor.open()
+                                        }
                                     }
                                     
                                     Button {
@@ -507,33 +552,74 @@ Rectangle {
                     TextField {
                         placeholderText: "Buscar parcela..."
                         implicitWidth: 250
-                        implicitHeight: 36
+                        implicitHeight: 30
                         background: Rectangle {
                             color: "#b2c4c9"
                             radius: height / 2
                         }
+                        onTextChanged: {
+                            if (text.length > 2) {
+                                var resultados = agricultoresparcelas.filtrar_parcelas_por_nombre(text)
+                                parcelasGrid.model = resultados
+                            } else if (text.length === 0) {
+                                // Restaurar la lista completa
+                                parcelasGrid.model = agricultoresparcelas.parcelas
+                            }
+                        }
                     }
 
                     ComboBox {
-                        model: ["Todos los agricultores"]
+                        id: cmbFiltroAgricultores
                         implicitWidth: 200
                         implicitHeight: 36
-
+                        
+                        // Modelo inicial con la opción "Todos los agricultores"
+                        model: {
+                            var items = [{ id: 0, nombre: "Todos los agricultores" }];
+                            if (agricultoresparcelas && agricultoresparcelas.propietarios) {
+                                // Agregar los propietarios de la lista
+                                items = items.concat(agricultoresparcelas.propietarios);
+                            }
+                            return items;
+                        }
+                        
+                        // Configurar las propiedades necesarias para mostrar y seleccionar correctamente
+                        textRole: "nombre"
+                        valueRole: "id"
+                        
+                        // Cuando se cambia la selección, filtrar las parcelas
+                        onActivated: {
+                            var selectedId = cmbFiltroAgricultores.currentValue;
+                            if (selectedId === 0) {
+                                // Mostrar todas las parcelas si se selecciona "Todos los agricultores"
+                                parcelasGrid.model = agricultoresparcelas.parcelas;
+                            } else {
+                                // Filtrar parcelas por propietario seleccionado
+                                parcelasGrid.model = agricultoresparcelas.obtener_parcelas_por_propietario(selectedId);
+                            }
+                        }
+                        
+                        // Actualizar cuando cambien los datos
                         Connections {
-                            target: agricultoresparcelas
-
-                            function onAgricultoresChanged() {
-                                console.log("Agricultores actualizados");
-                                // Actualizar UI aquí
-                            }
-
-                            function onParcelasChanged() {
-                                console.log("Parcelas actualizadas");
-                            }
-
+                            target: agricultoresparcelas ? agricultoresparcelas : null
+                            
                             function onPropietariosChanged() {
-                                console.log("Propietarios actualizados");
-                                cmbPropietario.model = obtenerPropietariosModel();
+                                // Recrear el modelo con la opción "Todos" + la lista de propietarios
+                                var items = [{ id: 0, nombre: "Todos los agricultores" }];
+                                if (agricultoresparcelas && agricultoresparcelas.propietarios) {
+                                    items = items.concat(agricultoresparcelas.propietarios);
+                                }
+                                cmbFiltroAgricultores.model = items;
+                            }
+                            
+                            function onParcelasChanged() {
+                                // Si está seleccionado un propietario específico, actualizar el filtro
+                                var selectedId = cmbFiltroAgricultores.currentValue;
+                                if (selectedId === 0) {
+                                    parcelasGrid.model = agricultoresparcelas.parcelas;
+                                } else {
+                                    parcelasGrid.model = agricultoresparcelas.obtener_parcelas_por_propietario(selectedId);
+                                }
                             }
                         }
                     }
@@ -542,6 +628,7 @@ Rectangle {
 
             // Tarjetas de parcelas (contenedor vacío)
             GridView {
+                id: parcelasGrid
                 anchors.top: parcelasActionBar.bottom
                 anchors.topMargin: 20
                 anchors.left: parent.left
@@ -642,7 +729,7 @@ Rectangle {
                         Rectangle {
                             Layout.fillWidth: true
                             height: 20
-                            color: "#F5F5F5"
+                            color: "#2b2a2a"
                             radius: 10
 
                             Rectangle {
@@ -671,7 +758,10 @@ Rectangle {
                                 Layout.fillWidth: true
                                 implicitHeight: 30
                                 font.pixelSize: 12
-                                onClicked: showMessage("Función para ver detalles no implementada")
+                                onClicked: {
+                                    dialogDetallesParcela.parcela = modelData
+                                    dialogDetallesParcela.open()
+                                }
                             }
 
                             Button {
@@ -679,13 +769,14 @@ Rectangle {
                                 Layout.fillWidth: true
                                 implicitHeight: 30
                                 font.pixelSize: 12
-                                onClicked: showMessage("Función para editar parcela no implementada")
+                                onClicked: abrirEdicionParcela(modelData)
                             }
                         }
                     }
                 }
             }
         }
+
 
         // Página de Mapa
         Item {
@@ -694,39 +785,265 @@ Rectangle {
                 color: "white"
                 radius: 5
                 border.color: "#EEEEEE"
-
-                // Placeholder para el mapa
-                Rectangle {
+                              
+                // Configuración del plugin de mapa
+                Plugin {
+                    id: mapPlugin
+                    name: "osm" // OpenStreetMap
+                    // Parámetros para mejorar la apariencia del mapa
+                    PluginParameter {
+                        name: "osm.mapping.providersrepository.host"
+                        value: "https://tile.openstreetmap.org/"  // URL actualizada
+                    }
+                    PluginParameter {
+                        name: "osm.mapping.highdpi_tiles"
+                        value: "true"
+                    }
+                }
+                
+                // Componente de mapa principal
+                Map {
+                    id: mapaTerrenos
                     anchors.fill: parent
                     anchors.margins: 20
-                    color: "#E0E0E0"
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "Aquí se mostrará el mapa interactivo de parcelas"
-                        font.pixelSize: 18
-                        color: "#757575"
-                    }
-
-                    // Controles de mapa
-                    Column {
-                        anchors.right: parent.right
-                        anchors.top: parent.top
-                        anchors.margins: 20
-                        spacing: 10
-
-                        Button {
-                            text: "+"
-                            font.pixelSize: 20
-                            width: 40
-                            height: 40
+                    plugin: mapPlugin
+                    
+                    // Coordenadas de Yapacaní, Provincia Ichilo
+                    center: QtPositioning.coordinate(-17.4001, -63.9260)
+                    zoomLevel: 15
+                    
+                    // Permitir interacción con el mapa (sin usar gesture directamente)
+                    enabled: true
+                    
+                    // Marcador para la ubicación actual/seleccionada
+                    MapQuickItem {
+                        id: marcadorActual
+                        coordinate: mapaTerrenos.center
+                        anchorPoint.x: 16
+                        anchorPoint.y: 16
+                        
+                        sourceItem: Rectangle {
+                            width: 32
+                            height: 32
+                            color: "transparent"
+                            
+                            Rectangle {
+                                anchors.centerIn: parent
+                                width: 16
+                                height: 16
+                                radius: 8
+                                color: "#4CAF50"
+                                border.color: "white"
+                                border.width: 2
+                            }
                         }
-
-                        Button {
-                            text: "-"
-                            font.pixelSize: 20
-                            width: 40
-                            height: 40
+                    }
+                    
+                    // Marcador para mostrar la ubicación seleccionada
+                    MapQuickItem {
+                        id: marcadorSeleccion
+                        visible: false
+                        anchorPoint.x: 16
+                        anchorPoint.y: 32
+                        
+                        sourceItem: Column {
+                            spacing: 2
+                            
+                            Rectangle {
+                                width: 32
+                                height: 32
+                                radius: width/2
+                                color: "#F44336"
+                                border.color: "white"
+                                border.width: 2
+                                
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "P"
+                                    color: "white"
+                                    font.bold: true
+                                }
+                            }
+                            
+                            Rectangle {
+                                color: "#80FFFFFF"
+                                radius: 2
+                                width: textoMarcador.width + 6
+                                height: textoMarcador.height + 4
+                                
+                                Text {
+                                    id: textoMarcador
+                                    text: "Parcela"
+                                    font.pixelSize: 12
+                                    anchors.centerIn: parent
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Manejo de clic en el mapa
+                    MouseArea {
+                        id: mapMouseArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        
+                        property bool panning: false
+                        property int lastX: 0
+                        property int lastY: 0
+                        
+                        onPressed: {
+                            lastX = mouse.x
+                            lastY = mouse.y
+                            panning = true
+                        }
+                        
+                        onPositionChanged: {
+                            if (panning) {
+                                // Calcular el desplazamiento
+                                var dx = mouse.x - lastX
+                                var dy = mouse.y - lastY
+                                
+                                // Convertir el desplazamiento a coordenadas
+                                var c1 = mapaTerrenos.toCoordinate(Qt.point(width/2, height/2))
+                                var c2 = mapaTerrenos.toCoordinate(Qt.point(width/2 - dx, height/2 - dy))
+                                
+                                // Mover el centro del mapa
+                                mapaTerrenos.center = QtPositioning.coordinate(
+                                    mapaTerrenos.center.latitude + (c1.latitude - c2.latitude),
+                                    mapaTerrenos.center.longitude + (c1.longitude - c2.longitude)
+                                )
+                                
+                                // Actualizar la posición de referencia
+                                lastX = mouse.x
+                                lastY = mouse.y
+                            }
+                        }
+                        
+                        onReleased: {
+                            if (panning) {
+                                panning = false
+                            } else {
+                                // Es un clic, no un arrastre
+                                var coordinate = mapaTerrenos.toCoordinate(Qt.point(mouse.x, mouse.y))
+                                marcadorSeleccion.coordinate = coordinate
+                                marcadorSeleccion.visible = true
+                                textoMarcador.text = "Lat: " + coordinate.latitude.toFixed(4) + ", Lng: " + coordinate.longitude.toFixed(4)
+                                
+                                console.log("Ubicación seleccionada:", coordinate.latitude, coordinate.longitude)
+                                
+                                if (dialogNuevaParcela.visible) {
+                                    dialogNuevaParcela.latitudSeleccionada = coordinate.latitude
+                                    dialogNuevaParcela.longitudSeleccionada = coordinate.longitude
+                                    showMessage("Ubicación seleccionada: " + coordinate.latitude.toFixed(6) + ", " + coordinate.longitude.toFixed(6))
+                                }
+                            }
+                        }
+                        
+                        // Zoom con la rueda del ratón
+                        onWheel: function(wheel) {
+                            if (wheel.angleDelta.y > 0)
+                                mapaTerrenos.zoomLevel += 0.5
+                            else
+                                mapaTerrenos.zoomLevel -= 0.5
+                        }
+                    }
+                    
+                    // Información de coordenadas
+                    Rectangle {
+                        anchors.bottom: parent.bottom
+                        anchors.left: parent.left
+                        anchors.margins: 10
+                        color: "#80FFFFFF"
+                        border.color: "#CCCCCC"
+                        border.width: 1
+                        radius: 5
+                        width: textoCoords.width + 20
+                        height: textoCoords.height + 10
+                        
+                        Text {
+                            id: textoCoords
+                            anchors.centerIn: parent
+                            font.pixelSize: 12
+                            text: "Centro: " + mapaTerrenos.center.latitude.toFixed(4) + ", " + 
+                                mapaTerrenos.center.longitude.toFixed(4) + " | Zoom: " + mapaTerrenos.zoomLevel.toFixed(1)
+                        }
+                    }
+                    
+                    // Actualizar la información de coordenadas cuando cambia el centro del mapa
+                    onCenterChanged: {
+                        textoCoords.text = "Centro: " + center.latitude.toFixed(4) + ", " + 
+                                        center.longitude.toFixed(4) + " | Zoom: " + zoomLevel.toFixed(1)
+                    }
+                    
+                    onZoomLevelChanged: function() {
+                        textoCoords.text = "Centro: " + center.latitude.toFixed(4) + ", " + 
+                                        center.longitude.toFixed(4) + " | Zoom: " + zoomLevel.toFixed(1)
+                    }
+                }
+                
+                // Panel de controles para el mapa
+                Column {
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: 20
+                    spacing: 10
+                    
+                    // Zoom in
+                    Button {
+                        width: 40
+                        height: 40
+                        text: "+"
+                        font.pixelSize: 20
+                        onClicked: mapaTerrenos.zoomLevel += 1
+                    }
+                    
+                    // Zoom out
+                    Button {
+                        width: 40
+                        height: 40
+                        text: "-"
+                        font.pixelSize: 20
+                        onClicked: mapaTerrenos.zoomLevel -= 1
+                    }
+                    
+                    // Centrar en Yapacaní
+                    Button {
+                        width: 40
+                        height: 40
+                        text: "Y"
+                        font.pixelSize: 14
+                        onClicked: {
+                            mapaTerrenos.center = QtPositioning.coordinate(-17.4001, -63.9260)
+                            mapaTerrenos.zoomLevel = 15
+                        }
+                        
+                        ToolTip.visible: hovered
+                        ToolTip.text: "Centrar en Yapacaní"
+                    }
+                }
+            }
+            
+            // Función para crear marcadores de parcelas
+            function crearMarcadorParcela(parcela) {
+                var component = Qt.createComponent("MapMarker.qml")
+                if (component.status === Component.Ready) {
+                    var marker = component.createObject(mapaTerrenos, {
+                        coordinate: QtPositioning.coordinate(parcela.latitud, parcela.longitud),
+                        title: parcela.nombre,
+                        parcelaId: parcela.id
+                    })
+                } else if (component.status === Component.Error) {
+                    console.error("Error al crear marcador:", component.errorString())
+                }
+            }
+            
+            // Cargar marcadores cuando se complete
+            Component.onCompleted: {
+                if (agricultoresparcelas && agricultoresparcelas.parcelas) {
+                    for (var i = 0; i < agricultoresparcelas.parcelas.length; i++) {
+                        var parcela = agricultoresparcelas.parcelas[i]
+                        if (parcela.latitud && parcela.longitud) {
+                            crearMarcadorParcela(parcela)
                         }
                     }
                 }
@@ -963,11 +1280,11 @@ Rectangle {
         id: dialogNuevaParcela
         title: "Nueva Parcela"
         modal: true
-        width: 500
-        height: 600
+        width: 600
+        height: 700
         x: (parent.width - width) / 2
         y: (parent.height - height) / 2
-        
+        property bool isEditMode: false
         // Contenido del diálogo
         contentItem: Rectangle {
             color: "white"
@@ -1014,13 +1331,22 @@ Rectangle {
                     
                     ComboBox {
                         id: cmbPropietario
+                        Layout.fillWidth: true
                         model: agricultoresparcelas ? agricultoresparcelas.propietarios : []
-                        textRole: "nombre"
-                        
+                        textRole: "nombre--"
+                        valueRole: "id"
+
                         // Actualizar cuando cambien los propietarios
                         Connections {
-                            target: agricultoresparcelas
-                            onPropietariosChanged: cmbPropietario.model = agricultoresparcelas.propietarios
+                            target: agricultoresparcelas ? agricultoresparcelas : null
+                            function onPropietariosChanged() {
+                                cmbPropietario.model = agricultoresparcelas ? agricultoresparcelas.propietarios : [];
+                            }
+                        }
+                        
+                        onActivated: {
+                            var selectedId = cmbPropietario.currentValue
+                            nuevaParcela.propietarioId = selectedId
                         }
                     }
                     
@@ -1053,6 +1379,47 @@ Rectangle {
                                 nuevaParcela.area = parseFloat(text)
                         }
                     }
+                    // Latitud
+                    Text {
+                        text: "Latitud:"
+                        Layout.alignment: Qt.AlignRight
+                    }
+
+                    TextField {
+                        id: txtLatitud
+                        placeholderText: "Ej: -16.5430"
+                        Layout.fillWidth: true
+                        validator: DoubleValidator {}
+                        onTextChanged: {
+                            if (text.trim() !== "")
+                                nuevaParcela.latitud = parseFloat(text)
+                        }
+                    }
+
+                    // Longitud
+                    Text {
+                        text: "Longitud:"
+                        Layout.alignment: Qt.AlignRight
+                    }
+
+                    TextField {
+                        id: txtLongitud
+                        placeholderText: "Ej: -68.1025"
+                        Layout.fillWidth: true
+                        validator: DoubleValidator {}
+                        onTextChanged: {
+                            if (text.trim() !== "")
+                                nuevaParcela.longitud = parseFloat(text)
+                        }
+                    }
+
+                    // También puedes agregar un botón para abrir un selector de mapa
+                    Button {
+                        text: "Seleccionar en mapa"
+                        Layout.columnSpan: 2
+                        Layout.alignment: Qt.AlignCenter
+                        onClicked: selectorUbicacionDialog.open()
+                    }                   
                     
                     // Porcentaje de uso
                     Text {
@@ -1153,7 +1520,11 @@ Rectangle {
                         return;
                     }
                     
-                    guardarNuevaParcela();
+                    if (dialogNuevaParcela.isEditMode) {
+                        editarParcela();
+                    } else {
+                        guardarNuevaParcela();
+                    }
                 }
             }
         }
@@ -1166,6 +1537,93 @@ Rectangle {
             sliderPorcentajeUso.value = 0
             txtDescripcionParcela.text = ""
             mensajeValidacionParcela.text = ""
+        }
+    }
+    // Agregar este diálogo a tu archivo principal
+    Dialog {
+        id: selectorUbicacionDialog
+        title: "Seleccionar ubicación"
+        modal: true
+        width: 600
+        height: 500
+        
+        contentItem: Rectangle {
+            color: "white"
+            
+            Plugin {
+                id: selectorMapPlugin
+                name: "osm"
+            }
+            
+            Map {
+                id: selectorMapa
+                anchors.fill: parent
+                anchors.margins: 10
+                plugin: selectorMapPlugin
+                center: QtPositioning.coordinate(-16.5000, -68.1500) // Ajusta según tu ubicación
+                zoomLevel: 13
+                
+                // Marcador movible
+                MapQuickItem {
+                    id: selectorMarker
+                    coordinate: selectorMapa.center
+                    anchorPoint.x: selectorIcon.width/2
+                    anchorPoint.y: selectorIcon.height
+                    
+                    sourceItem: Image { 
+                        id: selectorIcon
+                        source: "Image/Image_UI_interfaz/Inconos/marcador-de-mapa.svg"
+                        width: 30
+                        height: 30
+                    }
+                }
+                
+                // Permitir que el usuario haga clic en el mapa para colocar el marcador
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        var coordinate = selectorMapa.toCoordinate(Qt.point(mouseX, mouseY))
+                        selectorMarker.coordinate = coordinate
+                    }
+                }
+            }
+            
+            Text {
+                anchors.bottom: parent.bottom
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottomMargin: 10
+                text: "Haz clic en el mapa para seleccionar la ubicación de la parcela"
+                font.pixelSize: 14
+            }
+        }
+        
+        footer: DialogButtonBox {
+            Button {
+                text: "Cancelar"
+                DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
+            }
+            
+            Button {
+                text: "Confirmar ubicación"
+                DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
+                background: Rectangle {
+                    color: "#4CAF50"
+                    radius: 5
+                }
+                contentItem: Text {
+                    text: parent.text
+                    color: "white"
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
+        }
+        
+        onAccepted: {
+            // Guardar coordenadas en los campos del formulario
+            txtLatitud.text = selectorMarker.coordinate.latitude.toFixed(6)
+            txtLongitud.text = selectorMarker.coordinate.longitude.toFixed(6)
         }
     }
 
@@ -1271,7 +1729,284 @@ Rectangle {
             onTriggered: messageToast.visible = false
         }
 
-    } 
+    }
+    // DIÁLOGO DE DETALLES DE PARCELA
+    Dialog {
+        id: dialogDetallesParcela
+        title: "Detalles de Parcela"
+        modal: true
+        width: 600
+        height: 650
+        x: (parent.width - width) / 2
+        y: (parent.height - height) / 2
+        
+        property var parcela: null
+
+        // Agrega esto después de la definición del diálogo
+        onOpened: {
+            if (parcela && detailsMap) {
+                var lat, lng;
+                
+                // Intentar obtener coordenadas de propiedades específicas
+                if (parcela.latitud && parcela.longitud) {
+                    lat = parcela.latitud;
+                    lng = parcela.longitud;
+                } 
+                // Alternativamente, parsear coordenadasGPS
+                else if (parcela.coordenadasGPS) {
+                    var coordParts = parcela.coordenadasGPS.split(',');
+                    if (coordParts.length === 2) {
+                        lat = parseFloat(coordParts[0]);
+                        lng = parseFloat(coordParts[1]);
+                    }
+                }
+                
+                if (lat && lng) {
+                    detailsMap.center = QtPositioning.coordinate(lat, lng);
+                    detailsMap.zoomLevel = 14;
+                    detailsMapMarker.coordinate = detailsMap.center;
+                    detailsMapMarker.visible = true;
+                }
+            }
+        }
+        
+        contentItem: Rectangle {
+            color: "white"
+            
+            Column {
+                anchors.fill: parent
+                anchors.margins: 20
+                spacing: 15
+                
+                // Título
+                Text {
+                    text: dialogDetallesParcela.parcela ? dialogDetallesParcela.parcela.nombre : ""
+                    font.pixelSize: 24
+                    font.bold: true
+                    width: parent.width
+                }
+                
+                // Contenido de detalles
+                GridLayout {
+                    width: parent.width
+                    columns: 2
+                    columnSpacing: 10
+                    rowSpacing: 15
+                    
+                    // Propietario
+                    Text {
+                        text: "Propietario:"
+                        font.bold: true
+                    }
+                    
+                    Text {
+                        text: dialogDetallesParcela.parcela ? dialogDetallesParcela.parcela.propietario : ""
+                        Layout.fillWidth: true
+                    }
+                    
+                    // Ubicación
+                    Text {
+                        text: "Ubicación:"
+                        font.bold: true
+                    }
+                    
+                    Text {
+                        text: dialogDetallesParcela.parcela ? dialogDetallesParcela.parcela.ubicacion : ""
+                        Layout.fillWidth: true
+                    }
+                    
+                    // Área
+                    Text {
+                        text: "Área:"
+                        font.bold: true
+                    }
+                    
+                    Text {
+                        text: dialogDetallesParcela.parcela ? dialogDetallesParcela.parcela.area + " hectáreas" : ""
+                        Layout.fillWidth: true
+                    }
+                    
+                    // Coordenadas GPS
+                    Text {
+                        text: "Coordenadas GPS:"
+                        font.bold: true
+                    }
+                    
+                    Text {
+                        text: {
+                            if (!dialogDetallesParcela.parcela) return "";
+                    
+                            // Intentar obtener coordenadas de latitud/longitud específicas
+                            if (dialogDetallesParcela.parcela.latitud && dialogDetallesParcela.parcela.longitud) {
+                                return "Lat: " + dialogDetallesParcela.parcela.latitud.toFixed(6) + ", Lng: " + dialogDetallesParcela.parcela.longitud.toFixed(6);
+                            }
+                            
+                            // Alternativamente, usar coordenadasGPS si está disponible
+                            if (dialogDetallesParcela.parcela.coordenadasGPS) {
+                                return dialogDetallesParcela.parcela.coordenadasGPS;
+                            }
+                            
+                            return "No disponibles";
+                        }
+                        Layout.fillWidth: true
+                    }
+                    
+                    // Porcentaje de uso
+                    Text {
+                        text: "Porcentaje de uso:"
+                        font.bold: true
+                    }
+                    
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 20
+                        color: "#d6d1d1"
+                        radius: 10
+                        
+                        Rectangle {
+                            width: parent.width * (dialogDetallesParcela.parcela ? dialogDetallesParcela.parcela.porcentajeUso / 100 : 0)
+                            height: parent.height
+                            color: "#2E7D32"
+                            radius: 10
+                        }
+                        
+                        Text {
+                            anchors.centerIn: parent
+                            text:(dialogDetallesParcela.parcela ? dialogDetallesParcela.parcela.porcentajeUso : 0) + "% en uso"
+                            color: "black"
+                        }
+                    }
+                    
+                    // Fecha de adquisición
+                    Text {
+                        text: "Fecha de adquisición:"
+                        font.bold: true
+                    }
+                    
+                    Text {
+                        text: dialogDetallesParcela.parcela ? (dialogDetallesParcela.parcela.fechaAdquisicion || "No disponible") : ""
+                        Layout.fillWidth: true
+                    }
+                }
+                
+                // Mapa pequeño
+                Rectangle {
+                    id: detailsMapContainer
+                    width: parent.width
+                    height: 200
+                    color: "#F5F5F5"
+                    border.color: "#DDDDDD"
+                    
+                    Plugin {
+                        id: detailsMapPlugin
+                        name: "osm"
+                    }
+                    Map {
+                        id: detailsMap
+                        anchors.fill: parent
+                        anchors.margins: 5
+                        plugin: detailsMapPlugin
+
+                        // Establecer centro y nivel de zoom cuando se cargue el diálogo
+                        Component.onCompleted: {
+                            if (dialogDetallesParcela.parcela) {
+                                var lat, lng;
+                                
+                                // Intentar obtener coordenadas de propiedades específicas
+                                if (dialogDetallesParcela.parcela.latitud && dialogDetallesParcela.parcela.longitud) {
+                                    lat = dialogDetallesParcela.parcela.latitud;
+                                    lng = dialogDetallesParcela.parcela.longitud;
+                                } 
+                                // Alternativamente, parsear coordenadasGPS
+                                else if (dialogDetallesParcela.parcela.coordenadasGPS) {
+                                    var coordParts = dialogDetallesParcela.parcela.coordenadasGPS.split(',');
+                                    if (coordParts.length === 2) {
+                                        lat = parseFloat(coordParts[0]);
+                                        lng = parseFloat(coordParts[1]);
+                                    }
+                                }
+                                
+                                if (lat && lng) {
+                                    center = QtPositioning.coordinate(lat, lng);
+                                    zoomLevel = 14;
+                                    detailsMapMarker.coordinate = center;
+                                    detailsMapMarker.visible = true;
+                                }
+                            }
+                        }
+                        MapQuickItem {
+                           id: detailsMapMarker
+                            visible: false
+                            anchorPoint.x: 16
+                            anchorPoint.y: 16
+                            
+                            sourceItem: Rectangle {
+                                width: 32
+                                height: 32
+                                color: "transparent"
+                                
+                                Rectangle {
+                                    anchors.centerIn: parent
+                                    width: 20
+                                    height: 20
+                                    radius: 10
+                                    color: "#F44336"
+                                    border.color: "white"
+                                    border.width: 2
+                                }
+                            } 
+                        }
+                        Text {
+                            anchors.centerIn: parent
+                            text: "Coordenadas no disponibles para esta parcela"
+                            color: "#757575"
+                            visible: {
+                                if (!dialogDetallesParcela.parcela) return true;
+                                
+                                if (dialogDetallesParcela.parcela.latitud && dialogDetallesParcela.parcela.longitud) {
+                                    return false;
+                                }
+                                
+                                if (dialogDetallesParcela.parcela.coordenadasGPS) {
+                                    var coordParts = dialogDetallesParcela.parcela.coordenadasGPS.split(',');
+                                    return !(coordParts.length === 2);
+                                }
+                                
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        footer: DialogButtonBox {
+            Button {
+                text: "Cerrar"
+                DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
+            }
+            
+            Button {
+                text: "Editar Parcela"
+                DialogButtonBox.buttonRole: DialogButtonBox.ActionRole
+                background: Rectangle {
+                    color: "#4CAF50"
+                    radius: 5
+                }
+                contentItem: Text {
+                    text: parent.text
+                    color: "white"
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                onClicked: {
+                    dialogDetallesParcela.close()
+                    abrirEdicionParcela(parcela)
+                }
+            }
+        }
+    }
     function obtenerPropietariosModel() {
             var propietariosArray = [];
             if (agricultoresparcelas && agricultoresparcelas.propietarios) {
@@ -1301,20 +2036,15 @@ Rectangle {
                 mensajeValidacionAgricultor.text = "Error al guardar el agricultor";
         }
     }
-
-        function guardarNuevaParcela() {
-            // Buscar el id del propietario seleccionado
-            var propietarioId = -1;
-            if (agricultoresparcelas && agricultoresparcelas.propietarios) {
-                for (var i = 0; i < agricultoresparcelas.propietarios.length; i++) {
-                    if (agricultoresparcelas.propietarios[i].nombre === cmbPropietario.currentText) {
-                        propietarioId = agricultoresparcelas.propietarios[i].id;
-                        break;
-                    }
-                }
-            }
+    
+    function guardarNuevaParcela() {
+        // Buscar el id del propietario seleccionado
+        // Tu código existente aquí...
         
-        nuevaParcela.propietarioId = propietarioId;
+        // Agregar las coordenadas al objeto nuevaParcela
+        nuevaParcela.latitud = parseFloat(txtLatitud.text) || null;
+        nuevaParcela.longitud = parseFloat(txtLongitud.text) || null;
+        
         var parcela_json = JSON.stringify(nuevaParcela);
         var exito = agricultoresparcelas.agregar_parcela(parcela_json);
         
@@ -1324,7 +2054,8 @@ Rectangle {
         } else {
             mensajeValidacionParcela.text = "Error al guardar la parcela";
         }
-    }   
+    }
+      
 
     // Función para mostrar mensajes
     function showMessage(message) {
@@ -1340,5 +2071,83 @@ Rectangle {
         var mm = String(today.getMonth() + 1).padStart(2, '0'); // Los meses empiezan en 0
         var yyyy = today.getFullYear();
         return dd + '/' + mm + '/' + yyyy;
-    } 
+    }
+    function editarAgricultor() {
+        // Crear objeto con los datos actualizados
+        var agricultor_actualizado = {
+            "nombre": nuevoAgricultor.nombre,
+            "apellido": nuevoAgricultor.apellido,
+            "identificacion": nuevoAgricultor.identificacion,
+            "telefono": nuevoAgricultor.telefono,
+            "correo": nuevoAgricultor.correo,
+            "direccion": nuevoAgricultor.direccion,
+            "esPropietario": nuevoAgricultor.esPropietario
+        }
+        
+        // Enviar al modelo para actualizar
+        var exito = agricultoresparcelas.actualizar_agricultor(nuevoAgricultor.id_agricultor, JSON.stringify(agricultor_actualizado))
+        
+        if (exito) {
+            showMessage("Agricultor actualizado correctamente")
+            dialogNuevoAgricultor.close()
+        } else {
+            mensajeValidacionAgricultor.text = "Error al actualizar el agricultor"
+        }
+    }
+    function abrirEdicionParcela(parcela) {
+        // Cargar los datos de la parcela al objeto nuevaParcela
+        nuevaParcela = {
+            "parcelaId": parcela.parcelaId,
+            "nombre": parcela.nombre,
+            "propietarioId": parcela.propietarioId,
+            "ubicacion": parcela.ubicacion,
+            "area": parcela.area,
+            "porcentajeUso": parcela.porcentajeUso,
+            "latitud": parcela.latitud,
+            "longitud": parcela.longitud
+        }
+        
+        // Actualizar controles del formulario
+        txtNombreParcela.text = parcela.nombre
+        txtUbicacion.text = parcela.ubicacion
+        txtArea.text = parcela.area.toString()
+        txtLatitud.text = parcela.latitud ? parcela.latitud.toString() : ""
+        txtLongitud.text = parcela.longitud ? parcela.longitud.toString() : ""
+        sliderPorcentajeUso.value = parcela.porcentajeUso
+        
+        // Seleccionar el propietario en el combobox
+        for(var i = 0; i < cmbPropietario.count; i++) {
+            if(cmbPropietario.model[i].id === parcela.propietarioId) {
+                cmbPropietario.currentIndex = i
+                break
+            }
+        }
+        
+        // Configurar el diálogo para modo edición
+        dialogNuevaParcela.isEditMode = true
+        dialogNuevaParcela.title = "Editar Parcela"
+        dialogNuevaParcela.open()
+    }
+    function editarParcela() {
+        // Crear objeto con los datos actualizados
+        var parcela_actualizada = {
+            "nombre": nuevaParcela.nombre,
+            "propietarioId": nuevaParcela.propietarioId,
+            "ubicacion": nuevaParcela.ubicacion,
+            "area": parseFloat(txtArea.text),
+            "porcentajeUso": sliderPorcentajeUso.value,
+            "latitud": parseFloat(txtLatitud.text),
+            "longitud": parseFloat(txtLongitud.text)
+        }
+        
+        // Enviar al modelo para actualizar (necesitarás agregar este método en agricultores_parcelas_model.py)
+        var exito = agricultoresparcelas.actualizar_parcela(nuevaParcela.parcelaId, JSON.stringify(parcela_actualizada))
+        
+        if (exito) {
+            showMessage("Parcela actualizada correctamente")
+            dialogNuevaParcela.close()
+        } else {
+            mensajeValidacionParcela.text = "Error al actualizar la parcela"
+        }
+    }
 }

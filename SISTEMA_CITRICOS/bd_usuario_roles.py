@@ -379,24 +379,3 @@ class GestorUsuariosRoles:
             logger.error(f"Error al agregar rol: {str(e)}")
             return False, None
 
-# Ejemplo de uso
-"""""
-if __name__ == "__main__":
-    # Prueba la conexión y consulta
-    try:
-        gestor = GestorUsuariosRoles()
-        usuarios = gestor.obtener_usuarios()
-        print(f"Total de usuarios: {len(usuarios)}")
-        for usuario in usuarios:
-            print(f"ID: {usuario['id_usuario']}, Nombre: {usuario['nombre_completo']}, "
-                  f"Usuario: {usuario['usuario']}, Rol: {usuario['rol']}, "
-                  f"Activo: {'Sí' if usuario['activo'] else 'No'}")
-            
-        roles = gestor.obtener_roles()
-        print(f"\nTotal de roles: {len(roles)}")
-        for rol in roles:
-            print(f"ID: {rol['id_rol']}, Nombre: {rol['nombre']}, "
-                  f"Activo: {'Sí' if rol['activo'] else 'No'}")
-    except Exception as e:
-        print(f"Error al ejecutar el ejemplo: {str(e)}")
-"""

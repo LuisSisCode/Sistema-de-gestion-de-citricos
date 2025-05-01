@@ -7,6 +7,10 @@ Rectangle {
     anchors.fill: parent
     color: "#F8F9FA"
 
+    property var mezcla: null
+    property var detalles: []
+    property var tratamiento: null
+
     property var nuevoProducto: {
         "id_producto": "",
         "id_categoria": "",
@@ -48,6 +52,22 @@ Rectangle {
         "area": 0,
         "mezcla": "",
         "costo": 0
+    }
+
+    // Conexión con el modelo de Python
+    Component.onCompleted: {
+        actualizarDatos()
+    }
+
+    function actualizarDatos() {
+        if ( typeof agroquimicosModel !== 'undefined' && agroquimicosModel) {
+            agroquimicosModel.cargar_productos()
+            agroquimicosModel.cargar_categorias()
+            agroquimicosModel.cargar_mezclas()
+            agroquimicosModel.cargar_tratamientos()
+            agroquimicosModel.cargar_tipos_plagas()
+            agroquimicosModel.cargar_ciclos_activos()
+        }
     }
 
     // Título de la página
@@ -191,15 +211,17 @@ Rectangle {
                             onClicked: {
                                 // Inicializa los valores para el nuevo producto
                                 nuevoProducto = {
-                                    "productId": "",
-                                    "nombreComercial": "",
-                                    "categoria": "",
-                                    "ingredienteActivo": "",
+                                    "id_producto": "",
+                                    "id_categoria": "",
+                                    "nombre_comercial": "",
+                                    "formulacion": "Líquido",
+                                    "unidad": "L",
+                                    "precio": 0,
                                     "stock": 0,
-                                    "unidad": "Litro",
-                                    "precioUnitario": 0,
-                                    "periodoCarencia": 0,
-                                    "stockMinimo": 0
+                                    "registro": "PENDIENTE",
+                                    "notas": "",
+                                    "fecha_registro": obtenerFechaActual(),
+                                    "activo": true
                                 }
                                 
                                 // Mostrar diálogo de nuevo producto
@@ -215,12 +237,17 @@ Rectangle {
                                 color: "#b2c4c9"
                                 radius: height / 2
                             }
+                            onTextChanged: buscarProductos(text)
                         }
                         
                         ComboBox {
                             Layout.preferredWidth: 200
-                            model: ["Todas las categorías", "Herbicida", "Insecticida", "Fungicida", "Fertilizante"]
+                            model: obtenerModeloCategorias()
                             implicitHeight: 36
+                            onCurrentIndexChanged: {
+                                // Aquí puedes agregar la lógica de filtrado
+                                filtrarProductosPorCategoria(currentIndex)
+                            }
                         }
                         
                         Item { Layout.fillWidth: true }
@@ -233,12 +260,12 @@ Rectangle {
                                 color: "#4CAF50"
                                 radius: height / 2
                             }
-                            onClicked: showMessage("Función para actualizar stock no implementada")
+                            onClicked: dialogActualizarStock.open()
                         }
                     }
                 }
                 
-                // Panel de estadísticas de inventario (simplificado para cuando no hay datos)
+                // Panel de estadísticas de inventario
                 Rectangle {
                     Layout.fillWidth: true
                     height: 100
@@ -263,7 +290,7 @@ Rectangle {
                             }
                             
                             Text {
-                                text: productosModel.count.toString()
+                                text: agroquimicosModel.productos ? agroquimicosModel.productos.length.toString() : "0"
                                 font.pixelSize: 22
                                 font.bold: true
                             }
@@ -281,7 +308,7 @@ Rectangle {
                             }
                             
                             Text {
-                                text: "Bs. 0"
+                                text: calcularValorInventario()
                                 font.pixelSize: 22
                                 font.bold: true
                             }
@@ -299,7 +326,7 @@ Rectangle {
                             }
                             
                             Text {
-                                text: "0"
+                                text: calcularStockCritico()
                                 font.pixelSize: 22
                                 font.bold: true
                                 color: "#F44336"
@@ -318,7 +345,7 @@ Rectangle {
                             }
                             
                             Text {
-                                text: productosModel.count > 0 ? "N/A" : "-"
+                                text: calcularCategoriaMasUsada()
                                 font.pixelSize: 22
                                 font.bold: true
                             }
@@ -339,7 +366,7 @@ Rectangle {
                         anchors.fill: parent
                         anchors.margins: 1
                         clip: true
-                        model: productosModel
+                        model: agroquimicosModel.productos
                         headerPositioning: ListView.OverlayHeader
                         
                         // Cabecera de la tabla
@@ -453,7 +480,7 @@ Rectangle {
                                     
                                     Text {
                                         anchors.centerIn: parent
-                                        text: id_producto // Cambiado de productId a id_producto
+                                        text: modelData.id_producto
                                         verticalAlignment: Text.AlignVCenter
                                         horizontalAlignment: Text.AlignHCenter
                                     }
@@ -469,13 +496,13 @@ Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
                                         anchors.left: parent.left
                                         anchors.leftMargin: 10
-                                        text: nombre_comercial // Cambiado de nombreComercial a nombre_comercial
+                                        text: modelData.nombre_comercial
                                         elide: Text.ElideRight
                                         width: parent.width - 20
                                     }
                                 }
                                 
-                                // Categoría - Aquí necesitarás obtener el nombre de la categoría, no solo el ID
+                                // Categoría
                                 Rectangle {
                                     width: parent.width * 0.10
                                     height: parent.height
@@ -485,13 +512,13 @@ Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
                                         anchors.left: parent.left
                                         anchors.leftMargin: 10
-                                        text: obtenerNombreCategoria(id_categoria) // Función auxiliar que deberías implementar
+                                        text: modelData.categoria
                                         elide: Text.ElideRight
                                         width: parent.width - 20
                                     }
                                 }
                                 
-                                // Formulación (en lugar de Ingrediente Activo)
+                                // Formulación
                                 Rectangle {
                                     width: parent.width * 0.10
                                     height: parent.height
@@ -501,7 +528,7 @@ Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
                                         anchors.left: parent.left
                                         anchors.leftMargin: 10
-                                        text: formulacion // Nuevo campo de la tabla
+                                        text: modelData.formulacion
                                         elide: Text.ElideRight
                                         width: parent.width - 20
                                     }
@@ -517,11 +544,9 @@ Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
                                         anchors.left: parent.left
                                         anchors.leftMargin: 10
-                                        text: stock + " " + unidad
-                                        // Si deseas mantener el color según nivel de stock:
-                                        // Asumiendo que tienes un campo para stockMinimo o lo calculas
-                                        color: stock < (stockMinimo || 0) ? "#F44336" : "#424242"
-                                        font.bold: stock < (stockMinimo || 0)
+                                        text: modelData.stock + " " + modelData.unidad
+                                        color: modelData.stock < 10 ? "#F44336" : "#424242"
+                                        font.bold: modelData.stock < 10
                                         elide: Text.ElideRight
                                         width: parent.width - 20
                                     }
@@ -537,13 +562,13 @@ Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
                                         anchors.left: parent.left
                                         anchors.leftMargin: 10
-                                        text: "Bs. " + precio // Cambiado de precioUnitario a precio
+                                        text: "Bs. " + modelData.precio
                                         elide: Text.ElideRight
                                         width: parent.width - 20
                                     }
                                 }
                                 
-                                // Registro (en lugar de Período Carencia)
+                                // Registro
                                 Rectangle {
                                     width: parent.width * 0.15
                                     height: parent.height
@@ -553,7 +578,7 @@ Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
                                         anchors.left: parent.left
                                         anchors.leftMargin: 10
-                                        text: registro // Cambiado a campo de registro
+                                        text: modelData.registro
                                         elide: Text.ElideRight
                                         width: parent.width - 20
                                     }
@@ -569,7 +594,7 @@ Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
                                         anchors.left: parent.left
                                         anchors.leftMargin: 10
-                                        text: notas // Nuevo campo para notas
+                                        text: modelData.notas || ""
                                         elide: Text.ElideRight
                                         width: parent.width - 20
                                     }
@@ -593,8 +618,11 @@ Rectangle {
                                             ToolTip.visible: hovered
                                             ToolTip.text: "Agregar Stock"
                                             onClicked: {
-                                                // Aquí podrías abrir un diálogo para agregar stock
-                                                showMessage("Función para agregar stock no implementada")
+                                                dialogAgregarStock.productoId = modelData.id_producto
+                                                dialogAgregarStock.nombreProducto = modelData.nombre_comercial
+                                                dialogAgregarStock.unidadProducto = modelData.unidad
+                                                dialogAgregarStock.stockActual = modelData.stock
+                                                dialogAgregarStock.open()
                                             }
                                         }
                                         
@@ -606,8 +634,7 @@ Rectangle {
                                             ToolTip.visible: hovered
                                             ToolTip.text: "Editar"
                                             onClicked: {
-                                                // Aquí podrías abrir un diálogo para editar
-                                                showMessage("Función para editar producto no implementada")
+                                                editarProducto(modelData.id_producto)
                                             }
                                         }
                                         
@@ -619,9 +646,8 @@ Rectangle {
                                             ToolTip.visible: hovered
                                             ToolTip.text: "Eliminar"
                                             onClicked: {
-                                                // Mostrar diálogo de confirmación
-                                                confirmDeleteProductoDialog.productoId = id_producto
-                                                confirmDeleteProductoDialog.nombreProducto = nombre_comercial
+                                                confirmDeleteProductoDialog.productoId = modelData.id_producto
+                                                confirmDeleteProductoDialog.nombreProducto = modelData.nombre_comercial
                                                 confirmDeleteProductoDialog.open()
                                             }
                                         }
@@ -637,7 +663,7 @@ Rectangle {
                             color: "#757575"
                             font.pixelSize: 14
                             horizontalAlignment: Text.AlignHCenter
-                            visible: productosModel.count === 0
+                            visible: !agroquimicosModel.productos || agroquimicosModel.productos.length === 0
                         }
                     }
                 }
@@ -672,7 +698,6 @@ Rectangle {
                                 radius: height / 2
                             }
                             onClicked: {
-                                // Inicializa los valores para la nueva categoría
                                 nuevaCategoria = {
                                     "id_categoria": "",
                                     "nombre": "",
@@ -680,7 +705,6 @@ Rectangle {
                                     "activo": true
                                 }
                                 
-                                // Mostrar diálogo de nueva categoría
                                 dialogNuevaCategoria.open()
                             }
                         }
@@ -693,6 +717,7 @@ Rectangle {
                                 color: "#b2c4c9"
                                 radius: height / 2
                             }
+                            onTextChanged: buscarCategorias(text)
                         }
                         
                         Item { Layout.fillWidth: true }
@@ -712,10 +737,9 @@ Rectangle {
                         anchors.fill: parent
                         anchors.margins: 1
                         clip: true
-                        model: categoriasModel
+                        model: agroquimicosModel.categorias
                         headerPositioning: ListView.OverlayHeader
                         
-                        // Cabecera de la tabla
                         header: Rectangle {
                             width: parent.width
                             height: 40
@@ -772,13 +796,11 @@ Rectangle {
                             }
                         }
                         
-                        // Delegado para cada fila
                         delegate: Rectangle {
                             width: parent.width
                             height: 50
                             color: index % 2 === 0 ? "#FFFFFF" : "#F9F9F9"
                             
-                            // Usamos Row con Rectangles para cada columna
                             Row {
                                 anchors.fill: parent
                                 spacing: 0
@@ -791,7 +813,7 @@ Rectangle {
                                     
                                     Text {
                                         anchors.centerIn: parent
-                                        text: id_categoria
+                                        text: modelData.id_categoria
                                         verticalAlignment: Text.AlignVCenter
                                         horizontalAlignment: Text.AlignHCenter
                                     }
@@ -807,7 +829,7 @@ Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
                                         anchors.left: parent.left
                                         anchors.leftMargin: 10
-                                        text: nombre
+                                        text: modelData.nombre
                                         font.bold: true
                                         elide: Text.ElideRight
                                         width: parent.width - 20
@@ -824,7 +846,7 @@ Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
                                         anchors.left: parent.left
                                         anchors.leftMargin: 10
-                                        text: descripcion
+                                        text: modelData.descripcion || ""
                                         elide: Text.ElideRight
                                         width: parent.width - 20
                                     }
@@ -840,8 +862,8 @@ Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
                                         anchors.left: parent.left
                                         anchors.leftMargin: 10
-                                        text: activo ? "Activo" : "Inactivo"
-                                        color: activo ? "#4CAF50" : "#F44336"
+                                        text: modelData.activo ? "Activo" : "Inactivo"
+                                        color: modelData.activo ? "#4CAF50" : "#F44336"
                                         font.bold: true
                                     }
                                 }
@@ -864,8 +886,7 @@ Rectangle {
                                             ToolTip.visible: hovered
                                             ToolTip.text: "Editar"
                                             onClicked: {
-                                                // Aquí podrías abrir un diálogo para editar la categoría
-                                                editarCategoria(id_categoria);
+                                                editarCategoria(modelData.id_categoria)
                                             }
                                         }
                                         
@@ -877,22 +898,21 @@ Rectangle {
                                             ToolTip.visible: hovered
                                             ToolTip.text: "Eliminar"
                                             onClicked: {
-                                                // Mostrar diálogo de confirmación
-                                                confirmDeleteCategoriaDialog.categoriaId = id_categoria;
-                                                confirmDeleteCategoriaDialog.nombreCategoria = nombre;
-                                                confirmDeleteCategoriaDialog.open();
+                                                confirmDeleteCategoriaDialog.categoriaId = modelData.id_categoria
+                                                confirmDeleteCategoriaDialog.nombreCategoria = modelData.nombre
+                                                confirmDeleteCategoriaDialog.open()
                                             }
                                         }
                                         
                                         Button {
                                             width: 36
                                             height: 36
-                                            icon.source: activo ? "Image/Image_UI_interfaz/Inconos/check.svg" : "Image/Image_UI_interfaz/Inconos/close.svg"
+                                            icon.source: modelData.activo ? "Image/Image_UI_interfaz/Inconos/comenta-alt-check.svg" : "Image/Image_UI_interfaz/Inconos/marca-x-rectangular.svg"
                                             flat: true
                                             ToolTip.visible: hovered
-                                            ToolTip.text: activo ? "Desactivar" : "Activar"
+                                            ToolTip.text: modelData.activo ? "Desactivar" : "Activar"
                                             onClicked: {
-                                                cambiarEstadoCategoria(id_categoria, !activo);
+                                                cambiarEstadoCategoria(modelData.id_categoria, !modelData.activo)
                                             }
                                         }
                                     }
@@ -907,122 +927,10 @@ Rectangle {
                             color: "#757575"
                             font.pixelSize: 14
                             horizontalAlignment: Text.AlignHCenter
-                            visible: categoriasModel.count === 0
+                            visible: !agroquimicosModel.categorias || agroquimicosModel.categorias.length === 0
                         }
                     }
                 }
-            }
-            
-            // Función para editar categoría
-            function editarCategoria(categoriaId) {
-                // Buscar la categoría en el modelo
-                for (let i = 0; i < categoriasModel.count; i++) {
-                    if (categoriasModel.get(i).id_categoria === categoriaId) {
-                        // Cargar datos en el objeto nuevaCategoria para edición
-                        nuevaCategoria = {
-                            "id_categoria": categoriasModel.get(i).id_categoria,
-                            "nombre": categoriasModel.get(i).nombre,
-                            "descripcion": categoriasModel.get(i).descripcion,
-                            "activo": categoriasModel.get(i).activo
-                        };
-                        
-                        // Abrir diálogo en modo edición
-                        dialogNuevaCategoria.title = "Editar Categoría";
-                        dialogNuevaCategoria.modoEdicion = true;
-                        dialogNuevaCategoria.open();
-                        break;
-                    }
-                }
-            }
-            
-            // Función para cambiar el estado de una categoría
-            function cambiarEstadoCategoria(categoriaId, nuevoEstado) {
-                // Buscar la categoría en el modelo
-                for (let i = 0; i < categoriasModel.count; i++) {
-                    if (categoriasModel.get(i).id_categoria === categoriaId) {
-                        // En una aplicación real, aquí harías una actualización en la base de datos
-                        
-                        // Por ahora, solo actualizamos el modelo local
-                        categoriasModel.setProperty(i, "activo", nuevoEstado);
-                        
-                        showMessage("Estado de categoría actualizado");
-                        break;
-                    }
-                }
-            }
-        }
-
-        // DIÁLOGO DE CONFIRMACIÓN PARA ELIMINAR CATEGORÍA
-        Dialog {
-            id: confirmDeleteCategoriaDialog
-            title: "Confirmar eliminación"
-            modal: true
-            
-            property int categoriaId: -1
-            property string nombreCategoria: ""
-            
-            contentItem: Item {
-                implicitWidth: 400
-                implicitHeight: 100
-                
-                Column {
-                    anchors.fill: parent
-                    anchors.margins: 20
-                    spacing: 20
-                    
-                    Text {
-                        width: parent.width
-                        text: "¿Está seguro que desea eliminar la categoría '" + confirmDeleteCategoriaDialog.nombreCategoria + "'?"
-                        font.pixelSize: 14
-                        wrapMode: Text.WordWrap
-                    }
-                    
-                    Text {
-                        width: parent.width
-                        text: "Esta acción no se puede deshacer."
-                        font.pixelSize: 14
-                        font.italic: true
-                        color: "#F44336"
-                        wrapMode: Text.WordWrap
-                    }
-                }
-            }
-            
-            footer: DialogButtonBox {
-                Button {
-                    text: "Cancelar"
-                    DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
-                }
-                
-                Button {
-                    text: "Eliminar"
-                    DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
-                    background: Rectangle {
-                        color: "#F44336"
-                        radius: 5
-                    }
-                    contentItem: Text {
-                        text: parent.text
-                        color: "white"
-                        font.bold: true
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                }
-            }
-            
-            onAccepted: {
-                // En una aplicación real, aquí harías una eliminación en la base de datos
-                
-                // Eliminar del modelo local
-                for (let i = 0; i < categoriasModel.count; i++) {
-                    if (categoriasModel.get(i).id_categoria === categoriaId) {
-                        categoriasModel.remove(i);
-                        break;
-                    }
-                }
-                
-                showMessage("Categoría eliminada correctamente");
             }
         }
 
@@ -1054,7 +962,6 @@ Rectangle {
                                 radius: height / 2
                             }
                             onClicked: {
-                                // Inicializa los valores para la nueva mezcla
                                 nuevaMezcla = {
                                     "mezclaId": "",
                                     "nombre": "",
@@ -1064,7 +971,6 @@ Rectangle {
                                     "componentes": []
                                 }
                                 
-                                // Mostrar diálogo de nueva mezcla
                                 dialogNuevaMezcla.open()
                             }
                         }
@@ -1077,19 +983,24 @@ Rectangle {
                                 color: "#b2c4c9"
                                 radius: height / 2
                             }
+                            onTextChanged: buscarMezclas(text)
                         }
                         
                         ComboBox {
+                            id: cmbFiltroObjetivos
                             Layout.preferredWidth: 200
-                            model: ["Todos los objetivos", "Control de plagas", "Control de enfermedades", "Fertilización"]
+                            model: obtenerModeloObjetivos()
                             implicitHeight: 36
+                            onCurrentIndexChanged: {
+                                filtrarMezclasPorObjetivo(currentIndex)
+                            }
                         }
                         
                         Item { Layout.fillWidth: true }
                     }
                 }
                 
-                // Grid de tarjetas de mezclas (vacío)
+                // Grid de tarjetas de mezclas
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
@@ -1098,22 +1009,13 @@ Rectangle {
                     border.color: "#EEEEEE"
                     
                     GridView {
+                        id: gridMezclas
                         anchors.fill: parent
                         anchors.margins: 10
                         clip: true
-                        model: mezclasModel
+                        model: agroquimicosModel.mezclas
                         cellWidth: width / 3
                         cellHeight: 220
-                        
-                        // Mensaje cuando no hay datos
-                        Text {
-                            anchors.centerIn: parent
-                            text: "No hay mezclas registradas.\nHaga clic en 'Nueva Mezcla' para agregar una."
-                            color: "#757575"
-                            font.pixelSize: 14
-                            horizontalAlignment: Text.AlignHCenter
-                            visible: mezclasModel.count === 0
-                        }
                         
                         delegate: Rectangle {
                             width: GridView.view.cellWidth - 20
@@ -1129,7 +1031,7 @@ Rectangle {
                                 
                                 // Título de la mezcla
                                 Text {
-                                    text: nombre
+                                    text: modelData.nombre
                                     font.pixelSize: 16
                                     font.bold: true
                                     Layout.fillWidth: true
@@ -1147,7 +1049,7 @@ Rectangle {
                                     }
                                     
                                     Text {
-                                        text: objetivo
+                                        text: modelData.objetivo || ""
                                         font.pixelSize: 12
                                     }
                                 }
@@ -1164,7 +1066,7 @@ Rectangle {
                                     }
                                     
                                     Text {
-                                        text: cantidadAgua + " litros"
+                                        text: modelData.cantidad_agua + " litros"
                                         font.pixelSize: 12
                                     }
                                 }
@@ -1180,7 +1082,7 @@ Rectangle {
                                     }
                                     
                                     Text {
-                                        text: areaAplicacion + " hectáreas"
+                                        text: modelData.area_aplicacion + " hectáreas"
                                         font.pixelSize: 12
                                     }
                                 }
@@ -1192,26 +1094,11 @@ Rectangle {
                                     color: "#EEEEEE"
                                 }
                                 
-                                // Componentes de la mezcla
+                                // Componentes
                                 Text {
                                     text: "Componentes:"
                                     font.pixelSize: 12
                                     font.bold: true
-                                }
-                                
-                                ListView {
-                                    Layout.fillWidth: true
-                                    Layout.preferredHeight: 80
-                                    model: componentes
-                                    clip: true
-                                    interactive: true
-                                    
-                                    delegate: Text {
-                                        width: parent.width
-                                        text: "• " + nombre + ": " + cantidad + " " + unidad
-                                        font.pixelSize: 11
-                                        color: "#424242"
-                                    }
                                 }
                                 
                                 // Botones de acción
@@ -1220,12 +1107,12 @@ Rectangle {
                                     spacing: 10
                                     
                                     Button {
-                                        text: "Ver"
+                                        text: "Ver Detalles"
                                         icon.source: "Image/Image_UI_interfaz/Inconos/ojos.svg"
                                         Layout.fillWidth: true
                                         implicitHeight: 30
                                         font.pixelSize: 12
-                                        onClicked: showMessage("Función para ver detalles de mezcla no implementada")
+                                        onClicked: verDetallesMezcla(modelData.id_mezcla)
                                     }
                                     
                                     Button {
@@ -1234,10 +1121,20 @@ Rectangle {
                                         Layout.fillWidth: true
                                         implicitHeight: 30
                                         font.pixelSize: 12
-                                        onClicked: showMessage("Función para editar mezcla no implementada")
+                                        onClicked: editarMezcla(modelData.id_mezcla)
                                     }
                                 }
                             }
+                        }
+                        
+                        // Mensaje cuando no hay datos
+                        Text {
+                            anchors.centerIn: parent
+                            text: "No hay mezclas registradas.\nHaga clic en 'Nueva Mezcla' para agregar una."
+                            color: "#757575"
+                            font.pixelSize: 14
+                            horizontalAlignment: Text.AlignHCenter
+                            visible: !agroquimicosModel.mezclas || agroquimicosModel.mezclas.length === 0
                         }
                     }
                 }
@@ -1272,7 +1169,6 @@ Rectangle {
                                 radius: height / 2
                             }
                             onClicked: {
-                                // Inicializa los valores para el nuevo tratamiento
                                 nuevoTratamiento = {
                                     "tratamientoId": "",
                                     "fecha": obtenerFechaActual(),
@@ -1283,7 +1179,6 @@ Rectangle {
                                     "costo": 0
                                 }
                                 
-                                // Mostrar diálogo de nuevo tratamiento
                                 dialogNuevoTratamiento.open()
                             }
                         }
@@ -1296,20 +1191,29 @@ Rectangle {
                                 color: "#b2c4c9"
                                 radius: height / 2
                             }
+                            onTextChanged: buscarTratamientos(text)
                         }
                         
                         ComboBox {
+                            id: cmbFiltroCiclos
                             Layout.preferredWidth: 200
-                            model: ["Todos los ciclos"]
+                            model: obtenerModeloCiclos()
                             implicitHeight: 36
+                            onCurrentIndexChanged: {
+                                filtrarTratamientos()
+                            }
                         }
                         
                         Item { Layout.fillWidth: true }
                         
                         ComboBox {
+                            id: cmbFiltroPeriodo
                             Layout.preferredWidth: 150
                             model: ["Último mes", "Últimos 3 meses", "Último año", "Todos"]
                             implicitHeight: 36
+                            onCurrentIndexChanged: {
+                                filtrarTratamientos()
+                            }
                         }
                     }
                 }
@@ -1327,7 +1231,7 @@ Rectangle {
                         anchors.fill: parent
                         anchors.margins: 1
                         clip: true
-                        model: tratamientosModel
+                        model: agroquimicosModel.tratamientos
                         headerPositioning: ListView.OverlayHeader
                         
                         // Cabecera de la tabla
@@ -1414,13 +1318,11 @@ Rectangle {
                             }
                         }
                         
-                        // Delegado para cada fila (CORREGIDO)
                         delegate: Rectangle {
                             width: parent.width
                             height: 50
                             color: index % 2 === 0 ? "#FFFFFF" : "#F9F9F9"
                             
-                            // Usamos Row con Rectangles para cada columna
                             Row {
                                 anchors.fill: parent
                                 spacing: 0
@@ -1433,7 +1335,7 @@ Rectangle {
                                     
                                     Text {
                                         anchors.centerIn: parent
-                                        text: tratamientoId
+                                        text: modelData.id_tratamiento
                                         verticalAlignment: Text.AlignVCenter
                                         horizontalAlignment: Text.AlignHCenter
                                     }
@@ -1449,7 +1351,7 @@ Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
                                         anchors.left: parent.left
                                         anchors.leftMargin: 10
-                                        text: fecha
+                                        text: modelData.fecha_aplicacion
                                         elide: Text.ElideRight
                                         width: parent.width - 20
                                     }
@@ -1465,7 +1367,7 @@ Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
                                         anchors.left: parent.left
                                         anchors.leftMargin: 10
-                                        text: ciclo
+                                        text: modelData.variedad + " - " + modelData.parcela
                                         elide: Text.ElideRight
                                         width: parent.width - 20
                                     }
@@ -1481,7 +1383,7 @@ Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
                                         anchors.left: parent.left
                                         anchors.leftMargin: 10
-                                        text: tipoPlaga
+                                        text: modelData.tipo_plaga || ""
                                         elide: Text.ElideRight
                                         width: parent.width - 20
                                     }
@@ -1497,7 +1399,7 @@ Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
                                         anchors.left: parent.left
                                         anchors.leftMargin: 10
-                                        text: area
+                                        text: modelData.area_tratada
                                         elide: Text.ElideRight
                                         width: parent.width - 20
                                     }
@@ -1513,7 +1415,7 @@ Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
                                         anchors.left: parent.left
                                         anchors.leftMargin: 10
-                                        text: mezcla
+                                        text: modelData.mezcla || ""
                                         elide: Text.ElideRight
                                         width: parent.width - 20
                                     }
@@ -1529,7 +1431,7 @@ Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
                                         anchors.left: parent.left
                                         anchors.leftMargin: 10
-                                        text: "Bs. " + costo
+                                        text: "Bs. " + modelData.costo_total
                                         elide: Text.ElideRight
                                         width: parent.width - 20
                                     }
@@ -1552,7 +1454,7 @@ Rectangle {
                                             flat: true
                                             ToolTip.visible: hovered
                                             ToolTip.text: "Ver Detalles"
-                                            onClicked: showMessage("Función para ver detalles no implementada")
+                                            onClicked: verDetallesTratamiento(modelData.id_tratamiento)
                                         }
                                         
                                         Button {
@@ -1562,7 +1464,7 @@ Rectangle {
                                             flat: true
                                             ToolTip.visible: hovered
                                             ToolTip.text: "Editar"
-                                            onClicked: showMessage("Función para editar tratamiento no implementada")
+                                            onClicked: editarTratamiento(modelData.id_tratamiento)
                                         }
                                         
                                         Button {
@@ -1573,9 +1475,8 @@ Rectangle {
                                             ToolTip.visible: hovered
                                             ToolTip.text: "Eliminar"
                                             onClicked: {
-                                                // Mostrar diálogo de confirmación
-                                                confirmDeleteTratamientoDialog.tratamientoId = tratamientoId
-                                                confirmDeleteTratamientoDialog.nombreTratamiento = ciclo
+                                                confirmDeleteTratamientoDialog.tratamientoId = modelData.id_tratamiento
+                                                confirmDeleteTratamientoDialog.nombreTratamiento = modelData.variedad + " - " + modelData.fecha_aplicacion
                                                 confirmDeleteTratamientoDialog.open()
                                             }
                                         }
@@ -1591,7 +1492,7 @@ Rectangle {
                             color: "#757575"
                             font.pixelSize: 14
                             horizontalAlignment: Text.AlignHCenter
-                            visible: tratamientosModel.count === 0
+                            visible: !agroquimicosModel.tratamientos || agroquimicosModel.tratamientos.length === 0
                         }
                     }
                 }
@@ -1599,9 +1500,11 @@ Rectangle {
         }
     }
     
-    // DIÁLOGO DE NUEVO PRODUCTO
+    // DIÁLOGOS DE LA APLICACIÓN
+// DIÁLOGO DE NUEVO PRODUCTO
     Dialog {
         id: dialogNuevoProducto
+        property bool modoEdicion: false
         title: "Nuevo Producto Fitosanitario"
         modal: true
         width: 500
@@ -1609,7 +1512,6 @@ Rectangle {
         x: (parent.width - width) / 2
         y: (parent.height - height) / 2
         
-        // Contenido del diálogo
         contentItem: Rectangle {
             color: "white"
             
@@ -1618,7 +1520,6 @@ Rectangle {
                 anchors.margins: 20
                 spacing: 15
                 
-                // Título
                 Text {
                     text: "Agregar Nuevo Producto"
                     font.pixelSize: 18
@@ -1627,14 +1528,12 @@ Rectangle {
                     horizontalAlignment: Text.AlignHCenter
                 }
                 
-                // Formulario
                 GridLayout {
                     width: parent.width
                     columns: 2
                     columnSpacing: 10
                     rowSpacing: 15
                     
-                    // Nombre Comercial
                     Text {
                         text: "Nombre Comercial:"
                         Layout.alignment: Qt.AlignRight
@@ -1647,7 +1546,6 @@ Rectangle {
                         onTextChanged: nuevoProducto.nombre_comercial = text
                     }
                     
-                    // Categoría
                     Text {
                         text: "Categoría:"
                         Layout.alignment: Qt.AlignRight
@@ -1656,17 +1554,16 @@ Rectangle {
                     ComboBox {
                         id: cmbCategoria
                         Layout.fillWidth: true
-                        model: categoriasModel
+                        model: agroquimicosModel.categorias
                         textRole: "nombre"
                         valueRole: "id_categoria"
                         onCurrentIndexChanged: {
-                            if (currentIndex >= 0) {
-                                nuevoProducto.id_categoria = currentValue
+                            if (currentIndex >= 0 && agroquimicosModel.categorias[currentIndex]) {
+                                nuevoProducto.id_categoria = agroquimicosModel.categorias[currentIndex].id_categoria
                             }
                         }
                     }
                     
-                    // Formulación (en lugar de Ingrediente Activo)
                     Text {
                         text: "Formulación:"
                         Layout.alignment: Qt.AlignRight
@@ -1679,7 +1576,6 @@ Rectangle {
                         onCurrentTextChanged: nuevoProducto.formulacion = currentText
                     }
                     
-                    // Stock Inicial
                     Text {
                         text: "Stock Inicial:"
                         Layout.alignment: Qt.AlignRight
@@ -1705,7 +1601,6 @@ Rectangle {
                         }
                     }
                     
-                    // Precio Unitario
                     Text {
                         text: "Precio Unitario (Bs):"
                         Layout.alignment: Qt.AlignRight
@@ -1719,7 +1614,6 @@ Rectangle {
                         onTextChanged: nuevoProducto.precio = parseFloat(text) || 0
                     }
                     
-                    // Registro 
                     Text {
                         text: "N° Registro:"
                         Layout.alignment: Qt.AlignRight
@@ -1732,7 +1626,6 @@ Rectangle {
                         onTextChanged: nuevoProducto.registro = text || "PENDIENTE"
                     }
                     
-                    // Fecha de Registro
                     Text {
                         text: "Fecha de Registro:"
                         Layout.alignment: Qt.AlignRight
@@ -1747,7 +1640,6 @@ Rectangle {
                         onTextChanged: nuevoProducto.fecha_registro = text
                     }
                     
-                    // Estado
                     Text {
                         text: "Estado:"
                         Layout.alignment: Qt.AlignRight
@@ -1760,7 +1652,6 @@ Rectangle {
                         onCheckedChanged: nuevoProducto.activo = checked
                     }
                     
-                    // Notas (en lugar de Observaciones)
                     Text {
                         text: "Notas:"
                         Layout.alignment: Qt.AlignRight
@@ -1776,13 +1667,11 @@ Rectangle {
                     }
                 }
                 
-                // Espacio adicional
                 Item {
                     width: parent.width
                     height: 10
                 }
                 
-                // Mensaje de validación
                 Text {
                     id: mensajeValidacionProducto
                     width: parent.width
@@ -1816,19 +1705,22 @@ Rectangle {
                     verticalAlignment: Text.AlignVCenter
                 }
                 onClicked: {
-                    // Validación de campos obligatorios
-                    if (txtNombreComercial.text === "" || cmbCategoria.currentIndex < 0) {
-                        mensajeValidacionProducto.text = "Por favor, complete el nombre comercial y seleccione una categoría";
-                        return;
+                    if (dialogNuevoProducto.modoEdicion){
+                        actualizarProducto()
+                    }else{
+                        if (txtNombreComercial.text === "" || cmbCategoria.currentIndex < 0) {
+                            mensajeValidacionProducto.text = "Por favor, complete el nombre comercial y seleccione una categoría";
+                            return;
+                        }
+                        guardarNuevoProducto();
                     }
-                    
-                    guardarNuevoProducto();
                 }
             }
         }
         
-        // Resetea el formulario al cerrar
         onClosed: {
+            dialogNuevoProducto.modoEdicion = false
+            dialogNuevoProducto.title = "Nuevo Producto"
             txtNombreComercial.text = ""
             txtStock.text = ""
             txtPrecio.text = ""
@@ -1839,9 +1731,10 @@ Rectangle {
             cmbUnidad.currentIndex = 0
             chkActivo.checked = true
             mensajeValidacionProducto.text = ""
+
         }
     }
-    
+    //////// falta conectar con con insertar bd y sus funciones
     // DIÁLOGO DE NUEVA CATEGORÍA
     Dialog {
         id: dialogNuevaCategoria
@@ -1989,18 +1882,19 @@ Rectangle {
             title = "Nueva Categoría"
         }
     }
-        
-    // DIÁLOGO DE NUEVA MEZCLA
+// DIÁLOGO DE NUEVA MEZCLA
     Dialog {
         id: dialogNuevaMezcla
         title: "Nueva Mezcla"
         modal: true
         width: 550
         height: 700
+        //
+        property bool modoEdicion : false
+        //
         x: (parent.width - width) / 2
         y: (parent.height - height) / 2
         
-        // Contenido del diálogo
         contentItem: Rectangle {
             color: "white"
             
@@ -2009,7 +1903,6 @@ Rectangle {
                 anchors.margins: 20
                 spacing: 15
                 
-                // Título
                 Text {
                     text: "Agregar Nueva Mezcla"
                     font.pixelSize: 18
@@ -2018,14 +1911,12 @@ Rectangle {
                     horizontalAlignment: Text.AlignHCenter
                 }
                 
-                // Formulario
                 GridLayout {
                     width: parent.width
                     columns: 2
                     columnSpacing: 10
                     rowSpacing: 15
                     
-                    // Nombre
                     Text {
                         text: "Nombre de la mezcla:"
                         Layout.alignment: Qt.AlignRight
@@ -2038,7 +1929,6 @@ Rectangle {
                         onTextChanged: nuevaMezcla.nombre = text
                     }
                     
-                    // Objetivo
                     Text {
                         text: "Objetivo:"
                         Layout.alignment: Qt.AlignRight
@@ -2051,7 +1941,6 @@ Rectangle {
                         onCurrentTextChanged: nuevaMezcla.objetivo = currentText
                     }
                     
-                    // Cantidad de agua
                     Text {
                         text: "Cantidad de agua (litros):"
                         Layout.alignment: Qt.AlignRight
@@ -2065,7 +1954,6 @@ Rectangle {
                         onTextChanged: nuevaMezcla.cantidadAgua = parseFloat(text) || 0
                     }
                     
-                    // Área de aplicación
                     Text {
                         text: "Área de aplicación (ha):"
                         Layout.alignment: Qt.AlignRight
@@ -2079,7 +1967,6 @@ Rectangle {
                         onTextChanged: nuevaMezcla.areaAplicacion = parseFloat(text) || 0
                     }
                     
-                    // Sección de componentes
                     Text {
                         text: "Componentes:"
                         Layout.alignment: Qt.AlignRight
@@ -2093,7 +1980,6 @@ Rectangle {
                     }
                 }
                 
-                // Aquí va la lista de componentes (productos) que forman la mezcla
                 Rectangle {
                     width: parent.width
                     height: 200
@@ -2105,7 +1991,6 @@ Rectangle {
                         anchors.margins: 10
                         spacing: 10
                         
-                        // Encabezado
                         RowLayout {
                             Layout.fillWidth: true
                             
@@ -2143,17 +2028,15 @@ Rectangle {
                                     verticalAlignment: Text.AlignVCenter
                                 }
                                 onClicked: {
-                                    // Aquí añadiríamos otra ventana o sección para agregar componentes
-                                    showMessage("Función para agregar componentes a la mezcla no implementada")
+                                    dialogAgregarComponenteMezcla.open()
                                 }
                             }
                         }
                         
-                        // Lista de componentes (vacía inicialmente)
                         ListView {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            model: ListModel {}
+                            model: componentesMezclaModel
                             clip: true
                             
                             delegate: RowLayout {
@@ -2161,18 +2044,18 @@ Rectangle {
                                 spacing: 10
                                 
                                 Text {
-                                    text: nombre
+                                    text: modelData.nombre_producto
                                     Layout.preferredWidth: 180
                                     elide: Text.ElideRight
                                 }
                                 
                                 Text {
-                                    text: cantidad
+                                    text: modelData.cantidad
                                     Layout.preferredWidth: 100
                                 }
                                 
                                 Text {
-                                    text: unidad
+                                    text: modelData.unidad_medida
                                     Layout.preferredWidth: 80
                                 }
                                 
@@ -2183,24 +2066,22 @@ Rectangle {
                                     flat: true
                                     implicitWidth: 30
                                     implicitHeight: 30
-                                    onClicked: model.remove(index)
+                                    onClicked: componentesMezclaModel.remove(index)
                                 }
                             }
                             
-                            // Mensaje cuando no hay datos
                             Text {
                                 anchors.centerIn: parent
                                 text: "No hay componentes añadidos a la mezcla."
                                 color: "#757575"
                                 font.pixelSize: 14
                                 horizontalAlignment: Text.AlignHCenter
-                                visible: parent.model.count === 0
+                                visible: componentesMezclaModel.count === 0
                             }
                         }
                     }
                 }
                 
-                // Observaciones
                 GridLayout {
                     width: parent.width
                     columns: 2
@@ -2221,7 +2102,6 @@ Rectangle {
                     }
                 }
                 
-                // Mensaje de validación
                 Text {
                     id: mensajeValidacionMezcla
                     width: parent.width
@@ -2255,18 +2135,16 @@ Rectangle {
                     verticalAlignment: Text.AlignVCenter
                 }
                 onClicked: {
-                    // Validación de campos obligatorios
                     if (txtNombreMezcla.text === "" || txtCantidadAgua.text === "" || txtAreaAplicacion.text === "") {
                         mensajeValidacionMezcla.text = "Por favor, complete todos los campos obligatorios";
                         return;
                     }
                     
-                    guardarNuevaMezcla();
+                    guardarNuevaMezcla()
                 }
             }
         }
         
-        // Resetea el formulario al cerrar
         onClosed: {
             txtNombreMezcla.text = ""
             cmbObjetivoMezcla.currentIndex = 0
@@ -2274,7 +2152,7 @@ Rectangle {
             txtAreaAplicacion.text = ""
             txtObservacionesMezcla.text = ""
             mensajeValidacionMezcla.text = ""
-            // También habría que resetear la lista de componentes
+            componentesMezclaModel.clear()
         }
     }
     
@@ -2285,10 +2163,12 @@ Rectangle {
         modal: true
         width: 500
         height: 600
+        //
+        property bool modoEdicion: false
+        //
         x: (parent.width - width) / 2
         y: (parent.height - height) / 2
         
-        // Contenido del diálogo
         contentItem: Rectangle {
             color: "white"
             
@@ -2297,7 +2177,6 @@ Rectangle {
                 anchors.margins: 20
                 spacing: 15
                 
-                // Título
                 Text {
                     text: "Agregar Nuevo Tratamiento"
                     font.pixelSize: 18
@@ -2306,14 +2185,12 @@ Rectangle {
                     horizontalAlignment: Text.AlignHCenter
                 }
                 
-                // Formulario
                 GridLayout {
                     width: parent.width
                     columns: 2
                     columnSpacing: 10
                     rowSpacing: 15
                     
-                    // Fecha
                     Text {
                         text: "Fecha:"
                         Layout.alignment: Qt.AlignRight
@@ -2327,20 +2204,24 @@ Rectangle {
                         onTextChanged: nuevoTratamiento.fecha = text
                     }
                     
-                    // Ciclo de cultivo
                     Text {
                         text: "Ciclo de cultivo:"
                         Layout.alignment: Qt.AlignRight
                     }
                     
-                    TextField {
-                        id: txtCiclo
-                        placeholderText: "Ingrese ciclo de cultivo"
+                    ComboBox {
+                        id: cmbCiclo
                         Layout.fillWidth: true
-                        onTextChanged: nuevoTratamiento.ciclo = text
+                        model: agroquimicosModel.ciclos_activos
+                        textRole: "descripcion"
+                        //valueRole: "id_ciclo"
+                        onCurrentIndexChanged: {
+                            if (currentIndex >= 0 && agroquimicosModel.ciclos_activos[currentIndex]) {
+                                nuevoTratamiento.ciclo = agroquimicosModel.ciclos_activos[currentIndex].id_ciclo
+                            }
+                        }
                     }
                     
-                    // Tipo de plaga/maleza
                     Text {
                         text: "Tipo de plaga/maleza:"
                         Layout.alignment: Qt.AlignRight
@@ -2349,11 +2230,16 @@ Rectangle {
                     ComboBox {
                         id: cmbTipoPlaga
                         Layout.fillWidth: true
-                        model: ["Insectos", "Hongos", "Malezas", "Bacterias", "Otro"]
-                        onCurrentTextChanged: nuevoTratamiento.tipoPlaga = currentText
+                        model: agroquimicosModel.tipos_plagas
+                        textRole: "nombre"
+                        //valueRole: "id_tipo"
+                        onCurrentIndexChanged: {
+                            if (currentIndex >= 0 && agroquimicosModel.tipos_plagas[currentIndex]) {
+                                nuevoTratamiento.tipoPlaga = agroquimicosModel.tipos_plagas[currentIndex].id_tipo
+                            }
+                        }
                     }
                     
-                    // Área
                     Text {
                         text: "Área (hectáreas):"
                         Layout.alignment: Qt.AlignRight
@@ -2367,7 +2253,6 @@ Rectangle {
                         onTextChanged: nuevoTratamiento.area = parseFloat(text) || 0
                     }
                     
-                    // Mezcla utilizada
                     Text {
                         text: "Mezcla utilizada:"
                         Layout.alignment: Qt.AlignRight
@@ -2376,11 +2261,16 @@ Rectangle {
                     ComboBox {
                         id: cmbMezcla
                         Layout.fillWidth: true
-                        model: obtenerMezclasModel()
-                        onCurrentTextChanged: nuevoTratamiento.mezcla = currentText
+                        model: agroquimicosModel.mezclas
+                        textRole: "nombre"
+                        valueRole: "id_mezcla"
+                        onCurrentIndexChanged: {
+                            if (currentIndex >= 0 && agroquimicosModel.mezclas[currentIndex]) {
+                                nuevoTratamiento.mezcla = agroquimicosModel.mezclas[currentIndex].id_mezcla
+                            }
+                        }
                     }
                     
-                    // Costo
                     Text {
                         text: "Costo (Bs):"
                         Layout.alignment: Qt.AlignRight
@@ -2394,7 +2284,6 @@ Rectangle {
                         onTextChanged: nuevoTratamiento.costo = parseFloat(text) || 0
                     }
                     
-                    // Observaciones
                     Text {
                         text: "Observaciones:"
                         Layout.alignment: Qt.AlignRight
@@ -2409,7 +2298,6 @@ Rectangle {
                     }
                 }
                 
-                // Mensaje de validación
                 Text {
                     id: mensajeValidacionTratamiento
                     width: parent.width
@@ -2443,26 +2331,24 @@ Rectangle {
                     verticalAlignment: Text.AlignVCenter
                 }
                 onClicked: {
-                    // Validación de campos obligatorios
-                    if (txtFechaTratamiento.text === "" || txtCiclo.text === "" || txtAreaTratamiento.text === "" || cmbMezcla.currentIndex < 0) {
-                        mensajeValidacionTratamiento.text = "Por favor, complete todos los campos obligatorios";
-                        return;
+                    if (txtFechaTratamiento.text === "" || cmbCiclo.currentIndex < 0 || txtAreaTratamiento.text === "" || cmbMezcla.currentIndex < 0) {
+                        mensajeValidacionTratamiento.text = "Por favor, complete todos los campos obligatorios"
+                        return
                     }
                     
-                    guardarNuevoTratamiento();
+                    guardarNuevoTratamiento()
                 }
             }
         }
         
-        // Resetea el formulario al cerrar
         onClosed: {
-            txtFechaTratamiento.text = obtenerFechaActual() // Fecha actual
-            txtCiclo.text = ""
+            txtFechaTratamiento.text = obtenerFechaActual()
+            cmbCiclo.currentIndex = 0
+            cmbTipoPlaga.currentIndex = 0
             txtAreaTratamiento.text = ""
+            cmbMezcla.currentIndex = 0
             txtCostoTratamiento.text = ""
             txtObservacionesTratamiento.text = ""
-            cmbTipoPlaga.currentIndex = 0
-            cmbMezcla.currentIndex = 0
             mensajeValidacionTratamiento.text = ""
         }
     }
@@ -2472,13 +2358,15 @@ Rectangle {
         id: confirmDeleteProductoDialog
         title: "Confirmar eliminación"
         modal: true
+        width: 400
+        height: 250
         
         property int productoId: -1
         property string nombreProducto: ""
         
         contentItem: Item {
-            implicitWidth: 400
-            implicitHeight: 100
+            //implicitWidth: 400
+            //implicitHeight: 100
             
             Column {
                 anchors.fill: parent
@@ -2526,29 +2414,23 @@ Rectangle {
             }
         }
         
-        onAccepted: {     
-            console.log("Eliminando producto con ID:", productoId);
-            
-            // Eliminar del modelo local
-            for (let i = 0; i < productosModel.count; i++) {
-                if (productosModel.get(i).productId === productoId) {
-                    productosModel.remove(i)
-                    break
-                }
+        onAccepted: {
+            if (agroquimicosModel.eliminar_producto(productoId)) {
+                showMessage("Producto eliminado correctamente")
+            } else {
+                showMessage("Error al eliminar el producto")
             }
-            
-            showMessage("Producto eliminado correctamente")
         }
     }
     
-    // DIÁLOGO DE CONFIRMACIÓN PARA ELIMINAR TRATAMIENTO
+    // DIÁLOGO DE CONFIRMACIÓN PARA ELIMINAR CATEGORÍA
     Dialog {
-        id: confirmDeleteTratamientoDialog
+        id: confirmDeleteCategoriaDialog
         title: "Confirmar eliminación"
         modal: true
         
-        property int tratamientoId: -1
-        property string nombreTratamiento: ""
+        property int categoriaId: -1
+        property string nombreCategoria: ""
         
         contentItem: Item {
             implicitWidth: 400
@@ -2561,7 +2443,7 @@ Rectangle {
                 
                 Text {
                     width: parent.width
-                    text: "¿Está seguro que desea eliminar el tratamiento para el ciclo '" + confirmDeleteTratamientoDialog.nombreTratamiento + "'?"
+                    text: "¿Está seguro que desea eliminar la categoría '" + confirmDeleteCategoriaDialog.nombreCategoria + "'?"
                     font.pixelSize: 14
                     wrapMode: Text.WordWrap
                 }
@@ -2601,152 +2483,1032 @@ Rectangle {
         }
         
         onAccepted: {
-            // Integración con SQL Server sería similar al diálogo anterior
+            // Implementar la eliminación de categoría
+            showMessage("Función de eliminación de categoría por implementar")
+        }
+    }
+    
+    // DIÁLOGO DE CONFIRMACIÓN PARA ELIMINAR TRATAMIENTO
+    Dialog {
+        id: confirmDeleteTratamientoDialog
+        title: "Confirmar eliminación"
+        modal: true
+        width:400
+        height: 250
+        
+        property int tratamientoId: -1
+        property string nombreTratamiento: ""
+        
+        contentItem: Item {
+            //implicitWidth: 400
+            //implicitHeight: 100
             
-            console.log("Eliminando tratamiento con ID:", tratamientoId);
-            
-            // Eliminar del modelo local
-            for (let i = 0; i < tratamientosModel.count; i++) {
-                if (tratamientosModel.get(i).tratamientoId === tratamientoId) {
-                    tratamientosModel.remove(i)
-                    break
+            Column {
+                anchors.fill: parent
+                anchors.margins: 20
+                spacing: 20
+                
+                Text {
+                    width: parent.width
+                    text: "¿Está seguro que desea eliminar el tratamiento '" + confirmDeleteTratamientoDialog.nombreTratamiento + "'?"
+                    font.pixelSize: 14
+                    wrapMode: Text.WordWrap
+                }
+                
+                Text {
+                    width: parent.width
+                    text: "Esta acción no se puede deshacer."
+                    font.pixelSize: 14
+                    font.italic: true
+                    color: "#F44336"
+                    wrapMode: Text.WordWrap
                 }
             }
+        }
+        
+        footer: DialogButtonBox {
+            Button {
+                text: "Cancelar"
+                DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
+            }
             
-            showMessage("Tratamiento eliminado correctamente")
+            Button {
+                text: "Eliminar"
+                DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
+                background: Rectangle {
+                    color: "#F44336"
+                    radius: 5
+                }
+                contentItem: Text {
+                    text: parent.text
+                    color: "white"
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
+        }
+        
+        onAccepted: {
+            // Implementar la eliminación de tratamiento
+            showMessage("Función de eliminación de tratamiento por implementar")
+        }
+    }
+    // DIÁLOGO DE DETALLES DE MEZCLA
+    Dialog {
+        id: dialogDetallesMezcla
+        title: "Detalles de Mezcla"
+        modal: true
+        width: 600
+        height: 500
+        
+        property var mezcla: null
+        property var detalles: []
+        
+        contentItem: Item {
+            Rectangle {
+                anchors.fill: parent
+                color: "white"
+                
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 20
+                    spacing: 15
+                    
+                    // Información básica
+                    Text {
+                        text: dialogDetallesMezcla.mezcla ? dialogDetallesMezcla.mezcla.nombre : ""
+                        font.pixelSize: 18
+                        font.bold: true
+                    }
+                    
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 1
+                        color: "#EEEEEE"
+                    }
+                    
+                    RowLayout {
+                        spacing: 20
+                        Layout.fillWidth: true
+                        
+                        Column {
+                            Text {
+                                text: "Objetivo"
+                                font.bold: true
+                                color: "#666"
+                            }
+                            Text {
+                                text: dialogDetallesMezcla.mezcla ? dialogDetallesMezcla.mezcla.objetivo : ""
+                            }
+                        }
+                        
+                        Column {
+                            Text {
+                                text: "Cantidad de Agua"
+                                font.bold: true
+                                color: "#666"
+                            }
+                            Text {
+                                text: dialogDetallesMezcla.mezcla ? dialogDetallesMezcla.mezcla.cantidad_agua + " litros" : ""
+                            }
+                        }
+                        
+                        Column {
+                            Text {
+                                text: "Área de Aplicación"
+                                font.bold: true
+                                color: "#666"
+                            }
+                            Text {
+                                text: dialogDetallesMezcla.mezcla ? dialogDetallesMezcla.mezcla.area_aplicacion + " hectáreas" : ""
+                            }
+                        }
+                    }
+                    
+                    Text {
+                        text: "Componentes"
+                        font.pixelSize: 16
+                        font.bold: true
+                        Layout.topMargin: 10
+                    }
+                    
+                    // Lista de componentes
+                    ListView {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        clip: true
+                        model: dialogDetallesMezcla.detalles
+                        
+                        delegate: Rectangle {
+                            width: parent ? parent.width : 0
+                            height: 50
+                            color: index % 2 === 0 ? "#FFFFFF" : "#F9F9F9"
+                            
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.margins: 10
+                                spacing: 10
+                                
+                                Text {
+                                    text: modelData.nombre_producto
+                                    Layout.preferredWidth: 200
+                                }
+                                
+                                Text {
+                                    text: modelData.cantidad + " " + modelData.unidad_medida
+                                    Layout.preferredWidth: 100
+                                }
+                                
+                                Text {
+                                    text: modelData.observaciones || ""
+                                    Layout.fillWidth: true
+                                    elide: Text.ElideRight
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        footer: DialogButtonBox {
+            Button {
+                text: "Cerrar"
+                DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
+            }
+        }
+    }
+
+    // DIÁLOGO DE DETALLES DE TRATAMIENTO
+    Dialog {
+        id: dialogDetallesTratamiento
+        title: "Detalles de Tratamiento"
+        modal: true
+        width: 600
+        height: 500
+        property var tratamiento: null
+        
+        contentItem: Item {
+            Rectangle {
+                anchors.fill: parent
+                color: "white"
+                
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 20
+                    spacing: 15
+                    
+                    // Información básica
+                    Text {
+                        text: "Tratamiento #" + (tratamiento ? tratamiento.id_tratamiento : "")
+                        font.pixelSize: 18
+                        font.bold: true
+                    }
+                    
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 1
+                        color: "#EEEEEE"
+                    }
+                    
+                    GridLayout {
+                        columns: 2
+                        rowSpacing: 10
+                        columnSpacing: 20
+                        
+                        Text {
+                            text: "Fecha:"
+                            font.bold: true
+                            color: "#666"
+                        }
+                        Text {
+                            text: tratamiento ? tratamiento.fecha_aplicacion : ""
+                        }
+                        
+                        Text {
+                            text: "Ciclo:"
+                            font.bold: true
+                            color: "#666"
+                        }
+                        Text {
+                            text: tratamiento ? tratamiento.variedad + " - " + tratamiento.parcela : ""
+                        }
+                        
+                        Text {
+                            text: "Tipo de Plaga:"
+                            font.bold: true
+                            color: "#666"
+                        }
+                        Text {
+                            text: tratamiento ? tratamiento.tipo_plaga : ""
+                        }
+                        
+                        Text {
+                            text: "Área Tratada:"
+                            font.bold: true
+                            color: "#666"
+                        }
+                        Text {
+                            text: tratamiento ? tratamiento.area_tratada + " ha" : ""
+                        }
+                        
+                        Text {
+                            text: "Mezcla Utilizada:"
+                            font.bold: true
+                            color: "#666"
+                        }
+                        Text {
+                            text: tratamiento ? tratamiento.mezcla : ""
+                        }
+                        
+                        Text {
+                            text: "Costo Total:"
+                            font.bold: true
+                            color: "#666"
+                        }
+                        Text {
+                            text: tratamiento ? "Bs. " + tratamiento.costo_total : ""
+                        }
+                        
+                        Text {
+                            text: "Método de Aplicación:"
+                            font.bold: true
+                            color: "#666"
+                        }
+                        Text {
+                            text: tratamiento ? tratamiento.metodo_aplicacion : ""
+                        }
+                        
+                        Text {
+                            text: "Condiciones Climáticas:"
+                            font.bold: true
+                            color: "#666"
+                        }
+                        Text {
+                            text: tratamiento ? tratamiento.condiciones_climaticas : ""
+                        }
+                        
+                        Text {
+                            text: "Responsable:"
+                            font.bold: true
+                            color: "#666"
+                        }
+                        Text {
+                            text: tratamiento ? tratamiento.responsable : ""
+                        }
+                    }
+                    
+                    Text {
+                        text: "Observaciones"
+                        font.pixelSize: 16
+                        font.bold: true
+                        Layout.topMargin: 10
+                    }
+                    
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 100
+                        color: "#F5F5F5"
+                        radius: 5
+                        
+                        ScrollView {
+                            anchors.fill: parent
+                            anchors.margins: 10
+                            
+                            Text {
+                                text: tratamiento ? (tratamiento.observaciones || "Sin observaciones") : ""
+                                wrapMode: Text.WordWrap
+                                width: parent.width
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        footer: DialogButtonBox {
+            Button {
+                text: "Cerrar"
+                DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
+            }
         }
     }
     
-    // Función para guardar nuevo producto
+    // DIÁLOGO PARA AGREGAR COMPONENTE A MEZCLA
+    Dialog {
+        id: dialogAgregarComponenteMezcla
+        title: "Agregar Componente"
+        modal: true
+        width: 400
+        height: 300
+        
+        contentItem: Rectangle {
+            color: "white"
+            
+            Column {
+                anchors.fill: parent
+                anchors.margins: 20
+                spacing: 15
+                
+                Text {
+                    text: "Agregar Componente a la Mezcla"
+                    font.pixelSize: 16
+                    font.bold: true
+                }
+                
+                ComboBox {
+                    id: cmbProductoComponente
+                    width: parent.width
+                    model: agroquimicosModel.productos
+                    textRole: "nombre_comercial"
+                    valueRole: "id_producto"
+                }
+                
+                RowLayout {
+                    width: parent.width
+                    spacing: 10
+                    
+                    TextField {
+                        id: txtCantidadComponente
+                        Layout.fillWidth: true
+                        placeholderText: "Cantidad"
+                        validator: DoubleValidator { bottom: 0 }
+                    }
+                    
+                    ComboBox {
+                        id: cmbUnidadComponente
+                        model: ["L", "Kg", "ml", "g"]
+                    }
+                }
+            }
+        }
+        
+        footer: DialogButtonBox {
+            Button {
+                text: "Cancelar"
+                DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
+            }
+            
+            Button {
+                text: "Agregar"
+                DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
+                onClicked: {
+                    if (cmbProductoComponente.currentIndex >= 0 && txtCantidadComponente.text !== "") {
+                        componentesMezclaModel.append({
+                            "id_producto": agroquimicosModel.productos[cmbProductoComponente.currentIndex].id_producto,
+                            "nombre_producto": agroquimicosModel.productos[cmbProductoComponente.currentIndex].nombre_comercial,
+                            "cantidad": parseFloat(txtCantidadComponente.text),
+                            "unidad_medida": cmbUnidadComponente.currentText
+                        })
+                        dialogAgregarComponenteMezcla.close()
+                    }
+                }
+            }
+        }
+        
+        onClosed: {
+            cmbProductoComponente.currentIndex = 0
+            txtCantidadComponente.text = ""
+            cmbUnidadComponente.currentIndex = 0
+        }
+    }
+
+    // DIÁLOGO PARA ACTUALIZAR STOCK DE PRODUCTOS
+    Dialog {
+        id: dialogActualizarStock
+        title: "Actualizar Stock"
+        modal: true
+        width: 600
+        height: 500
+        x: (parent.width - width) / 2
+        y: (parent.height - height) / 2
+        
+        contentItem: Rectangle {
+            color: "white"
+            
+            Column {
+                anchors.fill: parent
+                anchors.margins: 20
+                spacing: 15
+                
+                Text {
+                    text: "Actualizar Stock de Productos"
+                    font.pixelSize: 18
+                    font.bold: true
+                    width: parent.width
+                    horizontalAlignment: Text.AlignHCenter
+                }
+                
+                ListView {
+                    id: listViewActualizarStock
+                    width: parent.width
+                    height: parent.height - 100
+                    clip: true
+                    model: agroquimicosModel.productos
+                    
+                    delegate: Rectangle {
+                        width: parent.width
+                        height: 60
+                        color: index % 2 === 0 ? "#F5F5F5" : "white"
+                        
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.margins: 10
+                            spacing: 15
+                            
+                            Text {
+                                text: modelData.nombre_comercial
+                                Layout.preferredWidth: 200
+                                font.bold: true
+                            }
+                            
+                            Text {
+                                text: "Stock actual: " + modelData.stock + " " + modelData.unidad
+                                Layout.preferredWidth: 120
+                                color: modelData.stock < 10 ? "#F44336" : "#424242"
+                            }
+                            
+                            TextField {
+                                id: txtNuevoStock
+                                Layout.preferredWidth: 100
+                                placeholderText: "Nuevo stock"
+                                validator: DoubleValidator { bottom: 0 }
+                                property string productoId: modelData.id_producto
+                                property double stockAnterior: modelData.stock
+                            }
+                            
+                            Button {
+                                text: "Actualizar"
+                                Layout.preferredWidth: 100
+                                onClicked: {
+                                    var textField = parent.children[2] // Acceso al TextField
+                                    if (textField.text !== "") {
+                                        var nuevoStock = parseFloat(textField.text)
+                                        actualizarStockProducto(textField.productoId, nuevoStock)
+                                        textField.text = ""
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        footer: DialogButtonBox {
+            Button {
+                text: "Cerrar"
+                DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
+                onClicked: dialogActualizarStock.close()
+            }
+        }
+    }
+
+    // DIÁLOGO PARA AGREGAR STOCK A UN PRODUCTO
+    Dialog {
+        id: dialogAgregarStock
+        title: "Agregar Stock"
+        modal: true
+        width: 400
+        height: 300
+        x: (parent.width - width) / 2
+        y: (parent.height - height) / 2
+        
+        property int productoId: -1
+        property string nombreProducto: ""
+        property string unidadProducto: ""
+        property double stockActual: 0
+        
+        contentItem: Rectangle {
+            color: "white"
+            
+            Column {
+                anchors.fill: parent
+                anchors.margins: 20
+                spacing: 15
+                
+                Text {
+                    text: "Agregar Stock a: " + dialogAgregarStock.nombreProducto
+                    font.pixelSize: 16
+                    font.bold: true
+                    width: parent.width
+                    wrapMode: Text.WordWrap
+                }
+                
+                Text {
+                    text: "Stock actual: " + dialogAgregarStock.stockActual + " " + dialogAgregarStock.unidadProducto
+                    width: parent.width
+                }
+                
+                Row {
+                    width: parent.width
+                    spacing: 10
+                    
+                    Text {
+                        text: "Cantidad a agregar:"
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                    
+                    TextField {
+                        id: txtCantidadAgregar
+                        width: 150
+                        placeholderText: "Cantidad"
+                        validator: DoubleValidator { bottom: 0 }
+                    }
+                    
+                    Text {
+                        text: dialogAgregarStock.unidadProducto
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+                
+                Text {
+                    id: txtNuevoStockCalculado
+                    width: parent.width
+                    text: "Nuevo stock: " + dialogAgregarStock.stockActual + " " + dialogAgregarStock.unidadProducto
+                    font.bold: true
+                    color: "#4CAF50"
+                }
+                
+                // Actualizar el nuevo stock calculado cuando se cambia la cantidad
+                Connections {
+                    target: txtCantidadAgregar
+                    function onTextChanged() {
+                        var cantidad = parseFloat(txtCantidadAgregar.text) || 0
+                        var nuevoStock = dialogAgregarStock.stockActual + cantidad
+                        txtNuevoStockCalculado.text = "Nuevo stock: " + nuevoStock + " " + dialogAgregarStock.unidadProducto
+                    }
+                }
+            }
+        }
+        
+        footer: DialogButtonBox {
+            Button {
+                text: "Cancelar"
+                DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
+                onClicked: dialogAgregarStock.close()
+            }
+            
+            Button {
+                text: "Guardar"
+                DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
+                enabled: txtCantidadAgregar.text !== ""
+                background: Rectangle {
+                    color: parent.enabled ? "#4CAF50" : "#CCCCCC"
+                    radius: 5
+                }
+                contentItem: Text {
+                    text: parent.text
+                    color: "white"
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                onClicked: {
+                    var cantidad = parseFloat(txtCantidadAgregar.text) || 0
+                    var nuevoStock = dialogAgregarStock.stockActual + cantidad
+                    agregarStockProducto(dialogAgregarStock.productoId, nuevoStock)
+                    dialogAgregarStock.close()
+                }
+            }
+        }
+        
+        onOpened: {
+            txtCantidadAgregar.text = ""
+        }
+    }
+
+    // MODELOS AUXILIARES
+    ListModel {
+        id: componentesMezclaModel
+    }
+    
+    // FUNCIONES DE GESTIÓN
     function guardarNuevoProducto() {
-        // Crear un objeto con toda la información del producto según la estructura de la tabla
-        var datosProducto = {
-            id_producto: productosModel.count + 1,  // ID temporal (normalmente generado por la BD)
-            id_categoria: nuevoProducto.id_categoria,
-            nombre_comercial: nuevoProducto.nombre_comercial,
-            formulacion: nuevoProducto.formulacion || cmbFormulacion.currentText,
-            unidad: nuevoProducto.unidad,
-            precio: nuevoProducto.precio,
-            stock: nuevoProducto.stock,
-            registro: nuevoProducto.registro || txtRegistro.text || "PENDIENTE",
-            notas: nuevoProducto.notas,
-            fecha_registro: nuevoProducto.fecha_registro,
-            activo: nuevoProducto.activo
-        };
-        
-        console.log("Guardando producto:", JSON.stringify(datosProducto));
-        
-        // Aquí iría el código para insertar en la base de datos SQL Server
-        // Por ahora, solo añadimos al modelo local
-        productosModel.append(datosProducto)
-        
-        // Cerrar el diálogo
-        dialogNuevoProducto.close()
-        
-        // Mensaje de éxito
-        showMessage("Producto guardado correctamente")
-    }
-    
-    // Función para guardar nueva categoría
-    function guardarNuevaCategoria() {
-        var datosCategoria = {
-            id_categoria: categoriasModel.count + 1,  // ID temporal (en producción lo generaría la BD)
-            nombre: nuevaCategoria.nombre,
-            descripcion: nuevaCategoria.descripcion || "",
-            activo: nuevaCategoria.activo
-        };
-        
-        console.log("Guardando categoría:", JSON.stringify(datosCategoria));
-        categoriasModel.append(datosCategoria)
-        // Cerrar el diálogo
-        dialogNuevaCategoria.close()
-     
-        // Mensaje de éxito
-        showMessage("Categoría guardada correctamente")
-    }
-    
-    // Función para guardar nueva mezcla
-    function guardarNuevaMezcla() {
-        var datosMezcla = {
-            mezclaId: mezclasModel.count + 1,  // ID temporal
-            nombre: nuevaMezcla.nombre,
-            objetivo: nuevaMezcla.objetivo || cmbObjetivoMezcla.currentText,
-            cantidadAgua: nuevaMezcla.cantidadAgua,
-            areaAplicacion: nuevaMezcla.areaAplicacion,
-            componentes: nuevaMezcla.componentes || [], // Esto debería tener componentes añadidos
-            observaciones: txtObservacionesMezcla.text || ""
-        };
-        
-        console.log("Guardando mezcla:", JSON.stringify(datosMezcla));
-        mezclasModel.append(datosMezcla)
-        dialogNuevaMezcla.close()
-        
-        // Mensaje de éxito
-        showMessage("Mezcla guardada correctamente")
-    }
-    
-    // Función para guardar nuevo tratamiento
-    function guardarNuevoTratamiento() {
-        var datosTratamiento = {
-            tratamientoId: tratamientosModel.count + 1,  // ID temporal
-            fecha: nuevoTratamiento.fecha,
-            ciclo: nuevoTratamiento.ciclo,
-            tipoPlaga: nuevoTratamiento.tipoPlaga || cmbTipoPlaga.currentText,
-            area: nuevoTratamiento.area,
-            mezcla: nuevoTratamiento.mezcla || cmbMezcla.currentText,
-            costo: nuevoTratamiento.costo,
-            observaciones: txtObservacionesTratamiento.text || ""
-        };
-        
-        console.log("Guardando tratamiento:", JSON.stringify(datosTratamiento));
-        
-        // Añadir al modelo local
-        tratamientosModel.append(datosTratamiento)
-        
-        // Cerrar el diálogo
-        dialogNuevoTratamiento.close()
-        
-        // Mensaje de éxito
-        showMessage("Tratamiento guardado correctamente")
-    }
-    
-    // Función para obtener los nombres de mezclas para el ComboBox
-    function obtenerMezclasModel() {
-        var mezclas = ["Seleccione una mezcla"];
-        for (var i = 0; i < mezclasModel.count; i++) {
-            mezclas.push(mezclasModel.get(i).nombre);
+        var productoData = {
+            "id_categoria": nuevoProducto.id_categoria,
+            "nombre_comercial": nuevoProducto.nombre_comercial,
+            "formulacion": nuevoProducto.formulacion,
+            "unidad": nuevoProducto.unidad,
+            "precio": nuevoProducto.precio,
+            "stock": nuevoProducto.stock,
+            "registro": nuevoProducto.registro,
+            "notas": nuevoProducto.notas,
+            "fecha_registro": nuevoProducto.fecha_registro,
+            "activo": nuevoProducto.activo
         }
-        return mezclas;
+        
+        var productoDataJson = JSON.stringify(productoData)
+        
+        if (agroquimicosModel.agregar_producto(productoDataJson)) {
+            dialogNuevoProducto.close()
+            showMessage("Producto guardado correctamente")
+        } else {
+            showMessage("Error al guardar el producto")
+        }
     }
     
-    // Función para obtener la fecha actual formateada
+    function guardarNuevaCategoria() {
+        var categoriaData = {
+            "nombre": nuevaCategoria.nombre,
+            "descripcion": nuevaCategoria.descripcion,
+            "activo": nuevaCategoria.activo
+        }
+        
+        var categoriaDataJson = JSON.stringify(categoriaData)
+        
+        if (agroquimicosModel.agregar_categoria(categoriaDataJson)) {
+            dialogNuevaCategoria.close()
+            showMessage("Categoría guardada correctamente")
+        } else {
+            showMessage("Error al guardar la categoría")
+        }
+    }
+    
+    function guardarNuevaMezcla() {
+        var mezclaData = {
+            "nombre": nuevaMezcla.nombre,
+            "objetivo": nuevaMezcla.objetivo,
+            "cantidad_agua": nuevaMezcla.cantidadAgua,
+            "area_aplicacion": nuevaMezcla.areaAplicacion,
+            "indicaciones": txtObservacionesMezcla.text,
+            "activo": true
+        }
+        
+        var detallesData = []
+        for (var i = 0; i < componentesMezclaModel.count; i++) {
+            var componente = componentesMezclaModel.get(i)
+            detallesData.push({
+                "id_producto": componente.id_producto,
+                "cantidad": componente.cantidad,
+                "unidad_medida": componente.unidad_medida
+            })
+        }
+        
+        var mezclaDataJson = JSON.stringify(mezclaData)
+        var detallesDataJson = JSON.stringify(detallesData)
+        
+        if (agroquimicosModel.agregar_mezcla(mezclaDataJson, detallesDataJson)) {
+            dialogNuevaMezcla.close()
+            showMessage("Mezcla guardada correctamente")
+        } else {
+            showMessage("Error al guardar la mezcla")
+        }
+    }
+    
+    function guardarNuevoTratamiento() {
+        // Obtener los IDs seleccionados en lugar de los nombres
+        var cicloSeleccionado = agroquimicosModel.ciclos_activos[cmbCiclo.currentIndex];
+        var tipoPlaga = agroquimicosModel.tipos_plagas[cmbTipoPlaga.currentIndex];
+        var mezcla = agroquimicosModel.mezclas[cmbMezcla.currentIndex];
+
+        var tratamientoData = {
+            "id_ciclo": cicloSeleccionado.id_ciclo,  // Aquí el ID real
+            "id_tipo_plaga": tipoPlaga.id_tipo,      // Aquí el ID real
+            "fecha_aplicacion": nuevoTratamiento.fecha,
+            "area_tratada": nuevoTratamiento.area,
+            "id_mezcla": mezcla.id_mezcla,           // Aquí el ID real
+            "costo_total": nuevoTratamiento.costo,
+            "observaciones": txtObservacionesTratamiento.text,
+            "realizado_por": 22  // Basado en tu tabla, usaremos el ID 22 (Luis)
+        }
+        
+        console.log("Datos del tratamiento:", JSON.stringify(tratamientoData));
+        var tratamientoDataJson = JSON.stringify(tratamientoData)
+        
+        if (agroquimicosModel.agregar_tratamiento(tratamientoDataJson)) {
+            dialogNuevoTratamiento.close()
+            showMessage("Tratamiento guardado correctamente")
+        } else {
+            showMessage("Error al guardar el tratamiento")
+        }
+    }   
+    
+    // Función para editar producto
+    function editarProducto(idProducto) {
+        for (var i = 0; i < agroquimicosModel.productos.length; i++) {
+            if (agroquimicosModel.productos[i].id_producto === idProducto) {
+                var producto = agroquimicosModel.productos[i];
+                nuevoProducto = {
+                    "id_producto": producto.id_producto,
+                    "id_categoria": producto.id_categoria,
+                    "nombre_comercial": producto.nombre_comercial,
+                    "formulacion": producto.formulacion,
+                    "unidad": producto.unidad,
+                    "precio": producto.precio,
+                    "stock": producto.stock,
+                    "registro": producto.registro,
+                    "notas": producto.notas,
+                    "fecha_registro": producto.fecha_registro,
+                    "activo": producto.activo
+                };
+
+                // Llenar los campos del diálogo con los datos existentes
+                txtNombreComercial.text = nuevoProducto.nombre_comercial
+                txtStock.text = nuevoProducto.stock.toString()
+                txtPrecio.text = nuevoProducto.precio.toString()
+                txtRegistro.text = nuevoProducto.registro
+                txtNotas.text = nuevoProducto.notas || ""
+
+                for (var i = 0; i < cmbCategoria.count; i++) {
+                    if (agroquimicosModel.categorias[i].id_categoria === nuevoProducto.id_categoria) {
+                        cmbCategoria.currentIndex = i
+                        break
+                    }
+                }
+                // Seleccionar la formulación correcta
+                var formulaciones = ["Líquido", "Polvo", "Granulado", "Emulsión"]
+                cmbFormulacion.currentIndex = formulaciones.indexOf(nuevoProducto.formulacion)
+
+                // Seleccionar la unidad correcta
+                var unidades = ["L", "Kg"]
+                cmbUnidad.currentIndex = unidades.indexOf(nuevoProducto.unidad)
+
+                chkActivo.checked = nuevoProducto.activo
+
+                dialogNuevoProducto.title = "Editar Producto";
+                dialogNuevoProducto.open();
+                dialogNuevoProducto.modoEdicion = true
+                break;
+            }
+        }
+    }
+    function editarCategoria(idCategoria) {
+        for (var i = 0; i < agroquimicosModel.categorias.length; i++) {
+            if (agroquimicosModel.categorias[i].id_categoria === idCategoria) {
+                var categoria = agroquimicosModel.categorias[i];
+                nuevaCategoria = {
+                    "id_categoria": categoria.id_categoria,
+                    "nombre": categoria.nombre,
+                    "descripcion": categoria.descripcion,
+                    "activo": categoria.activo
+                };
+                
+                dialogNuevaCategoria.modoEdicion = true;
+                dialogNuevaCategoria.title = "Editar Categoría";
+                dialogNuevaCategoria.open();
+                break;
+            }
+        }
+    }
+
+    // Función para editar mezcla - CORREGIDA
+    function editarMezcla(mezclaId) {
+        for (var i = 0; i < agroquimicosModel.mezclas.length; i++) {
+            if (agroquimicosModel.mezclas[i].id_mezcla === mezclaId) {
+                var mezcla = agroquimicosModel.mezclas[i];
+                nuevaMezcla = {
+                    "mezclaId": mezcla.id_mezcla,
+                    "nombre": mezcla.nombre,
+                    "objetivo": mezcla.objetivo,
+                    "cantidadAgua": mezcla.cantidad_agua,
+                    "areaAplicacion": mezcla.area_aplicacion,
+                    "componentes": []
+                };
+                
+                // Cargar componentes de la mezcla
+                agroquimicosModel.cargar_detalles_mezcla(mezclaId);
+                
+                // Esperar a que se carguen los detalles y llenar componentes
+                var timer = Qt.createQmlObject('import QtQuick 2.15; Timer { interval: 500; running: true; repeat: false }', agroquimicosRoot);
+                timer.triggered.connect(function() {
+                    if (agroquimicosModel.detalles_mezcla) {
+                        nuevaMezcla.componentes = agroquimicosModel.detalles_mezcla;
+                        dialogNuevaMezcla.title = "Editar Mezcla";
+                        dialogNuevaMezcla.modoEdicion = true;
+                        dialogNuevaMezcla.open();
+                    }
+                    timer.destroy();
+                });
+                break;
+            }
+        }
+    }
+
+    // Función para editar tratamiento - CORREGIDA
+    function editarTratamiento(tratamientoId) {
+        for (var i = 0; i < agroquimicosModel.tratamientos.length; i++) {
+            if (agroquimicosModel.tratamientos[i].id_tratamiento === tratamientoId) {
+                var tratamiento = agroquimicosModel.tratamientos[i];
+                nuevoTratamiento = {
+                    "tratamientoId": tratamiento.id_tratamiento,
+                    "fecha": tratamiento.fecha_aplicacion,
+                    "ciclo": tratamiento.id_ciclo,
+                    "tipoPlaga": tratamiento.id_tipo_plaga,
+                    "area": tratamiento.area_tratada,
+                    "mezcla": tratamiento.id_mezcla,
+                    "costo": tratamiento.costo_total,
+                    "observaciones": tratamiento.observaciones
+                };
+                
+                dialogNuevoTratamiento.title = "Editar Tratamiento";
+                dialogNuevoTratamiento.modoEdicion = true;
+                dialogNuevoTratamiento.open();
+                break;
+            }
+        }
+    }
+
+    // Función para ver detalles de mezcla - CORREGIDA
+    function verDetallesMezcla(mezclaId) {
+        console.log("Viendo detalles de mezcla:", mezclaId)
+        
+        // Buscar mezcla
+        var mezcla = null;
+        for (var i = 0; i < agroquimicosModel.mezclas.length; i++) {
+            if (agroquimicosModel.mezclas[i].id_mezcla === mezclaId) {
+                mezcla = agroquimicosModel.mezclas[i];
+                break;
+            }
+        }
+        
+        if (!mezcla) {
+            console.log("No se encontró la mezcla con ID:", mezclaId)
+            return;
+        }
+        
+        // Cargar detalles de la mezcla desde el modelo
+        agroquimicosModel.cargar_detalles_mezcla(mezclaId);
+        
+        // Asignar la mezcla al diálogo
+        dialogDetallesMezcla.mezcla = mezcla;
+        
+        // Esperar un momento para que se carguen los detalles
+        Qt.callLater(function() {
+            dialogDetallesMezcla.detalles = agroquimicosModel.detalles_mezcla;
+            dialogDetallesMezcla.open();
+        });
+    }
+
+    // Función para ver detalles de tratamiento - CORREGIDA
+    function verDetallesTratamiento(tratamientoId) {
+        var tratamientoEncontrado = null;
+        for (var i = 0; i < agroquimicosModel.tratamientos.length; i++) {
+            if (agroquimicosModel.tratamientos[i].id_tratamiento === tratamientoId) {
+                tratamientoEncontrado = agroquimicosModel.tratamientos[i];
+                break;
+            }
+        }
+        
+        if (tratamientoEncontrado) {
+            dialogDetallesTratamiento.tratamiento = tratamientoEncontrado;
+            dialogDetallesTratamiento.open();
+        } else {
+            showMessage("No se encontró el tratamiento seleccionado");
+        }
+    }  
+    
+    // FUNCIONES DE UTILIDAD
     function obtenerFechaActual() {
-        var today = new Date();
-        var dd = String(today.getDate()).padStart(2, '0');
-        var mm = String(today.getMonth() + 1).padStart(2, '0'); // Los meses empiezan en 0
-        var yyyy = today.getFullYear();
-        return dd + '/' + mm + '/' + yyyy;
-    }
-
-    // Modelos de datos vacíos
-    ListModel {
-        id: productosModel
-        // Se agregarán elementos cuando el usuario los cree
-    }
-
-    ListModel {
-        id: categoriasModel
-        // Se agregarán elementos cuando el usuario los cree
+        var today = new Date()
+        var dd = String(today.getDate()).padStart(2, '0')
+        var mm = String(today.getMonth() + 1).padStart(2, '0')
+        var yyyy = today.getFullYear()
+        return dd + '/' + mm + '/' + yyyy
     }
     
-    ListModel {
-        id: mezclasModel
-        // Se agregarán elementos cuando el usuario los cree
+    function obtenerModeloCiclos() {
+        var ciclos = ["Todos los ciclos"]
+        if (agroquimicosModel.ciclos_activos) {
+            for (var i = 0; i < agroquimicosModel.ciclos_activos.length; i++) {
+                var ciclo = agroquimicosModel.ciclos_activos[i]
+                ciclos.push(ciclo.variedad + " - " + ciclo.parcela)
+            }
+        }
+        return ciclos
     }
     
-    ListModel {
-        id: tratamientosModel
-        // Se agregarán elementos cuando el usuario los cree
+    function calcularValorInventario() {
+        var total = 0
+        if (agroquimicosModel.productos) {
+            for (var i = 0; i < agroquimicosModel.productos.length; i++) {
+                total += agroquimicosModel.productos[i].precio * agroquimicosModel.productos[i].stock
+            }
+        }
+        return "Bs. " + total.toFixed(2)
+    }  
+    function calcularStockCritico() {
+        var count = 0
+        if (agroquimicosModel.productos) {
+            for (var i = 0; i < agroquimicosModel.productos.length; i++) {
+                if (agroquimicosModel.productos[i].stock < 10) {  // Considerar stock crítico si es menor a 5
+                    count++
+                }
+            }
+        }
+        return count.toString()
+    }
+    
+    function calcularCategoriaMasUsada() {
+        if (!agroquimicosModel.productos || agroquimicosModel.productos.length === 0) {
+            return "-"
+        }
+        
+        var categorias = {}
+        for (var i = 0; i < agroquimicosModel.productos.length; i++) {
+            var categoria = agroquimicosModel.productos[i].categoria || "Sin categoría"
+            categorias[categoria] = (categorias[categoria] || 0) + 1
+        }
+        
+        var maxCategoria = ""
+        var maxCount = 0
+        for (var cat in categorias) {
+            if (categorias[cat] > maxCount) {
+                maxCount = categorias[cat]
+                maxCategoria = cat
+            }
+        }
+        
+        return maxCategoria || "-"
+    }
+    function buscarCategorias(texto) {
+        if (!texto) {
+            categoriasListView.model = agroquimicosModel.categorias
+            return
+        }
+        
+        var filtrados = []
+        for (var i = 0; i < agroquimicosModel.categorias.length; i++) {
+            var categoria = agroquimicosModel.categorias[i]
+            if (categoria.nombre.toLowerCase().includes(texto.toLowerCase()) || 
+                (categoria.descripcion && categoria.descripcion.toLowerCase().includes(texto.toLowerCase()))) {
+                filtrados.push(categoria)
+            }
+        }
+        
+        categoriasListView.model = filtrados
+    }
+    
+    function cambiarEstadoCategoria(categoriaId, nuevoEstado) {
+        var categoriaData = {
+            "activo": nuevoEstado
+        }
+        
+        var categoriaDataJson = JSON.stringify(categoriaData)
+        
+        if (agroquimicosModel.actualizar_categoria(categoriaId, categoriaDataJson)) {
+            showMessage("Estado de categoría actualizado")
+        } else {
+            showMessage("Error al actualizar el estado de la categoría")
+        }
+    }
+    
+    function actualizarCategoria() {
+        var categoriaData = {
+            "nombre": nuevaCategoria.nombre,
+            "descripcion": nuevaCategoria.descripcion,
+            "activo": nuevaCategoria.activo
+        }
+        
+        var categoriaDataJson = JSON.stringify(categoriaData)
+        
+        if (agroquimicosModel.actualizar_categoria(nuevaCategoria.id_categoria, categoriaDataJson)) {
+            dialogNuevaCategoria.close()
+            showMessage("Categoría actualizada correctamente")
+        } else {
+            showMessage("Error al actualizar la categoría")
+        }
     }
     
     // Componente para mostrar mensajes
@@ -2787,4 +3549,230 @@ Rectangle {
         messageToast.visible = true
         messageToastTimer.restart()
     }
-}                                     
+    function actualizarProducto() {
+        var productoData = {
+            "id_categoria": nuevoProducto.id_categoria,
+            "nombre_comercial": nuevoProducto.nombre_comercial,
+            "formulacion": nuevoProducto.formulacion,
+            "unidad": nuevoProducto.unidad,
+            "precio": nuevoProducto.precio,
+            "stock": nuevoProducto.stock,
+            "registro": nuevoProducto.registro,
+            "notas": nuevoProducto.notas,
+            "fecha_registro": nuevoProducto.fecha_registro,
+            "activo": nuevoProducto.activo
+        }
+    
+        var productoDataJson = JSON.stringify(productoData)
+    
+        if (agroquimicosModel.actualizar_producto(nuevoProducto.id_producto, productoDataJson)) {
+           dialogNuevoProducto.close()
+           showMessage("Producto actualizado correctamente")
+        } else {
+           showMessage("Error al actualizar el producto")
+        }
+    }
+
+    function obtenerModeloCategorias() {
+        var categorias = ["Todas las categorías"]
+        if (agroquimicosModel.categorias) {
+            for (var i = 0; i < agroquimicosModel.categorias.length; i++) {
+                categorias.push(agroquimicosModel.categorias[i].nombre)
+            }
+        }
+        return categorias
+    }
+    // Añadir después de la función obtenerModeloCategorias()
+    function buscarProductos(texto) {
+        if (!texto) {
+            productosListView.model = agroquimicosModel.productos
+            return
+        }
+        
+        var filtrados = []
+        for (var i = 0; i < agroquimicosModel.productos.length; i++) {
+            var producto = agroquimicosModel.productos[i]
+            if (producto.nombre_comercial.toLowerCase().includes(texto.toLowerCase()) || 
+                producto.categoria.toLowerCase().includes(texto.toLowerCase())) {
+                filtrados.push(producto)
+            }
+        }
+        
+        productosListView.model = filtrados
+    }
+
+    function filtrarProductosPorCategoria(index) {
+        if (index === 0) {
+            // Mostrar todos los productos
+            productosListView.model = agroquimicosModel.productos
+        } else {
+            // Filtrar por categoría seleccionada
+            var nombreCategoria = obtenerModeloCategorias()[index]
+            var productosFiltrados = []
+            
+            for (var i = 0; i < agroquimicosModel.productos.length; i++) {
+                if (agroquimicosModel.productos[i].categoria === nombreCategoria) {
+                    productosFiltrados.push(agroquimicosModel.productos[i])
+                }
+            }
+            
+            productosListView.model = productosFiltrados
+        }
+    }
+
+    function obtenerModeloObjetivos() {
+        var objetivos = ["Todos los objetivos"]
+        var objetivosUnicos = new Set()
+        
+        if (agroquimicosModel.mezclas) {
+            for (var i = 0; i < agroquimicosModel.mezclas.length; i++) {
+                if (agroquimicosModel.mezclas[i].objetivo) {
+                    objetivosUnicos.add(agroquimicosModel.mezclas[i].objetivo)
+                }
+            }
+        }
+        
+        // Convertir Set a Array
+        objetivosUnicos.forEach(function(objetivo) {
+            objetivos.push(objetivo)
+        })
+        
+        return objetivos
+    }
+
+    function filtrarTratamientos() {
+        var cicloSeleccionado = cmbFiltroCiclos.currentIndex
+        var periodoSeleccionado = cmbFiltroPeriodo.currentIndex
+        
+        if (!agroquimicosModel.tratamientos) {
+            return
+        }
+        
+        var tratamientosFiltrados = []
+        var fechaActual = new Date()
+        
+        for (var i = 0; i < agroquimicosModel.tratamientos.length; i++) {
+            var tratamiento = agroquimicosModel.tratamientos[i]
+            var fechaTratamiento = new Date(tratamiento.fecha_aplicacion)
+            
+            // Filtrar por ciclo
+            if (cicloSeleccionado === 0 || obtenerModeloCiclos()[cicloSeleccionado] === (tratamiento.variedad + " - " + tratamiento.parcela)) {
+                
+                // Filtrar por periodo
+                var mostrar = false
+                
+                switch (periodoSeleccionado) {
+                    case 0: // Último mes
+                        var unMesAtras = new Date(fechaActual)
+                        unMesAtras.setMonth(unMesAtras.getMonth() - 1)
+                        mostrar = fechaTratamiento >= unMesAtras
+                        break
+                        
+                    case 1: // Últimos 3 meses
+                        var tresMesesAtras = new Date(fechaActual)
+                        tresMesesAtras.setMonth(tresMesesAtras.getMonth() - 3)
+                        mostrar = fechaTratamiento >= tresMesesAtras
+                        break
+                        
+                    case 2: // Último año
+                        var unAnoAtras = new Date(fechaActual)
+                        unAnoAtras.setFullYear(unAnoAtras.getFullYear() - 1)
+                        mostrar = fechaTratamiento >= unAnoAtras
+                        break
+                        
+                    case 3: // Todos
+                        mostrar = true
+                        break
+                }
+                
+                if (mostrar) {
+                    tratamientosFiltrados.push(tratamiento)
+                }
+            }
+        }
+        
+        tratamientosListView.model = tratamientosFiltrados
+    }
+    function buscarTratamientos(texto) {
+        if (!texto) {
+            filtrarTratamientos() // Aplica los filtros actuales
+            return
+        }
+        
+        var filtrados = []
+        for (var i = 0; i < agroquimicosModel.tratamientos.length; i++) {
+            var tratamiento = agroquimicosModel.tratamientos[i]
+            if (tratamiento.variedad.toLowerCase().includes(texto.toLowerCase()) || 
+                tratamiento.parcela.toLowerCase().includes(texto.toLowerCase()) ||
+                tratamiento.tipo_plaga.toLowerCase().includes(texto.toLowerCase()) ||
+                tratamiento.mezcla.toLowerCase().includes(texto.toLowerCase())) {
+                filtrados.push(tratamiento)
+            }
+        }
+        
+        tratamientosListView.model = filtrados
+    }
+
+    function filtrarMezclasPorObjetivo(index) {
+        if (index === 0) {
+            // Mostrar todas las mezclas
+            gridMezclas.model = agroquimicosModel.mezclas
+        } else {
+            // Filtrar por objetivo seleccionado
+            var objetivoSeleccionado = obtenerModeloObjetivos()[index]
+            var mezclasFiltradas = []
+            
+            for (var i = 0; i < agroquimicosModel.mezclas.length; i++) {
+                if (agroquimicosModel.mezclas[i].objetivo === objetivoSeleccionado) {
+                    mezclasFiltradas.push(agroquimicosModel.mezclas[i])
+                }
+            }
+            
+            gridMezclas.model = mezclasFiltradas
+        }
+    }
+    function buscarMezclas(texto) {
+        if (!texto) {
+            gridMezclas.model = agroquimicosModel.mezclas
+            return
+        }
+        
+        var filtrados = []
+        for (var i = 0; i < agroquimicosModel.mezclas.length; i++) {
+            var mezcla = agroquimicosModel.mezclas[i]
+            if (mezcla.nombre.toLowerCase().includes(texto.toLowerCase()) || 
+                (mezcla.objetivo && mezcla.objetivo.toLowerCase().includes(texto.toLowerCase()))) {
+                filtrados.push(mezcla)
+            }
+        }
+        
+        gridMezclas.model = filtrados
+    }
+    function actualizarStockProducto(idProducto, nuevoStock) {
+        var productoData = {
+            "stock": nuevoStock
+        }
+        
+        var productoDataJson = JSON.stringify(productoData)
+        
+        if (agroquimicosModel.actualizar_producto(idProducto, productoDataJson)) {
+            showMessage("Stock actualizado correctamente")
+        } else {
+            showMessage("Error al actualizar el stock")
+        }
+    }
+    // Función para agregar stock a un producto
+    function agregarStockProducto(idProducto, nuevoStock) {
+        var productoData = {
+            "stock": nuevoStock
+        }
+        
+        var productoDataJson = JSON.stringify(productoData)
+        
+        if (agroquimicosModel.actualizar_producto(idProducto, productoDataJson)) {
+            showMessage("Stock actualizado correctamente")
+        } else {
+            showMessage("Error al actualizar el stock")
+        }
+    }
+}

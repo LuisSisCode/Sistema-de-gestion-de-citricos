@@ -36,8 +36,9 @@ class AgricultoresParcelas(QObject):
         """Carga la lista de agricultores desde la base de datos"""
         try:
             self._agricultores = self._gestor.obtener_agricultores()
+            print("Emitiendo señal agricultoresChanged")
             self.agricultoresChanged.emit()
-            print("si carga joven")
+            print("Señal emitida")
         except Exception as e:
             print(f"Error al cargar agricultores: {str(e)}")
     
@@ -153,3 +154,17 @@ class AgricultoresParcelas(QObject):
     def obtener_parcelas_por_propietario(self, id_propietario):
         """Obtiene las parcelas de un propietario específico"""
         return [p for p in self._parcelas if p['propietarioId'] == id_propietario]
+    
+    @Slot(int, str, result=bool)
+    def actualizar_parcela(self, parcela_id, parcela_data_json):
+        """Actualiza una parcela existente"""
+        try:
+            # Convertir el string JSON a diccionario
+            parcela_data = json.loads(parcela_data_json)
+            success = self._gestor.actualizar_parcela(parcela_id, parcela_data)
+            if success:
+                self.cargar_parcelas()
+            return success
+        except Exception as e:
+            print(f"Error al actualizar parcela: {str(e)}")
+            return False

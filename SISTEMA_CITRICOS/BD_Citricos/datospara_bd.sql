@@ -180,6 +180,62 @@ VALUES
 (3, 2, 500, 'g', 'Cobrestar WP mezclado con 10L agua tibia'), 
 (3, 3, 30, 'ml', 'Glifosato 48SL para limpiar maleza alrededor'); 
 
+use Produccion_Citricos
+-- 1. Insertar clientes (no existían en tus datos iniciales)
+INSERT INTO Clientes (nombre, direccion, ciudad, estado_provincia, telefono, correo, condiciones_pago, fecha_registro, registrado_por, activo)
+VALUES 
+('Distribuidora Frutal S.A.', 'Av. Cristo Redentor 125', 'Santa Cruz', 'Santa Cruz', '3-3365897', 'ventas@frutalsa.com', '30 días', GETDATE(), 22, 1),
+('Mercado Central Yapacaní', 'Calle Principal 45', 'Yapacaní', 'Santa Cruz', '76654321', 'compras@mercadocentral.com.bo', 'Contado', GETDATE(), 32, 1);
+
+-- 2. Insertar estados de venta (requerido para tabla Ventas)
+INSERT INTO EstadosVenta (nombre, descripcion, activo)
+VALUES 
+('En Proceso', 'Venta en gestión comercial', 1),
+('Facturada', 'Venta completada con factura', 1),
+('Despachada', 'Productos entregados al cliente', 1);
+-- Categorías de Calidad basadas en cosechas múltiples
+INSERT INTO CategoriasCalidad (nombre, descripcion, criterios, activo)
+VALUES 
+('Primera Cosecha - Premium', 
+ 'Frutos maduros de primera recolección', 
+ 'Tamaño uniforme (7-8 cm), coloración completa, 0 defectos, alto contenido de jugo', 
+ 1),
+
+('Segunda Cosecha - Estándar', 
+ 'Frutos de segunda recolección', 
+ 'Tamaño variable (5-7 cm), hasta 15% de defectos superficiales, buen sabor', 
+ 1),
+
+('Tercera Cosecha - Procesamiento', 
+ 'Frutos finales para industria', 
+ 'Cualquier tamaño, hasta 30% de defectos, alto rendimiento de jugo', 
+ 1);
+
+-- 3. Insertar lotes de cosecha (requerido para DetallesVenta)
+INSERT INTO LotesCosecha (id_ciclo, id_categoria_calidad, codigo_lote, fecha_cosecha, cantidad_inicial, unidad_medida, cantidad_disponible, registrado_por, activo)
+VALUES
+(2, 1, 'LOTE-NAR-2023-01', '2023-07-02', 1500, 'Kg', 1200, 22, 1),
+(5, 2, 'LOTE-MAN-2023-02', '2023-04-10', 800, 'Kg', 500, 32, 1),
+(8, 3, 'LOTE-LIM-2023-03', '2023-04-20', 600, 'Kg', 400, 22, 1);
+
+-- 4. Insertar ventas principales
+INSERT INTO Ventas (id_cliente, codigo_venta, fecha_venta, subtotal, total, condiciones_pago, id_estado, registrado_por)
+VALUES
+(6, 'V-2023-001', '2023-08-15', 4200.00, 4200.00, '30 días', 2, 22),
+(8, 'V-2023-002', '2023-08-20', 1850.00, 1850.00, 'Contado', 3, 32);
+
+-- 5. Insertar detalles de venta
+INSERT INTO DetallesVenta (id_venta, id_lote, cantidad, unidad_medida, precio_unitario, subtotal, total)
+VALUES
+-- Detalles para V-2023-001
+(3, 2, 300, 'Unidad', 14.00, 4200.00, 4200.00),
+
+-- Detalles para V-2023-002
+(4, 3, 100, 'Unidad', 12.50, 1250.00, 1250.00),
+(4, 4, 50, 'Unidad', 12.00, 600.00, 600.00);
+
+
+
 
 6. Categorías de Calidad y Métodos de Pago
 -- Insertar categorías de calidad
@@ -191,68 +247,6 @@ VALUES ('Estándar', 'Frutos de buena calidad para mercado nacional', 'Tamaño m
 
 INSERT INTO CategoriasCalidad (nombre, descripcion, criterios, activo)
 VALUES ('Procesamiento', 'Frutos destinados a industria de jugos', 'Cualquier tamaño, pueden tener defectos externos pero buen contenido de jugo', 1);
-
--- Insertar métodos de pago
-INSERT INTO MetodosPago (nombre, descripcion, activo)
-VALUES ('Efectivo', 'Pago en moneda física', 1);
-
-INSERT INTO MetodosPago (nombre, descripcion, activo)
-VALUES ('Transferencia', 'Transferencia bancaria electrónica', 1);
-
-INSERT INTO MetodosPago (nombre, descripcion, activo)
-VALUES ('Cheque', 'Pago con cheque bancario', 1);
-
-
-7. Categorías de Costos y Estados de Venta
--- Insertar categorías de costos
-INSERT INTO CategoriasCostos (nombre, descripcion, activo)
-VALUES ('Insumos', 'Costos de agroquímicos, fertilizantes y otros insumos', 1);
-
-INSERT INTO CategoriasCostos (nombre, descripcion, activo)
-VALUES ('Mano de Obra', 'Pagos a trabajadores por labores en el cultivo', 1);
-
-INSERT INTO CategoriasCostos (nombre, descripcion, activo)
-VALUES ('Maquinaria', 'Costos de operación y mantenimiento de equipos', 1);
-
-INSERT INTO CategoriasCostos (nombre, descripcion, activo)
-VALUES ('Servicios', 'Costos de servicios como análisis, asesorías, etc.', 1);
-
--- Insertar estados de venta
-INSERT INTO EstadosVenta (nombre, descripcion, activo)
-VALUES ('Cotizada', 'Venta en proceso de cotización', 1);
-
-INSERT INTO EstadosVenta (nombre, descripcion, activo)
-VALUES ('Confirmada', 'Venta confirmada pendiente de entrega', 1);
-
-INSERT INTO EstadosVenta (nombre, descripcion, activo)
-VALUES ('Entregada', 'Productos entregados al cliente', 1);
-
-INSERT INTO EstadosVenta (nombre, descripcion, activo)
-VALUES ('Cancelada', 'Venta cancelada', 1);
-
-
-8. Ciclos de producción
----- Insertar ciclos de producción
-INSERT INTO CiclosProduccion (id_parcela, id_variedad, fecha_siembra, fecha_cosecha_estimada, fecha_cosecha_real, area_sembrada, densidad_siembra, estado, activo, fecha_floracion, fecha_poda, fecha_limpieza, frecuencia_limpieza)
-VALUES (1, 1, '2023-01-20', '2023-12-15', NULL, 4.5, 400, 'En Desarrollo', 1, '2023-03-15', '2023-01-05', '2023-02-10', 30);
-
-INSERT INTO CiclosProduccion (id_parcela, id_variedad, fecha_siembra, fecha_cosecha_estimada, fecha_cosecha_real, area_sembrada, densidad_siembra, estado, activo, fecha_floracion, fecha_poda, fecha_limpieza, frecuencia_limpieza)
-VALUES (2, 3, '2023-02-15', '2023-10-20', NULL, 3.2, 450, 'En Desarrollo', 1, '2023-04-10', '2023-01-25', '2023-03-05', 45);
-
-INSERT INTO CiclosProduccion (id_parcela, id_variedad, fecha_siembra, fecha_cosecha_estimada, fecha_cosecha_real, area_sembrada, densidad_siembra, estado, activo, fecha_floracion, fecha_poda, fecha_limpieza, frecuencia_limpieza)
-VALUES (3, 5, '2023-03-10', '2023-09-15', NULL, 2.8, 500, 'En Desarrollo', 1, '2023-05-05', '2023-02-20', '2023-04-15', 30);
-
-
-9. Clientes
--- Insertar clientes
-INSERT INTO Clientes (tipo, nombre, identificacion, direccion, ciudad, estado_provincia, codigo_postal, telefono, correo, contacto_principal, telefono_contacto, condiciones_pago, limite_credito, notas, fecha_registro, registrado_por, activo)
-VALUES ('Empresa', 'Cítricos del Valle S.A.', '1023456789', 'Av. Banzer km 12', 'Santa Cruz', 'Santa Cruz', '0000', '33445566', 'compras@citricosdelvalle.com', 'Pedro Sánchez', '71234567', 'Pago a 30 días', 50000.00, 'Comprador regular de naranja premium para exportación', '2020-05-15', 1, 1);
-
-INSERT INTO Clientes (tipo, nombre, identificacion, direccion, ciudad, estado_provincia, codigo_postal, telefono, correo, contacto_principal, telefono_contacto, condiciones_pago, limite_credito, notas, fecha_registro, registrado_por, activo)
-VALUES ('Empresa', 'Jugos Naturales Ltda.', '2034567890', 'Parque Industrial PI-14', 'Santa Cruz', 'Santa Cruz', '0000', '33556677', 'adquisiciones@jugosnaturales.com', 'Laura Mendoza', '73456789', 'Pago contra entrega', 25000.00, 'Comprador de fruta para procesamiento industrial', '2021-03-10', 1, 1);
-
-INSERT INTO Clientes (tipo, nombre, identificacion, direccion, ciudad, estado_provincia, codigo_postal, telefono, correo, contacto_principal, telefono_contacto, condiciones_pago, limite_credito, notas, fecha_registro, registrado_por, activo)
-VALUES ('Persona', 'Miguel Flores', '5647382910', 'Mercado Abasto puesto 45', 'Santa Cruz', 'Santa Cruz', '0000', '70123456', 'miguelflores@gmail.com', NULL, NULL, 'Pago efectivo', 10000.00, 'Distribuidor en mercado local', '2022-06-18', 4, 1);
 
 
 
@@ -278,4 +272,7 @@ VALUES (1, 'Preventivo', '2023-03-10', 'Cambio de aceite y filtros', 350.00, 1, 
 INSERT INTO Mantenimientos (id_maquinaria, tipo, fecha_realizada, descripcion, costo_total, responsable, estado)
 VALUES (3, 'Correctivo', '2023-03-25', 'Reparación de sistema de riego', 820.00, 1, 'Completado');
 
-
+INSERT INTO MetodosPago (nombre, descripcion, activo) 
+VALUES 
+    ('Efectivo', 'Pago en moneda física (billetes y monedas)', 1),
+    ('QR', 'Pago mediante una Banca movil mediante un Qr generado', 1);

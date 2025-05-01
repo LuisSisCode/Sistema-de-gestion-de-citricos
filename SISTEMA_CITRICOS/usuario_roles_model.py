@@ -6,11 +6,13 @@ class UsuariosRolesModel(QObject):
     usuariosChanged = Signal()
     rolesChanged = Signal()
     permisosChanged = Signal()
+    usuariosFiltradosChanged = Signal()
     
     def __init__(self, parent=None):
         super().__init__(parent)
         self._gestor = GestorUsuariosRoles()
         self._usuarios = []
+        self._usuarios_filtrados = []
         self._roles = []
         self._permisos = []
         self._rol_seleccionado = -1
@@ -22,6 +24,10 @@ class UsuariosRolesModel(QObject):
     @Property(list, notify=usuariosChanged)
     def usuarios(self):
         return self._usuarios
+    
+    @Property(list, notify=usuariosFiltradosChanged)
+    def usuarios_filtrados(self):
+        return self._usuarios_filtrados
     
     @Property(list, notify=rolesChanged)
     def roles(self):
@@ -36,7 +42,9 @@ class UsuariosRolesModel(QObject):
         """Carga la lista de usuarios desde la base de datos"""
         try:
             self._usuarios = self._gestor.obtener_usuarios()
+            self._usuarios_filtrados = self._usuarios
             self.usuariosChanged.emit()
+            self.usuariosFiltradosChanged.emit()
         except Exception as e:
             print(f"Error al cargar usuarios: {str(e)}")
     
@@ -142,3 +150,18 @@ class UsuariosRolesModel(QObject):
         except Exception as e:
             print(f"Error al guardar permisos: {str(e)}")
             return False
+    
+    @Slot(str)
+    def filtrar_usuarios(self, texto_busqueda):
+        """Filtra los usuarios según el texto de búsqueda"""
+        if not texto_busqueda:
+            self._usuarios_filtrados = self._usuarios
+        else:
+            texto_busqueda = texto_busqueda.lower()
+            self._usuarios_filtrados = [u for u in self._usuarios if 
+                                       texto_busqueda in u['nombre'].lower() or 
+                                       texto_busqueda in u['apellido'].lower() or 
+                                       texto_busqueda in u['usuario'].lower() or 
+                                       texto_busqueda in u['correo'].lower() or 
+                                       texto_busqueda in u['rol'].lower()]
+        self.usuariosFiltradosChanged.emit()

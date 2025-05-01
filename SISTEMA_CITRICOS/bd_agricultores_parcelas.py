@@ -97,9 +97,9 @@ class GestorAgricultoresParcelas:
                 
                 query = """
                 SELECT p.id_parcela, p.nombre, p.ubicacion, p.area_total,
-                       p.coordenadas_gps, p.tipo_suelo, p.fuente_agua,
-                       p.fecha_adquisicion, p.activo, 
-                       a.id_agricultor, a.nombre + ' ' + a.apellido AS nombre_propietario
+                    p.coordenadas_gps, p.tipo_suelo, p.fuente_agua,
+                    p.fecha_adquisicion, p.activo, 
+                    a.id_agricultor, a.nombre + ' ' + a.apellido AS nombre_propietario
                 FROM Parcelas p
                 JOIN Agricultores a ON p.id_agricultor = a.id_agricultor
                 ORDER BY p.id_parcela
@@ -120,9 +120,19 @@ class GestorAgricultoresParcelas:
                             except AttributeError:
                                 fecha_adquisicion = str(row.fecha_adquisicion)
                     
-                    # Calcular un porcentaje de uso ficticio (en una implementación real esto podría
-                    # calcularse basado en los ciclos de producción activos en la parcela)
-                    # Por ahora es simplemente un valor aleatorio entre 0 y 100 para demostración
+                    # Extraer coordenadas GPS
+                    latitud = None
+                    longitud = None
+                    if row.coordenadas_gps:
+                        try:
+                            coord_parts = row.coordenadas_gps.split(',')
+                            if len(coord_parts) == 2:
+                                latitud = float(coord_parts[0].strip())
+                                longitud = float(coord_parts[1].strip())
+                        except (ValueError, AttributeError):
+                            pass
+                    
+                    # Calcular un porcentaje de uso ficticio
                     from random import randint
                     porcentaje_uso = randint(0, 100)
                     
@@ -134,10 +144,12 @@ class GestorAgricultoresParcelas:
                         'ubicacion': row.ubicacion,
                         'area': float(row.area_total),
                         'coordenadasGPS': row.coordenadas_gps,
+                        'latitud': latitud,
+                        'longitud': longitud,
                         'tipoSuelo': row.tipo_suelo,
                         'fuenteAgua': row.fuente_agua,
                         'fechaAdquisicion': fecha_adquisicion,
-                        'porcentajeUso': porcentaje_uso,  # Valor demostrativo
+                        'porcentajeUso': porcentaje_uso,
                         'activo': bool(row.activo)
                     }
                     parcelas.append(parcela)
@@ -405,24 +417,67 @@ class GestorAgricultoresParcelas:
         except Exception as e:
             logger.error(f"Error al agregar parcela: {str(e)}")
             return False, None
-
-# Ejemplo de uso
-"""
-if __name__ == "__main__":
-    # Prueba la conexión y consulta
-    try:
-        gestor = GestorAgricultoresParcelas()
-        agricultores = gestor.obtener_agricultores()
-        print(f"Total de agricultores: {len(agricultores)}")
-        for agricultor in agricultores:
-            print(f"ID: {agricultor['id_agricultor']}, Nombre: {agricultor['nombre']} {agricultor['apellido']}, "
-                  f"Identificación: {agricultor['identificacion']}, Es propietario: {'Sí' if agricultor['esPropietario'] else 'No'}")
+    def actualizar_parcela(self, id_parcela, parcela_data):
+        """
+        Actualiza una parcela existente en la base de datos.
+        
+        Args:
+            id_parcela (int): ID de la parcela a actualizar.
+            parcela_data (dict): Datos actualizados de la parcela.
             
-        parcelas = gestor.obtener_parcelas()
-        print(f"\nTotal de parcelas: {len(parcelas)}")
-        for parcela in parcelas:
-            print(f"ID: {parcela['parcelaId']}, Nombre: {parcela['nombre']}, "
-                  f"Propietario: {parcela['propietario']}, Área: {parcela['area']} hectáreas")
-    except Exception as e:
-        print(f"Error al ejecutar el ejemplo: {str(e)}")
-"""
+        Returns:
+            bool: True si se actualizó correctamente, False en caso contrario.
+        """
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Construir la consulta de actualización dinámicamente
+                campos_actualizar = []
+                valores = []
+                
+                if 'nombre' in parcela_data:
+                    campos_actualizar.append("nombre = ?")
+                    valores.append(parcela_data['nombre'])
+                    
+                if 'propietarioId' in parcela_data:
+                    campos_actualizar.append("id_agricultor = ?")
+                    valores.append(parcela_data['propietarioId'])
+                    
+                if 'ubicacion' in parcela_data:
+                    campos_actualizar.append("ubicacion = ?")
+                    valores.append(parcela_data['ubicacion'])
+                    
+                if 'area' in parcela_data:
+                    campos_actualizar.append("area_total = ?")
+                    valores.append(parcela_data['area'])
+                
+                if 'latitud' in parcela_data and 'longitud' in parcela_data:
+                    coordenadas_gps = f"{parcela_data['latitud']},{parcela_data['longitud']}"
+                    campos_actualizar.append("coordenadas_gps = ?")
+                    valores.append(coordenadas_gps)
+                
+                if 'tipoSuelo' in parcela_data:
+                    campos_actualizar.append("tipo_suelo = ?")
+                    valores.append(parcela_data['tipoSuelo'])
+                    
+                if 'fuenteAgua' in parcela_data:
+                    campos_actualizar.append("fuente_agua = ?")
+                    valores.append(parcela_data['fuenteAgua'])
+                
+                if not campos_actualizar:
+                    logger.warning("No hay campos para actualizar")
+                    return False
+                
+                query = f"UPDATE Parcelas SET {', '.join(campos_actualizar)} WHERE id_parcela = ?"
+                valores.append(id_parcela)
+                
+                cursor.execute(query, valores)
+                conn.commit()
+                
+                filas_afectadas = cursor.rowcount
+                logger.info(f"Parcela actualizada correctamente. Filas afectadas: {filas_afectadas}")
+                return filas_afectadas > 0
+        except Exception as e:
+            logger.error(f"Error al actualizar parcela: {str(e)}")
+            return False

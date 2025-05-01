@@ -66,7 +66,7 @@ class GestorAgroquimicos:
                 productos = []
                 
                 for row in cursor.fetchall():
-                    fecha_registro = row.fecha_registro.strftime('%Y-%m-%d') if row.fecha_registro else None
+                    fecha_registro = row.fecha_registro if isinstance(row.fecha_registro, str) else row.fecha_registro.strftime('%Y-%m-%d') if row.fecha_registro else None
                     
                     producto = {
                         'id_producto': row.id_producto,
@@ -324,7 +324,7 @@ class GestorAgroquimicos:
                 mezclas = []
                 
                 for row in cursor.fetchall():
-                    fecha_creacion = row.fecha_creacion.strftime('%Y-%m-%d') if row.fecha_creacion else None
+                    fecha_creacion = row.fecha_creacion if isinstance(row.fecha_creacion, str) else row.fecha_creacion.strftime('%Y-%m-%d') if row.fecha_creacion else None   
                     
                     mezcla = {
                         'id_mezcla': row.id_mezcla,
@@ -488,7 +488,7 @@ class GestorAgroquimicos:
                 tratamientos = []
                 
                 for row in cursor.fetchall():
-                    fecha_aplicacion = row.fecha_aplicacion.strftime('%Y-%m-%d') if row.fecha_aplicacion else None
+                    fecha_aplicacion = row.fecha_aplicacion if isinstance(row.fecha_aplicacion, str) else row.fecha_aplicacion.strftime('%Y-%m-%d') if row.fecha_aplicacion else None
                     
                     tratamiento = {
                         'id_tratamiento': row.id_tratamiento,
@@ -631,7 +631,7 @@ class GestorAgroquimicos:
                 ciclos = []
                 
                 for row in cursor.fetchall():
-                    fecha_siembra = row.fecha_siembra.strftime('%Y-%m-%d') if row.fecha_siembra else None
+                    fecha_siembra = row.fecha_siembra if isinstance(row.fecha_siembra, str) else row.fecha_siembra.strftime('%Y-%m-%d') if row.fecha_siembra else None  
                     
                     ciclo = {
                         'id_ciclo': row.id_ciclo,
@@ -651,3 +651,49 @@ class GestorAgroquimicos:
         except Exception as e:
             logger.error(f"Error al obtener ciclos activos: {str(e)}")
             return []
+    def actualizar_categoria(self, id_categoria, categoria_data):
+        """
+        Actualiza una categoría existente en la base de datos.
+        
+        Args:
+            id_categoria (int): ID de la categoría a actualizar.
+            categoria_data (dict): Datos actualizados de la categoría.
+            
+        Returns:
+            bool: True si se actualizó correctamente, False en caso contrario.
+        """
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                campos_actualizar = []
+                valores = []
+                
+                if 'nombre' in categoria_data:
+                    campos_actualizar.append("nombre = ?")
+                    valores.append(categoria_data['nombre'])
+                    
+                if 'descripcion' in categoria_data:
+                    campos_actualizar.append("descripcion = ?")
+                    valores.append(categoria_data['descripcion'])
+                    
+                if 'activo' in categoria_data:
+                    campos_actualizar.append("activo = ?")
+                    valores.append(1 if categoria_data['activo'] else 0)
+                
+                if not campos_actualizar:
+                    logger.warning("No hay campos para actualizar en la categoría")
+                    return False
+                
+                query = f"UPDATE CategoriaAgroquimicos SET {', '.join(campos_actualizar)} WHERE id_categoria = ?"
+                valores.append(id_categoria)
+                
+                cursor.execute(query, valores)
+                conn.commit()
+                
+                filas_afectadas = cursor.rowcount
+                logger.info(f"Categoría actualizada correctamente. Filas afectadas: {filas_afectadas}")
+                return filas_afectadas > 0
+        except Exception as e:
+            logger.error(f"Error al actualizar categoría: {str(e)}")
+            return False

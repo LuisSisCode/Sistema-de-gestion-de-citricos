@@ -176,7 +176,7 @@ ApplicationWindow {
                     objectName: "btnAgricultores"
                     width: parent.width
                     icon: "Image/Image_UI_interfaz/Inconos/agricultor.png"
-                    text: "AGRICULTORES"
+                    text: "AGRICULTORES/PARCELA"
                     moduleIndex: 2
                     color: mainWindow.activeModule === 2 ? colorNaranjaCitrico : "transparent"
                 }
@@ -209,7 +209,7 @@ ApplicationWindow {
                     objectName: "btnVentas"
                     width: parent.width
                     icon: "Image/Image_UI_interfaz/Inconos/ventas.png"
-                    text: "VENTAS"
+                    text: "VENTAS/CLIENTES"
                     moduleIndex: 5
                     color: mainWindow.activeModule === 5 ? colorNaranjaCitrico : "transparent"
                 }
@@ -223,25 +223,6 @@ ApplicationWindow {
                     text: "MAQUINARIA"
                     moduleIndex: 6
                     color: mainWindow.activeModule === 6 ? colorNaranjaCitrico : "transparent"
-                }
-
-                // Reportes
-                MenuButton {
-                    id: btnReportes
-                    objectName: "btnReportes"
-                    width: parent.width
-                    icon: "Image/Image_UI_interfaz/Inconos/reportes.png"
-                    text: "REPORTES"
-                    moduleIndex: 7
-                    color: mainWindow.activeModule === 7 ? colorNaranjaCitrico : "transparent"
-                }
-
-                // Separador
-                Rectangle {
-                    width: parent.width
-                    height: 1
-                    color: Qt.darker(colorVerdeBosque, 1.3)
-                    opacity: 0.5
                 }
 
                 // Configuración
@@ -281,39 +262,6 @@ ApplicationWindow {
             height: 5
             color: "#20000000"
             opacity: 0.5
-        }
-
-        // Búsqueda global
-        Rectangle {
-            id: searchBox
-            width: 300
-            height: 36
-            anchors.left: parent.left
-            anchors.leftMargin: 20
-            anchors.verticalCenter: parent.verticalCenter
-            color: "#F5F5F5"
-            radius: 18
-
-            RowLayout {
-                anchors.fill: parent
-                anchors.margins: 10
-                spacing: 10
-
-                Text {
-                    text: "🔍"
-                    font.bold: true
-                    font.pixelSize: 16
-                    color: colorTextoSecundario
-                }
-
-                TextField {
-                    Layout.fillWidth: true
-                    placeholderText: "Buscar..."
-                    font.family:"Arial"
-                    background: null
-                    selectByMouse: true
-                }
-            }
         }
 
         // Notificaciones y perfil
@@ -442,7 +390,7 @@ ApplicationWindow {
         }
     }
 
-    // COMPONENTE ADICIONAL: Modal para notificaciones
+    // COMPONENTE MEJORADO: Modal para notificaciones
     Popup {
         id: notificacionesPopup
         width: 350
@@ -470,6 +418,9 @@ ApplicationWindow {
                 opacity: 0.5
             }
         }
+
+        // Propiedades para controlar el contenido visible
+        property int currentTab: 0  // 0: Todas, 1: Alertas, 2: Sistema
 
         ColumnLayout {
             anchors.fill: parent
@@ -522,84 +473,107 @@ ApplicationWindow {
                 }
             }
 
-            // Pestañas
-            TabBar {
-                id: notificationsTabs
+            // Pestañas personalizadas
+            Rectangle {
                 Layout.fillWidth: true
-                background: Rectangle { color: "transparent" }
+                height: 40
+                color: "transparent"
 
-                TabButton {
-                    text: "Todas"
-                    font.bold: true
-                    font.family: "Arial"
-                    width: notificationsTabs.width / 3
+                RowLayout {
+                    anchors.fill: parent
+                    spacing: 0
 
-                    background: Rectangle {
-                        color: notificationsTabs.currentIndex === 0 ? "transparent" : "transparent"
+                    // Pestaña "Todas"
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        color: "transparent"
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "Todas"
+                            font.bold: notificacionesPopup.currentTab === 0
+                            font.family: "Arial"
+                            font.pixelSize: 14
+                            color: notificacionesPopup.currentTab === 0 ? colorTextoNormal : colorTextoSecundario
+                        }
+
                         Rectangle {
                             width: parent.width
                             height: 3
                             anchors.bottom: parent.bottom
-                            color: notificationsTabs.currentIndex === 0 ? colorNaranjaCitrico : "transparent"
+                            color: notificacionesPopup.currentTab === 0 ? colorNaranjaCitrico : "transparent"
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                notificacionesPopup.currentTab = 0
+                            }
                         }
                     }
 
-                    contentItem: Text {
-                        text: parent.text
-                        font: parent.font
-                        color: notificationsTabs.currentIndex === 0 ? colorTextoNormal : colorTextoSecundario
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                }
+                    // Pestaña "Alertas"
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        color: "transparent"
 
-                TabButton {
-                    text: "Alertas"
-                    font.family: "Arial"
-                    font.bold: true
-                    width: notificationsTabs.width / 3
+                        Text {
+                            anchors.centerIn: parent
+                            text: "Alertas"
+                            font.bold: notificacionesPopup.currentTab === 1
+                            font.family: "Arial"
+                            font.pixelSize: 14
+                            color: notificacionesPopup.currentTab === 1 ? colorTextoNormal : colorTextoSecundario
+                        }
 
-                    background: Rectangle {
-                        color: notificationsTabs.currentIndex === 1 ? "transparent" : "transparent"
                         Rectangle {
                             width: parent.width
                             height: 3
                             anchors.bottom: parent.bottom
-                            color: notificationsTabs.currentIndex === 1 ? colorNaranjaCitrico : "transparent"
+                            color: notificacionesPopup.currentTab === 1 ? colorNaranjaCitrico : "transparent"
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                notificacionesPopup.currentTab = 1
+                            }
                         }
                     }
 
-                    contentItem: Text {
-                        text: parent.text
-                        font: parent.font
-                        color: notificationsTabs.currentIndex === 1 ? colorTextoNormal : colorTextoSecundario
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                }
+                    // Pestaña "Sistema"
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        color: "transparent"
 
-                TabButton {
-                    text: "Sistema"
-                    font.bold: true
-                    font.family: "Arial"
-                    width: notificationsTabs.width / 3
+                        Text {
+                            anchors.centerIn: parent
+                            text: "Sistema"
+                            font.bold: notificacionesPopup.currentTab === 2
+                            font.family: "Arial"
+                            font.pixelSize: 14
+                            color: notificacionesPopup.currentTab === 2 ? colorTextoNormal : colorTextoSecundario
+                        }
 
-                    background: Rectangle {
-                        color: notificationsTabs.currentIndex === 2 ? "transparent" : "transparent"
                         Rectangle {
                             width: parent.width
                             height: 3
                             anchors.bottom: parent.bottom
-                            color: notificationsTabs.currentIndex === 2 ? colorNaranjaCitrico : "transparent"
+                            color: notificacionesPopup.currentTab === 2 ? colorNaranjaCitrico : "transparent"
                         }
-                    }
 
-                    contentItem: Text {
-                        text: parent.text
-                        font: parent.font
-                        color: notificationsTabs.currentIndex === 2 ? colorTextoNormal : colorTextoSecundario
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                notificacionesPopup.currentTab = 2
+                            }
+                        }
                     }
                 }
             }
@@ -611,106 +585,98 @@ ApplicationWindow {
                 color: colorDivider
             }
 
-            // Datos de ejemplo para listados de notificaciones
-            ListModel {
-                id: notificacionesModel
-                
-                ListElement {
-                    tipo: "urgente"
-                    texto: "Nivel bajo de fungicida. Revisar inventario."
-                    fecha: "Hoy, 10:25"
-                    icono: "⚠️"
-                }
-                ListElement {
-                    tipo: "importante"
-                    texto: "Próxima cosecha en Parcela 3 en 5 días."
-                    fecha: "Hoy, 09:15"
-                    icono: "🍊"
-                }
-                ListElement {
-                    tipo: "normal"
-                    texto: "Reporte mensual de ventas disponible."
-                    fecha: "Ayer, 15:30"
-                    icono: "📊"
-                }
-            }
-            
-            Component {
-                id: notificacionesDelegate
-                
-                Rectangle {
-                    width: ListView.view.width
-                    height: 70
-                    color: index % 2 == 0 ? "#FAFAFA" : "#FFFFFF"
-                    
-                    Rectangle {
-                        width: 3
-                        height: parent.height - 16
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        color: tipo === "urgente" ? "#F44336" : tipo === "importante" ? "#FFC107" : "#2196F3"
-                    }
-                    
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.leftMargin: 15
-                        anchors.rightMargin: 15
-                        spacing: 15
-                        
-                        Text {
-                            text: icono
-                            font.pixelSize: 24
-                        }
-                        
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 5
-                            
-                            Text {
-                                text: texto
-                                font.family: "Arial"
-                                font.pixelSize: 14
-                                color: "#424242"
-                                Layout.fillWidth: true
-                                elide: Text.ElideRight
-                            }
-                            
-                            Text {
-                                text: fecha
-                                font.family: "Arial"
-                                font.pixelSize: 12
-                                color: "#757575"
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Contenido de notificaciones (usando SwipeView para multiples páginas)
-            SwipeView {
-                id: notificationsSwipeView
+            // CONTENIDO DE NOTIFICACIONES
+            // Este es el contenedor principal que mostrará las listas según la pestaña seleccionada
+            Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                currentIndex: notificationsTabs.currentIndex
-                interactive: false
+                color: "transparent"
+                clip: true
 
-                // Todas las notificaciones
+                // LISTA DE TODAS LAS NOTIFICACIONES
                 ListView {
-                    clip: true
-                    model: notificacionesModel
-                    delegate: notificacionesDelegate
-                    ScrollBar.vertical: ScrollBar {}
-                }
-
-                // Solo alertas
-                ListView {
+                    id: todasListView
+                    anchors.fill: parent
+                    visible: notificacionesPopup.currentTab === 0
                     clip: true
                     model: ListModel {
+                        id: todasModel
+                        // Notificaciones de tipo urgente
+                        ListElement {
+                            tipo: "urgente"
+                            texto: "Nivel bajo de fungicida. Revisar inventario."
+                            fecha: "Hoy, 10:25"
+                            icono: "⚠️"
+                        }
                         ListElement {
                             tipo: "urgente"
                             texto: "Stock bajo de fungicida. Quedan 5 unidades."
                             fecha: "Hoy, 10:25"
                             icono: "⚠️"
+                        }
+                        // Notificaciones de tipo importante
+                        ListElement {
+                            tipo: "importante"
+                            texto: "Próxima cosecha en Parcela 3 en 5 días."
+                            fecha: "Hoy, 09:15"
+                            icono: "🍊"
+                        }
+                        ListElement {
+                            tipo: "importante"
+                            texto: "Presencia de mosca blanca detectada en Parcela 7."
+                            fecha: "08/04/2025"
+                            icono: "🐛"
+                        }
+                        // Notificaciones de tipo normal/sistema
+                        ListElement {
+                            tipo: "normal"
+                            texto: "Reporte mensual de ventas disponible."
+                            fecha: "Ayer, 15:30"
+                            icono: "📊"
+                        }
+                        ListElement {
+                            tipo: "normal"
+                            texto: "Actualización del sistema completada."
+                            fecha: "Hoy, 08:30"
+                            icono: "🔄"
+                        }
+                        ListElement {
+                            tipo: "normal"
+                            texto: "Copia de seguridad automática realizada."
+                            fecha: "Ayer, 23:00"
+                            icono: "💾"
+                        }
+                    }
+                    delegate: notificacionesDelegate
+                    ScrollBar.vertical: ScrollBar {}
+                }
+
+                // LISTA SOLO DE ALERTAS
+                ListView {
+                    id: alertasListView
+                    anchors.fill: parent
+                    visible: notificacionesPopup.currentTab === 1
+                    clip: true
+                    model: ListModel {
+                        id: alertasModel
+                        // Solo notificaciones de tipo urgente e importante
+                        ListElement {
+                            tipo: "urgente"
+                            texto: "Nivel bajo de fungicida. Revisar inventario."
+                            fecha: "Hoy, 10:25"
+                            icono: "⚠️"
+                        }
+                        ListElement {
+                            tipo: "urgente"
+                            texto: "Stock bajo de fungicida. Quedan 5 unidades."
+                            fecha: "Hoy, 10:25"
+                            icono: "⚠️"
+                        }
+                        ListElement {
+                            tipo: "importante"
+                            texto: "Próxima cosecha en Parcela 3 en 5 días."
+                            fecha: "Hoy, 09:15"
+                            icono: "🍊"
                         }
                         ListElement {
                             tipo: "importante"
@@ -723,10 +689,15 @@ ApplicationWindow {
                     ScrollBar.vertical: ScrollBar {}
                 }
 
-                // Solo sistema
+                // LISTA SOLO DE SISTEMA
                 ListView {
+                    id: sistemaListView
+                    anchors.fill: parent
+                    visible: notificacionesPopup.currentTab === 2
                     clip: true
                     model: ListModel {
+                        id: sistemaModel
+                        // Solo notificaciones de tipo normal/sistema
                         ListElement {
                             tipo: "normal"
                             texto: "Actualización del sistema completada."
@@ -738,6 +709,18 @@ ApplicationWindow {
                             texto: "Copia de seguridad automática realizada."
                             fecha: "Ayer, 23:00"
                             icono: "💾"
+                        }
+                        ListElement {
+                            tipo: "normal"
+                            texto: "Reporte mensual de ventas disponible."
+                            fecha: "Ayer, 15:30"
+                            icono: "📊"
+                        }
+                        ListElement {
+                            tipo: "normal"
+                            texto: "Nueva versión disponible: 2.1.5"
+                            fecha: "27/04/2025"
+                            icono: "📱"
                         }
                     }
                     delegate: notificacionesDelegate
@@ -770,26 +753,77 @@ ApplicationWindow {
             }
         }
 
-        // Conexión entre las pestañas y el SwipeView
-        Connections {
-            target: notificationsTabs
-            function onCurrentIndexChanged() {
-                notificationsSwipeView.currentIndex = notificationsTabs.currentIndex
+        // COMPONENTE DELEGADO PARA LAS NOTIFICACIONES
+        // Este componente define la apariencia de cada notificación
+        Component {
+            id: notificacionesDelegate
+            
+            Rectangle {
+                width: ListView.view.width
+                height: 70
+                color: index % 2 == 0 ? "#FAFAFA" : "#FFFFFF"
+                
+                Rectangle {
+                    width: 3
+                    height: parent.height - 16
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: tipo === "urgente" ? "#F44336" : tipo === "importante" ? "#FFC107" : "#2196F3"
+                }
+                
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 15
+                    anchors.rightMargin: 15
+                    spacing: 15
+                    
+                    Text {
+                        text: icono
+                        font.pixelSize: 24
+                    }
+                    
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 5
+                        
+                        Text {
+                            text: texto
+                            font.family: "Arial"
+                            font.pixelSize: 14
+                            color: "#424242"
+                            Layout.fillWidth: true
+                            elide: Text.ElideRight
+                        }
+                        
+                        Text {
+                            text: fecha
+                            font.family: "Arial"
+                            font.pixelSize: 12
+                            color: "#757575"
+                        }
+                    }
+                }
             }
         }
     }
 
-    // COMPONENTE ADICIONAL: Modal para perfil de usuario
+    // COMPONENTE CORREGIDO: Modal para perfil de usuario
     Popup {
         id: perfilPopup
-        width: 300
-        height: 350
-        x: topBar.width - width - 20
-        y: topBar.height + 5
+        width: 400
+        height: 600
+        x: parent.width - width - 20
+        y: 60  // Posición justo debajo de la barra superior
         modal: true
         focus: true
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         padding: 0
+        
+        // Importante: z superior para asegurar que aparezca sobre otros elementos
+        z: 1000
+
+        // Propiedad para controlar qué vista se muestra
+        property string currentView: "menu" // Valores posibles: "menu", "perfil", "password"
 
         background: Rectangle {
             color: colorBlancoNieve
@@ -808,142 +842,685 @@ ApplicationWindow {
             }
         }
 
-        ColumnLayout {
+        // VISTA DE MENÚ PRINCIPAL
+        Item {
+            id: menuView
             anchors.fill: parent
-            spacing: 0
+            visible: perfilPopup.currentView === "menu"
 
-            // Encabezado con avatar y nombre
-            Rectangle {
-                Layout.fillWidth: true
-                height: 100
-                color: colorVerdeBosque
-                radius: 10
-                // Para evitar esquinas redondeadas abajo
+            ColumnLayout {
+                anchors.fill: parent
+                spacing: 0
+
+                // Encabezado con avatar y nombre
                 Rectangle {
-                    width: parent.width
-                    height: parent.height / 2
-                    anchors.bottom: parent.bottom
+                    Layout.fillWidth: true
+                    height: 100
                     color: colorVerdeBosque
-                }
-
-                ColumnLayout {
-                    anchors.centerIn: parent
-                    spacing: 5
-
-                    // Avatar grande
+                    radius: 10
+                    // Para evitar esquinas redondeadas abajo
                     Rectangle {
-                        width: 60
-                        height: 60
-                        radius: 30
-                        color: colorBlancoNieve
-                        Layout.alignment: Qt.AlignHCenter
+                        width: parent.width
+                        height: parent.height / 2
+                        anchors.bottom: parent.bottom
+                        color: colorVerdeBosque
+                    }
 
+                    ColumnLayout {
+                        anchors.centerIn: parent
+                        spacing: 5
+
+                        // Avatar grande
+                        Rectangle {
+                            width: 60
+                            height: 60
+                            radius: 30
+                            color: colorBlancoNieve
+                            Layout.alignment: Qt.AlignHCenter
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "L"
+                                font.pixelSize: 30
+                                font.bold: true
+                                color: colorVerdeBosque
+                            }
+                        }
+
+                        // Nombre de usuario
                         Text {
-                            anchors.centerIn: parent
-                            text: "L"
-                            font.pixelSize: 30
+                            text: "Luis López"
+                            font.family: "Arial"
+                            font.pixelSize: 16
                             font.bold: true
-                            color: colorVerdeBosque
+                            color: "white"
+                            Layout.alignment: Qt.AlignHCenter
                         }
                     }
+                }
 
-                    // Nombre de usuario
-                    Text {
-                        text: "Luis López"
-                        font.family: "Arial"
-                        font.pixelSize: 16
-                        font.bold: true
-                        color: "white"
-                        Layout.alignment: Qt.AlignHCenter
+                // Contenido del perfil
+                ListView {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    clip: true
+                    model: ListModel {
+                        // Eliminadas las opciones de Preferencias y Notificaciones
+                        ListElement { icon: "👤"; text: "Mi perfil"; view: "perfil" }
+                        ListElement { icon: "🔐"; text: "Cambiar contraseña"; view: "password" }
+                        ListElement { icon: "❓"; text: "Ayuda"; view: "" }
+                        ListElement { icon: "📋"; text: "Términos y condiciones"; view: "" }
+                        ListElement { icon: "🔒"; text: "Privacidad"; view: "" }
+                    }
+                    delegate: Rectangle {
+                        width: ListView.view.width
+                        height: 50
+                        color: mouseArea.containsMouse ? "#F5F5F5" : "transparent"
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 15
+                            anchors.rightMargin: 15
+                            spacing: 15
+
+                            Text {
+                                text: icon
+                                font.pixelSize: 20
+                            }
+
+                            Text {
+                                text: model.text
+                                font.family: "Arial"
+                                font.pixelSize: 14
+                                color: "#424242"
+                                Layout.fillWidth: true
+                            }
+                        }
+
+                        MouseArea {
+                            id: mouseArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (model.view !== "") {
+                                    // Cambiar a la vista correspondiente si tiene una asignada
+                                    perfilPopup.currentView = model.view
+                                } else {
+                                    // Para opciones sin vista específica
+                                    perfilPopup.close()
+                                }
+                            }
+                        }
                     }
                 }
-            }
 
-            // Contenido del perfil
-            ListView {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                clip: true
-                model: ListModel {
-                    ListElement { icon: "👤"; text: "Mi perfil" }
-                    ListElement { icon: "🔐"; text: "Cambiar contraseña" }
-                    ListElement { icon: "⚙️"; text: "Preferencias" }
-                    ListElement { icon: "🔔"; text: "Notificaciones" }
-                    ListElement { icon: "❓"; text: "Ayuda" }
-                    ListElement { icon: "📋"; text: "Términos y condiciones" }
-                    ListElement { icon: "🔒"; text: "Privacidad" }
-                }
-                delegate: Rectangle {
-                    width: ListView.view.width
+                // Botón de cierre de sesión
+                Rectangle {
+                    Layout.fillWidth: true
                     height: 50
-                    color: mouseArea.containsMouse ? "#F5F5F5" : "transparent"
-
+                    color: "#F5F5F5"
+                    
                     RowLayout {
-                        anchors.fill: parent
-                        anchors.leftMargin: 15
-                        anchors.rightMargin: 15
-                        spacing: 15
-
+                        anchors.centerIn: parent
+                        spacing: 10
+                        
                         Text {
-                            text: icon
-                            font.pixelSize: 20
+                            text: "🚪"
+                            font.pixelSize: 16
                         }
-
+                        
                         Text {
-                            text: model.text
+                            text: "Cerrar sesión"
+                            font.bold: true
                             font.family: "Arial"
                             font.pixelSize: 14
-                            color: "#424242"
-                            Layout.fillWidth: true
+                            color: colorAlertaRoja
                         }
                     }
-
+                    
                     MouseArea {
-                        id: mouseArea
                         anchors.fill: parent
-                        hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            // Acciones según la opción seleccionada
+                            // Lógica para cerrar sesión
                             perfilPopup.close()
                         }
                     }
                 }
             }
+        }
 
-            // Botón de cierre de sesión
-            Rectangle {
-                Layout.fillWidth: true
-                height: 50
-                color: "#F5F5F5"
-                
-                RowLayout {
-                    anchors.centerIn: parent
-                    spacing: 10
-                    
-                    Text {
-                        text: "🚪"
-                        font.pixelSize: 16
-                    }
-                    
-                    Text {
-                        text: "Cerrar sesión"
-                        font.bold: true
-                        font.family: "Arial"
-                        font.pixelSize: 14
-                        color: colorAlertaRoja
+        // VISTA DE MI PERFIL
+        Item {
+            id: perfilView
+            anchors.fill: parent
+            visible: perfilPopup.currentView === "perfil"
+
+            ColumnLayout {
+                anchors.fill: parent
+                spacing: 0
+
+                // Encabezado
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 50
+                    color: colorVerdeBosque
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 10
+                        anchors.rightMargin: 10
+                        
+                        // Botón de regresar
+                        Rectangle {
+                            width: 30
+                            height: 30
+                            color: "transparent"
+                            
+                            Text {
+                                anchors.centerIn: parent
+                                text: "←"
+                                font.pixelSize: 20
+                                color: "white"
+                            }
+                            
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    perfilPopup.currentView = "menu"
+                                }
+                            }
+                        }
+                        
+                        Text {
+                            text: "Mi Perfil"
+                            font.bold: true
+                            font.family: "Arial"
+                            font.pixelSize: 16
+                            color: "white"
+                        }
+                        
+                        Item { Layout.fillWidth: true }
                     }
                 }
-                
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        // Lógica para cerrar sesión
-                        perfilPopup.close()
+
+                // Contenido del formulario de perfil
+                ScrollView {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    clip: true
+                    
+                    ColumnLayout {
+                        width: parent.width
+                        spacing: 20
+                        anchors.margins: 20
+                        
+                        // Foto de perfil
+                        Item {
+                            Layout.fillWidth: true
+                            height: 100
+                            Layout.topMargin: 20
+                            
+                            Rectangle {
+                                width: 80
+                                height: 80
+                                radius: 40
+                                color: colorVerdeBosque
+                                anchors.centerIn: parent
+                                
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "L"
+                                    font.pixelSize: 36
+                                    font.bold: true
+                                    color: "white"
+                                }
+                            }
+                            
+                            Rectangle {
+                                width: 30
+                                height: 30
+                                radius: 15
+                                color: colorNaranjaCitrico
+                                anchors.right: parent.horizontalCenter
+                                anchors.rightMargin: -30
+                                anchors.bottom: parent.verticalCenter
+                                anchors.bottomMargin: -30
+                                
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "📷"
+                                    font.pixelSize: 16
+                                    color: "white"
+                                }
+                                
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        // Lógica para cambiar la foto
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Datos personales
+                        GridLayout {
+                            Layout.fillWidth: true
+                            Layout.leftMargin: 20
+                            Layout.rightMargin: 20
+                            columns: 2
+                            rowSpacing: 15
+                            columnSpacing: 10
+                            
+                            // Nombre
+                            Text {
+                                text: "Nombre:"
+                                font.bold: true
+                                font.family: "Arial"
+                                font.pixelSize: 14
+                                color: colorTextoNormal
+                            }
+                            
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: 35
+                                color: "#F5F5F5"
+                                border.color: "#E0E0E0"
+                                border.width: 1
+                                radius: 4
+                                
+                                TextInput {
+                                    id: inputNombre
+                                    anchors.fill: parent
+                                    anchors.margins: 8
+                                    font.family: "Arial"
+                                    font.pixelSize: 14
+                                    text: "Luis"
+                                    color: colorTextoNormal
+                                }
+                            }
+                            
+                            // Apellidos
+                            Text {
+                                text: "Apellidos:"
+                                font.bold: true
+                                font.family: "Arial"
+                                font.pixelSize: 14
+                                color: colorTextoNormal
+                            }
+                            
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: 35
+                                color: "#F5F5F5"
+                                border.color: "#E0E0E0"
+                                border.width: 1
+                                radius: 4
+                                
+                                TextInput {
+                                    id: inputApellidos
+                                    anchors.fill: parent
+                                    anchors.margins: 8
+                                    font.family: "Arial"
+                                    font.pixelSize: 14
+                                    text: "López Pérez"
+                                    color: colorTextoNormal
+                                }
+                            }
+                            
+                            // Email
+                            Text {
+                                text: "Email:"
+                                font.bold: true
+                                font.family: "Arial"
+                                font.pixelSize: 14
+                                color: colorTextoNormal
+                            }
+                            
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: 35
+                                color: "#F5F5F5"
+                                border.color: "#E0E0E0"
+                                border.width: 1
+                                radius: 4
+                                
+                                TextInput {
+                                    id: inputEmail
+                                    anchors.fill: parent
+                                    anchors.margins: 8
+                                    font.family: "Arial"
+                                    font.pixelSize: 14
+                                    text: "luis.lopez@example.com"
+                                    color: colorTextoNormal
+                                }
+                            }
+                            
+                            // Teléfono
+                            Text {
+                                text: "Teléfono:"
+                                font.bold: true
+                                font.family: "Arial"
+                                font.pixelSize: 14
+                                color: colorTextoNormal
+                            }
+                            
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: 35
+                                color: "#F5F5F5"
+                                border.color: "#E0E0E0"
+                                border.width: 1
+                                radius: 4
+                                
+                                TextInput {
+                                    id: inputTelefono
+                                    anchors.fill: parent
+                                    anchors.margins: 8
+                                    font.family: "Arial"
+                                    font.pixelSize: 14
+                                    text: "+34 612 345 678"
+                                    color: colorTextoNormal
+                                }
+                            }
+                            
+                            // Rol
+                            Text {
+                                text: "Rol:"
+                                font.bold: true
+                                font.family: "Arial"
+                                font.pixelSize: 14
+                                color: colorTextoNormal
+                            }
+                            
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: 35
+                                color: "#EEEEEE"
+                                border.color: "#E0E0E0"
+                                border.width: 1
+                                radius: 4
+                                
+                                Text {
+                                    anchors.fill: parent
+                                    anchors.margins: 8
+                                    font.family: "Arial"
+                                    font.pixelSize: 14
+                                    text: "Administrador"
+                                    color: colorTextoSecundario
+                                }
+                            }
+                        }
+                        
+                        // Botón de guardar
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.leftMargin: 20
+                            Layout.rightMargin: 20
+                            Layout.topMargin: 20
+                            height: 40
+                            color: colorVerdeBosque
+                            radius: 4
+                            
+                            Text {
+                                anchors.centerIn: parent
+                                text: "Guardar Cambios"
+                                font.bold: true
+                                font.family: "Arial"
+                                font.pixelSize: 14
+                                color: "white"
+                            }
+                            
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    // Lógica para guardar cambios
+                                    perfilPopup.currentView = "menu"
+                                }
+                            }
+                        }
+                        
+                        Item {
+                            height: 20
+                        }
                     }
                 }
             }
+        }
+        
+        // VISTA DE CAMBIAR CONTRASEÑA
+        Item {
+            id: passwordView
+            anchors.fill: parent
+            visible: perfilPopup.currentView === "password"
+
+            ColumnLayout {
+                anchors.fill: parent
+                spacing: 0
+
+                // Encabezado
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 50
+                    color: colorVerdeBosque
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 10
+                        anchors.rightMargin: 10
+                        
+                        // Botón de regresar
+                        Rectangle {
+                            width: 30
+                            height: 30
+                            color: "transparent"
+                            
+                            Text {
+                                anchors.centerIn: parent
+                                text: "←"
+                                font.pixelSize: 20
+                                color: "white"
+                            }
+                            
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    perfilPopup.currentView = "menu"
+                                }
+                            }
+                        }
+                        
+                        Text {
+                            text: "Cambiar Contraseña"
+                            font.bold: true
+                            font.family: "Arial"
+                            font.pixelSize: 16
+                            color: "white"
+                        }
+                        
+                        Item { Layout.fillWidth: true }
+                    }
+                }
+
+                // Contenido del formulario de cambio de contraseña
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.margins: 20
+                    spacing: 15
+                    
+                    Text {
+                        text: "Por favor, introduzca su contraseña actual y la nueva contraseña."
+                        font.family: "Arial"
+                        font.pixelSize: 12
+                        color: colorTextoSecundario
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                    }
+                    
+                    // Contraseña actual
+                    Text {
+                        text: "Contraseña actual:"
+                        font.bold: true
+                        font.family: "Arial"
+                        font.pixelSize: 14
+                        color: colorTextoNormal
+                        Layout.topMargin: 10
+                    }
+                    
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 35
+                        color: "#F5F5F5"
+                        border.color: "#E0E0E0"
+                        border.width: 1
+                        radius: 4
+                        
+                        TextInput {
+                            id: inputPassActual
+                            anchors.fill: parent
+                            anchors.margins: 8
+                            font.family: "Arial"
+                            font.pixelSize: 14
+                            color: colorTextoNormal
+                            echoMode: TextInput.Password
+                            passwordCharacter: "•"
+                        }
+                    }
+                    
+                    // Nueva contraseña
+                    Text {
+                        text: "Nueva contraseña:"
+                        font.bold: true
+                        font.family: "Arial"
+                        font.pixelSize: 14
+                        color: colorTextoNormal
+                        Layout.topMargin: 10
+                    }
+                    
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 35
+                        color: "#F5F5F5"
+                        border.color: "#E0E0E0"
+                        border.width: 1
+                        radius: 4
+                        
+                        TextInput {
+                            id: inputPassNueva
+                            anchors.fill: parent
+                            anchors.margins: 8
+                            font.family: "Arial"
+                            font.pixelSize: 14
+                            color: colorTextoNormal
+                            echoMode: TextInput.Password
+                            passwordCharacter: "•"
+                        }
+                    }
+                    
+                    // Confirmar nueva contraseña
+                    Text {
+                        text: "Confirmar nueva contraseña:"
+                        font.bold: true
+                        font.family: "Arial"
+                        font.pixelSize: 14
+                        color: colorTextoNormal
+                        Layout.topMargin: 10
+                    }
+                    
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 35
+                        color: "#F5F5F5"
+                        border.color: "#E0E0E0"
+                        border.width: 1
+                        radius: 4
+                        
+                        TextInput {
+                            id: inputPassConfirm
+                            anchors.fill: parent
+                            anchors.margins: 8
+                            font.family: "Arial"
+                            font.pixelSize: 14
+                            color: colorTextoNormal
+                            echoMode: TextInput.Password
+                            passwordCharacter: "•"
+                        }
+                    }
+                    
+                    // Mensaje de validación
+                    Text {
+                        id: mensajeValidacion
+                        text: "Las contraseñas deben tener al menos 8 caracteres incluyendo letras y números."
+                        font.family: "Arial"
+                        font.pixelSize: 12
+                        color: colorTextoSecundario
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                        Layout.topMargin: 5
+                    }
+                    
+                    Item { Layout.fillHeight: true }
+                    
+                    // Botón de cambiar contraseña
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 40
+                        color: colorVerdeBosque
+                        radius: 4
+                        
+                        Text {
+                            anchors.centerIn: parent
+                            text: "Cambiar Contraseña"
+                            font.bold: true
+                            font.family: "Arial"
+                            font.pixelSize: 14
+                            color: "white"
+                        }
+                        
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                // Validación simple
+                                if (inputPassNueva.text.length < 8) {
+                                    mensajeValidacion.color = colorAlertaRoja
+                                    mensajeValidacion.text = "La contraseña debe tener al menos 8 caracteres."
+                                } else if (inputPassNueva.text !== inputPassConfirm.text) {
+                                    mensajeValidacion.color = colorAlertaRoja
+                                    mensajeValidacion.text = "Las contraseñas no coinciden."
+                                } else {
+                                    // Lógica para cambiar la contraseña
+                                    mensajeValidacion.color = colorAlertaVerde
+                                    mensajeValidacion.text = "Contraseña cambiada con éxito."
+                                    
+                                    // Después de un tiempo, volver al menú
+                                    passwordChangeTimer.start()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Timer para volver al menú después de cambiar la contraseña
+        Timer {
+            id: passwordChangeTimer
+            interval: 1500
+            onTriggered: {
+                perfilPopup.currentView = "menu"
+            }
+        }
+
+        // Función para resetear la vista cuando se cierra el popup
+        onClosed: {
+            perfilPopup.currentView = "menu"
         }
     }
 }

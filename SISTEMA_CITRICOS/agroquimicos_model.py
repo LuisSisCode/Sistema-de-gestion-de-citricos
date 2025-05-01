@@ -246,3 +246,15 @@ class AgroquimicosModel(QObject):
         except Exception as e:
             print(f"Error al actualizar stock: {str(e)}")
             return False
+    @Slot(int, str, result=bool)
+    def actualizar_categoria(self, id_categoria, categoria_data_json):
+        """Actualiza una categoría existente"""
+        try:
+            categoria_data = json.loads(categoria_data_json)
+            success = self._gestor.actualizar_categoria(id_categoria, categoria_data)
+            if success:
+                self.cargar_categorias()
+            return success
+        except Exception as e:
+            print(f"Error al actualizar categoría: {str(e)}")
+            return False
