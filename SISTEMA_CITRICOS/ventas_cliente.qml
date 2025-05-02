@@ -69,32 +69,39 @@ Rectangle {
     }
 
     
-
     function cargarVentasDesdeModelo() {
+        console.log("Iniciando carga de ventas desde modelo...");
         ventasListViewModel.clear();
         var ventasJson = safeGetModelData("get_ventas_json");
+        console.log("JSON de ventas recibido, longitud: " + ventasJson.length);
         
         try {
             var ventas = JSON.parse(ventasJson);
+            console.log("Cantidad de ventas parseadas: " + ventas.length);
             
             for (var i = 0; i < ventas.length; i++) {
+                var venta = ventas[i];
+                console.log("Procesando venta #" + i + ": " + JSON.stringify(venta));
+                
                 // Crear objeto con valores seguros para evitar undefined o null
                 var item = {
-                    id_venta: ventas[i].id_venta || 0,
-                    codigo: safeText(ventas[i].codigo_venta, ""),
-                    fecha: safeText(ventas[i].fecha_venta, ""),
-                    cliente: safeText(ventas[i].cliente_nombre, ""),
-                    cantidad: ventas[i].cantidad || 0,
-                    precio100u: ventas[i].precio_unitario || 0,
-                    total: ventas[i].total || 0,
-                    estado: safeText(ventas[i].estado_nombre, "Pendiente"),
-                    estado_pago: safeText(ventas[i].estado_pago, "Pendiente"),
-                    fecha_entrega: safeText(ventas[i].fecha_entrega, ""),
-                    lugar_entrega: safeText(ventas[i].lugar_entrega, ""),
-                    observaciones: safeText(ventas[i].observaciones, "")
+                    id_venta: venta.id_venta || 0,
+                    codigo: safeText(venta.codigo_venta, ""),
+                    fecha: safeText(venta.fecha_venta, ""),
+                    cliente: safeText(venta.cliente_nombre, ""),
+                    cantidad: venta.cantidad || 0,
+                    precio100u: venta.precio_unitario || 0,
+                    total: venta.total || 0,
+                    estado: safeText(venta.estado_nombre, "Pendiente"),
+                    estado_pago: safeText(venta.estado_pago, "Pendiente"),
+                    fecha_entrega: safeText(venta.fecha_entrega, ""),
+                    lugar_entrega: safeText(venta.lugar_entrega, ""),
+                    observaciones: safeText(venta.observaciones, "")
                 };
                 ventasListViewModel.append(item);
             }
+            
+            console.log("Carga de ventas completada. Total ventas: " + ventasListViewModel.count);
         } catch (e) {
             console.error("Error al cargar ventas: " + e);
             showMessage("Error al cargar los datos de ventas");
@@ -673,7 +680,7 @@ Rectangle {
                                 // Inicializa los valores para la nueva venta
                                 nuevaVenta = { 
                                     "ventaId": "", 
-                                    "codigo": "V-" + (ventaModel && ventaModel.count ? ventaModel.count + 1 : 1).toString().padStart(4, '0'),
+                                    "codigo": ventaModel.generar_codigo_venta(), // Usar la función del backend
                                     "fecha": Qt.formatDateTime(new Date(), "dd/MM/yyyy"),
                                     "cliente": "",
                                     "total": 0,

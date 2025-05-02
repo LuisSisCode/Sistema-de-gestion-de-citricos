@@ -247,8 +247,26 @@ class GestorVentas:
                 
                 for row in cursor.fetchall():
                     # Formatear fechas como strings de manera segura
-                    fecha_venta = row.fecha_venta.strftime('%Y-%m-%d') if row.fecha_venta and hasattr(row.fecha_venta, 'strftime') else str(row.fecha_venta)
-                    fecha_entrega = row.fecha_entrega.strftime('%Y-%m-%d') if row.fecha_entrega else None
+                    fecha_venta = ""
+                    fecha_entrega = ""
+                    
+                    # Manejar fecha_venta con cuidado
+                    if row.fecha_venta:
+                        if isinstance(row.fecha_venta, str):
+                            fecha_venta = row.fecha_venta
+                        elif hasattr(row.fecha_venta, 'strftime'):
+                            fecha_venta = row.fecha_venta.strftime('%Y-%m-%d')
+                        else:
+                            fecha_venta = str(row.fecha_venta)
+                    
+                    # Manejar fecha_entrega con cuidado
+                    if row.fecha_entrega:
+                        if isinstance(row.fecha_entrega, str):
+                            fecha_entrega = row.fecha_entrega
+                        elif hasattr(row.fecha_entrega, 'strftime'):
+                            fecha_entrega = row.fecha_entrega.strftime('%Y-%m-%d')
+                        else:
+                            fecha_entrega = str(row.fecha_entrega)
                     
                     venta = {
                         'id_venta': row.id_venta,
@@ -259,7 +277,7 @@ class GestorVentas:
                         'subtotal': float(row.subtotal) if row.subtotal else 0.0,
                         'total': float(row.total) if row.total else 0.0,
                         'condiciones_pago': row.condiciones_pago or '',
-                        'fecha_entrega': fecha_entrega or "",
+                        'fecha_entrega': fecha_entrega,
                         'lugar_entrega': row.lugar_entrega or "",
                         'id_estado': row.id_estado,
                         'estado_nombre': row.estado_nombre,
@@ -271,7 +289,7 @@ class GestorVentas:
                         'precio_unitario': float(row.precio_unitario) if row.precio_unitario else 0.0,
                     }
                     ventas.append(venta)
-                
+                    
                 logger.info(f"Se obtuvieron {len(ventas)} ventas de la base de datos.")
                 return ventas
         except Exception as e:
@@ -384,13 +402,13 @@ class GestorVentas:
             # Usar el método existente para agregar la venta
             success, id_venta = self._agregar_venta_impl(venta_data, detalles_data)
             
-            if success:
-                # Recargar todas las listas afectadas
-                self.cargar_ventas()
-                self.cargar_resumen_ventas_mes()
-                self.cargar_pagos_pendientes()
-                self.cargar_cliente_top()
-                self.cargar_clientes_clasificados()
+            #if success: -- por implementar
+                #Recargar todas las listas afectadas
+                #self.cargar_ventas()
+                #self.cargar_resumen_ventas_mes()
+                #self.cargar_pagos_pendientes()
+                #self.cargar_cliente_top()
+                #self.cargar_clientes_clasificados()
             
             return success
         except Exception as e:
@@ -480,7 +498,7 @@ class GestorVentas:
                     query_detalle = """
                     INSERT INTO DetallesVenta (id_venta, cantidad, unidad_medida, 
                                             precio_unitario, subtotal, total, observaciones)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                     """
                     
                     valores_detalle = (
@@ -1795,7 +1813,7 @@ class GestorVentas:
     
     def generar_codigo_venta(self):
         """
-        Genera un código único para una nueva venta.
+        Genera un código único para una nueva venta con formato V-XXXX.
         
         Returns:
             str: Código generado para la venta.
@@ -1804,41 +1822,43 @@ class GestorVentas:
             with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 
-                # Obtener el año y mes actual
-                hoy = datetime.now()
-                year_month = hoy.strftime('%Y%m')
-                
-                # Consultar el último código para este mes
+                # Consultar el último código
                 query = """
                 SELECT TOP 1 codigo_venta 
                 FROM Ventas 
-                WHERE codigo_venta LIKE ?
+                WHERE codigo_venta LIKE 'V-%'
                 ORDER BY id_venta DESC
                 """
                 
-                cursor.execute(query, (f"V-{year_month}%",))
+                cursor.execute(query)
                 row = cursor.fetchone()
                 
                 if row:
                     # Extraer el número del último código
                     ultimo_codigo = row.codigo_venta
-                    partes = ultimo_codigo.split('-')
-                    if len(partes) > 1:
-                        numero = int(partes[-1])
+                    
+                    # Intentar extraer el número después del "V-"
+                    try:
+                        numero_str = ultimo_codigo.replace("V-", "")
+                        # Si tiene guiones adicionales (como en V-2023-001), tomar la última parte
+                        if "-" in numero_str:
+                            numero_str = numero_str.split("-")[-1]
+                        numero = int(numero_str)
                         nuevo_numero = numero + 1
-                    else:
+                    except (ValueError, IndexError):
+                        # Si hay algún problema al extraer el número, comenzar desde 1
                         nuevo_numero = 1
                 else:
                     nuevo_numero = 1
                 
-                # Generar el nuevo código
-                nuevo_codigo = f"V-{year_month}-{nuevo_numero:04d}"
+                # Generar el nuevo código con formato simple V-XXXX
+                nuevo_codigo = f"V-{nuevo_numero:04d}"
                 
                 return nuevo_codigo
         except Exception as e:
             logger.error(f"Error al generar código de venta: {str(e)}")
             # Generar un código alternativo si hay error
-            return f"V-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            return f"V-{1:04d}"
 
     def obtener_productos_venta(self, id_venta):
         """

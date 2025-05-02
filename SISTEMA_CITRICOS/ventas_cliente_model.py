@@ -587,6 +587,9 @@ class ClientesVentaModel(QObject):
     def get_ventas_json(self):
         """Retorna todas las ventas en formato JSON para QML"""
         try:
+            # Asegúrate de recargar las ventas desde la base de datos
+            self._ventas = self._gestor.obtener_ventas()
+            logger.info(f"Se cargaron {len(self._ventas)} ventas de la base de datos")
             return json.dumps(self._ventas)
         except Exception as e:
             logger.error(f"Error al convertir ventas a JSON: {str(e)}")
