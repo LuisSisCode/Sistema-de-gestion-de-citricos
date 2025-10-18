@@ -205,7 +205,7 @@ Rectangle {
                             icon.source: "Image/Image_UI_interfaz/Inconos/agregar.svg"
                             implicitHeight: 36
                             background: Rectangle {
-                                color: "#f5922f"
+                                color: parent.hovered ? "#E65A00" : "#f5922f"
                                 radius: height / 2
                             }
                             onClicked: {
@@ -230,12 +230,30 @@ Rectangle {
                         }
                         
                         TextField {
+                            id : txtBuscarProducto
                             Layout.preferredWidth: 250
                             placeholderText: "Buscar producto..."
-                            implicitHeight: 36
+                            implicitWidth: 450
+                            implicitHeight: 28
+                            leftPadding: 30  // Espacio para el icono
+                            
                             background: Rectangle {
-                                color: "#b2c4c9"
+                                color: "#ffffff"
                                 radius: height / 2
+                                border.color: "#808080"
+                                border.width: 1
+                                
+                                // Icono de lupa
+                                Image {
+                                    anchors {
+                                        left: parent.left
+                                        leftMargin: 10
+                                        verticalCenter: parent.verticalCenter
+                                    }
+                                    source: "Image/Image_UI_interfaz/Inconos/lupa.png" // Cambia por tu ruta
+                                    width: 16
+                                    height: 16
+                                }
                             }
                             onTextChanged: buscarProductos(text)
                         }
@@ -257,7 +275,7 @@ Rectangle {
                             icon.source: "Image/Image_UI_interfaz/Inconos/actualizar.svg"
                             implicitHeight: 36
                             background: Rectangle {
-                                color: "#4CAF50"
+                                color: parent.hovered ? "#58e600" : "#4CAF50"
                                 radius: height / 2
                             }
                             onClicked: dialogActualizarStock.open()
@@ -694,7 +712,7 @@ Rectangle {
                             icon.source: "Image/Image_UI_interfaz/Inconos/agregar.svg"
                             implicitHeight: 36
                             background: Rectangle {
-                                color: "#f5922f"
+                                color: parent.hovered ? "#E65A00" : "#f5922f"
                                 radius: height / 2
                             }
                             onClicked: {
@@ -712,10 +730,27 @@ Rectangle {
                         TextField {
                             Layout.preferredWidth: 250
                             placeholderText: "Buscar categoría..."
-                            implicitHeight: 36
+                            implicitWidth: 450
+                            implicitHeight: 28
+                            leftPadding: 30  // Espacio para el icono
+                            
                             background: Rectangle {
-                                color: "#b2c4c9"
+                                color: "#ffffff"
                                 radius: height / 2
+                                border.color: "#808080"
+                                border.width: 1
+                                
+                                // Icono de lupa
+                                Image {
+                                    anchors {
+                                        left: parent.left
+                                        leftMargin: 10
+                                        verticalCenter: parent.verticalCenter
+                                    }
+                                    source: "Image/Image_UI_interfaz/Inconos/lupa.png" // Cambia por tu ruta
+                                    width: 16
+                                    height: 16
+                                }
                             }
                             onTextChanged: buscarCategorias(text)
                         }
@@ -958,7 +993,7 @@ Rectangle {
                             icon.source: "Image/Image_UI_interfaz/Inconos/mezcla.svg"
                             implicitHeight: 36
                             background: Rectangle {
-                                color: "#f5922f"
+                                color: parent.hovered ? "#E65A00" : "#f5922f"
                                 radius: height / 2
                             }
                             onClicked: {
@@ -978,10 +1013,27 @@ Rectangle {
                         TextField {
                             Layout.preferredWidth: 250
                             placeholderText: "Buscar mezcla..."
-                            implicitHeight: 36
+                            implicitWidth: 450
+                            implicitHeight: 28
+                            leftPadding: 30  // Espacio para el icono
+                            
                             background: Rectangle {
-                                color: "#b2c4c9"
+                                color: "#ffffff"
                                 radius: height / 2
+                                border.color: "#808080"
+                                border.width: 1
+                                
+                                // Icono de lupa
+                                Image {
+                                    anchors {
+                                        left: parent.left
+                                        leftMargin: 10
+                                        verticalCenter: parent.verticalCenter
+                                    }
+                                    source: "Image/Image_UI_interfaz/Inconos/lupa.png" // Cambia por tu ruta
+                                    width: 16
+                                    height: 16
+                                }
                             }
                             onTextChanged: buscarMezclas(text)
                         }
@@ -1165,7 +1217,7 @@ Rectangle {
                             icon.source: "Image/Image_UI_interfaz/Inconos/agregar.svg"
                             implicitHeight: 36
                             background: Rectangle {
-                                color: "#f5922f"
+                                color: parent.hovered ? "#E65A00" : "#f5922f"
                                 radius: height / 2
                             }
                             onClicked: {
@@ -1186,10 +1238,27 @@ Rectangle {
                         TextField {
                             Layout.preferredWidth: 250
                             placeholderText: "Buscar tratamiento..."
-                            implicitHeight: 36
+                            implicitWidth: 450
+                            implicitHeight: 28
+                            leftPadding: 30  // Espacio para el icono
+                            
                             background: Rectangle {
-                                color: "#b2c4c9"
+                                color: "#ffffff"
                                 radius: height / 2
+                                border.color: "#808080"
+                                border.width: 1
+                                
+                                // Icono de lupa
+                                Image {
+                                    anchors {
+                                        left: parent.left
+                                        leftMargin: 10
+                                        verticalCenter: parent.verticalCenter
+                                    }
+                                    source: "Image/Image_UI_interfaz/Inconos/lupa.png" // Cambia por tu ruta
+                                    width: 16
+                                    height: 16
+                                }
                             }
                             onTextChanged: buscarTratamientos(text)
                         }

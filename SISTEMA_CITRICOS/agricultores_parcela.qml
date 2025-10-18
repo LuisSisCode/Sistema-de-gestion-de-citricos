@@ -4,13 +4,27 @@ import QtQuick.Layouts 1.15
 import QtLocation 5.15
 import QtPositioning 5.15
 
+
 Rectangle {
     id: agricultorerParcelaRoot
     anchors.fill: parent
     color: "#F8F9FA"
-    property double latitudSeleccionada: 0
-    property double longitudSeleccionada: 0
-    property var agricultoresparcelas  
+
+    // Propiedades para emitir señales
+    property bool modelReady: false
+    property bool agricultoresLoaded: false
+    // Controlar cuando el modelo está disponible
+    onAgricultoresparcelasChanged: {
+        if (agricultoresparcelas) {
+            agricultoresparcelas.cargar_agricultores()
+            agricultoresparcelas.cargar_parcelas()
+            agricultoresparcelas.cargar_propietarios()
+            modelReady = true
+        }
+    }
+
+    property double latitudSeleccionada: -17.4001
+    property double longitudSeleccionada: -63.9260  
     // Propiedades para la edición de agricultores
     property var nuevoAgricultor: {  
         "nombre": "", 
@@ -33,11 +47,24 @@ Rectangle {
         "latitud": 0,
         "longitud": 0
     }
+    // Propiedades de paginación para agricultores
+    property int paginaActualAgricultores: 1
+    property int totalPaginasAgricultores: 1
+    property int agricultoresPorPagina: 6
+
+    // Propiedades de paginación para parcelas
+    property int paginaActualParcelas: 1
+    property int totalPaginasParcelas: 1
+    property int parcelasPorPagina: 3
     
     // agricultoresparcelas
+    property var agricultoresparcelas: contentContainer.agricultoresModel
 
     Component.onCompleted: {
-        console.log("Modelo disponible:", agricultoresparcelas !== null)
+        if (!agricultoresparcelas && contentContainer.agricultoresModel) {
+            agricultoresparcelas = contentContainer.agricultoresModel;
+        }
+        //console.log("Modelo disponible:", agricultoresparcelas !== null)
         if (agricultoresparcelas) {
             console.log("Tipo de agricultoresparcelas.agricultores:", typeof agricultoresparcelas.agricultores)
             console.log("Es array:", Array.isArray(agricultoresparcelas.agricultores))
@@ -50,22 +77,36 @@ Rectangle {
             }
             
             // Cargar explícitamente los datos
-            agricultoresparcelas.cargar_agricultores()
-            agricultoresparcelas.cargar_parcelas()
+            agricultoresparcelas.cargar_agricultores_pagina(1)
+            agricultoresparcelas.cargar_parcelas_pagina(1)
             agricultoresparcelas.cargar_propietarios()
         }
     }
     
     Connections {
         target: agricultoresparcelas ? agricultoresparcelas : null
+        ignoreUnknownSignals: true
+        
         function onAgricultoresChanged() {
             if (agricultoresparcelas) {
-                console.log("Agricultores actualizados:", agricultoresparcelas.agricultores.length);
+                agricultoresLoaded = true
+                agricultoesListView.model = agricultoresparcelas.agricultores
+                paginaActualAgricultores = agricultoresparcelas.paginaActualAgricultores || 1
+                totalPaginasAgricultores = agricultoresparcelas.totalPaginasAgricultores || 1
+                console.log("Agricultores actualizados:", agricultoresparcelas.agricultores.length)
             }
         }
+        
         function onParcelasChanged() {
-            console.log("Parcelas actualizadas:", agricultoresparcelas.parcelas.length)
+            if (agricultoresparcelas) {
+                parcelasGrid.model = agricultoresparcelas.parcelas
+                paginaActualParcelas = agricultoresparcelas.paginaActualParcelas || 1
+                totalPaginasParcelas = agricultoresparcelas.totalPaginasParcelas || 1
+                console.log("Parcelas actualizadas:", agricultoresparcelas.parcelas.length)
+                console.log("Página parcelas:", paginaActualParcelas, "de", totalPaginasParcelas)
+            }
         }
+        
         function onPropietariosChanged() {
             console.log("Propietarios actualizados:", agricultoresparcelas.propietarios.length)
         }
@@ -75,7 +116,7 @@ Rectangle {
     Rectangle {
         id: titleBar
         width: parent.width
-        height: 80
+        height: 30
         color: "transparent"
 
         Text {
@@ -186,7 +227,7 @@ Rectangle {
                         icon.source: "Image/Image_UI_interfaz/Inconos/agregar-usuario.svg"
                         implicitHeight: 36
                         background: Rectangle {
-                            color: "#f5922f"
+                            color: parent.hovered ? "#E65A00" : "#f5922f"
                             radius: height / 2
                         }
                         onClicked: {
@@ -210,10 +251,26 @@ Rectangle {
                         id: txtBuscarAgricultor
                         placeholderText: "Buscar agricultor..."
                         implicitWidth: 400
-                        implicitHeight: 30
+                        implicitHeight: 28
+                        leftPadding: 30
+
                         background: Rectangle {
-                            color: "#b2c4c9"
+                            color: "#ffffff"
                             radius: height / 2
+                            border.color: "#808080"
+                            border.width: 1
+                            
+                            // Icono de lupa
+                            Image {
+                                anchors {
+                                    left: parent.left
+                                    leftMargin: 10
+                                    verticalCenter: parent.verticalCenter
+                                }
+                                source: "Image/Image_UI_interfaz/Inconos/lupa.png" // Cambia por tu ruta
+                                width: 16
+                                height: 16
+                            }
                         }
                         onTextChanged: {
                             if (text.length > 2) {
@@ -234,10 +291,17 @@ Rectangle {
                 anchors.topMargin: 20
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.bottom: parent.bottom
+                anchors.bottom: navegacionAgricultores.top
+                anchors.bottomMargin: 10
                 color: "white"
                 radius: 5
                 border.color: "#EEEEEE"
+
+                BusyIndicator {
+                    anchors.centerIn: parent
+                    running: !agricultoresLoaded && modelReady
+                    visible: running
+                }
 
                 ListView {
                     id: agricultoesListView
@@ -327,7 +391,7 @@ Rectangle {
 
                     // Delegado para cada fila
                     delegate: Rectangle {
-                        width: parent.width
+                        width: agricultorerParcelaRoot.width
                         height: 50
                         color: index % 2 === 0 ? "#FFFFFF" : "#F9F9F9"
 
@@ -458,7 +522,7 @@ Rectangle {
                                                 "telefono": modelData.telefono,
                                                 "correo": modelData.correo,
                                                 "direccion": modelData.direccion,
-                                                "esPropietario": modelData.esPropietario
+                                                "esPropietario":Boolean(modelData.esPropietario) ? true : false
                                             }
                                              // Actualizar controles del formulario
                                             txtNombre.text = modelData.nombre
@@ -467,7 +531,7 @@ Rectangle {
                                             txtTelefono.text = modelData.telefono
                                             txtCorreo.text = modelData.correo
                                             txtDireccion.text = modelData.direccion
-                                            chkPropietario.checked = modelData.esPropietario
+                                            chkPropietario.checked = Boolean(modelData.esPropietario) || false // modificado
                                             
                                             // Configurar el diálogo para modo edición
                                             dialogNuevoAgricultor.isEditMode = true
@@ -506,6 +570,37 @@ Rectangle {
                     }
                 }
             }
+            Rectangle{
+                id: navegacionAgricultores
+                anchors.bottom: parent.bottom
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: 50
+                color: "transparent"
+
+                Row {
+                    anchors.centerIn: parent
+                    spacing: 10
+                    
+                    Button {
+                        text: "← Anterior"
+                        enabled: paginaActualAgricultores > 1
+                        onClicked: agricultoresparcelas.pagina_anterior_agricultores()
+                    }
+                    
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "Página " + paginaActualAgricultores + " de " + totalPaginasAgricultores
+                        font.pixelSize: 14
+                    }
+                    
+                    Button {
+                        text: "Siguiente →"
+                        enabled: paginaActualAgricultores < totalPaginasAgricultores
+                        onClicked: agricultoresparcelas.pagina_siguiente_agricultores()
+                    }
+                }
+            }
         }
 
         // Página de Parcelas
@@ -530,7 +625,7 @@ Rectangle {
                         icon.source: "Image/Image_UI_interfaz/Inconos/agregar-documento.svg"
                         implicitHeight: 36
                         background: Rectangle {
-                            color: "#f5922f"
+                            color: parent.hovered ? "#E65A00" : "#f5922f"
                             radius: height / 2
                         }
                         onClicked: {
@@ -551,11 +646,27 @@ Rectangle {
 
                     TextField {
                         placeholderText: "Buscar parcela..."
-                        implicitWidth: 250
-                        implicitHeight: 30
+                        implicitWidth: 450
+                        implicitHeight: 28
+                        leftPadding: 30
+                        
                         background: Rectangle {
-                            color: "#b2c4c9"
+                            color: "#ffffff"
                             radius: height / 2
+                            border.color: "#808080"
+                            border.width: 1
+                            
+                            // Icono de lupa
+                            Image {
+                                anchors {
+                                    left: parent.left
+                                    leftMargin: 10
+                                    verticalCenter: parent.verticalCenter
+                                }
+                                source: "Image/Image_UI_interfaz/Inconos/lupa.png" // Cambia por tu ruta
+                                width: 16
+                                height: 16
+                            }
                         }
                         onTextChanged: {
                             if (text.length > 2) {
@@ -591,12 +702,11 @@ Rectangle {
                         onActivated: {
                             var selectedId = cmbFiltroAgricultores.currentValue;
                             if (selectedId === 0) {
-                                // Mostrar todas las parcelas si se selecciona "Todos los agricultores"
                                 parcelasGrid.model = agricultoresparcelas.parcelas;
                             } else {
-                                // Filtrar parcelas por propietario seleccionado
                                 parcelasGrid.model = agricultoresparcelas.obtener_parcelas_por_propietario(selectedId);
                             }
+
                         }
                         
                         // Actualizar cuando cambien los datos
@@ -633,7 +743,8 @@ Rectangle {
                 anchors.topMargin: 20
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.bottom: parent.bottom
+                anchors.bottom: navegacionParcelas.top
+                anchors.bottomMargin: 10
                 clip: true
                 model: agricultoresparcelas ? agricultoresparcelas.parcelas : []
                 onModelChanged: {
@@ -775,278 +886,48 @@ Rectangle {
                     }
                 }
             }
+            // Panel de navegación para parcelas
+            Rectangle {
+                id: navegacionParcelas
+                anchors.bottom: parent.bottom
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: 50
+                color: "transparent"
+                
+                Row {
+                    anchors.centerIn: parent
+                    spacing: 10
+                    
+                    Button {
+                        text: "← Anterior"
+                        enabled: paginaActualParcelas > 1
+                        onClicked: agricultoresparcelas.pagina_anterior_parcelas()
+                    }
+                    
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "Página " + paginaActualParcelas + " de " + totalPaginasParcelas
+                        font.pixelSize: 14
+                    }
+                    
+                    Button {
+                        text: "Siguiente →"
+                        enabled: paginaActualParcelas < totalPaginasParcelas
+                        onClicked: agricultoresparcelas.pagina_siguiente_parcelas()
+                    }
+                }
+            } 
         }
 
 
         // Página de Mapa
         Item {
-            Rectangle {
+            anchors.fill: parent
+            MapaInteractivo {
+                id: mapaInteractivo
                 anchors.fill: parent
-                color: "white"
-                radius: 5
-                border.color: "#EEEEEE"
-                              
-                // Configuración del plugin de mapa
-                Plugin {
-                    id: mapPlugin
-                    name: "osm" // OpenStreetMap
-                    // Parámetros para mejorar la apariencia del mapa
-                    PluginParameter {
-                        name: "osm.mapping.providersrepository.host"
-                        value: "https://tile.openstreetmap.org/"  // URL actualizada
-                    }
-                    PluginParameter {
-                        name: "osm.mapping.highdpi_tiles"
-                        value: "true"
-                    }
-                }
-                
-                // Componente de mapa principal
-                Map {
-                    id: mapaTerrenos
-                    anchors.fill: parent
-                    anchors.margins: 20
-                    plugin: mapPlugin
-                    
-                    // Coordenadas de Yapacaní, Provincia Ichilo
-                    center: QtPositioning.coordinate(-17.4001, -63.9260)
-                    zoomLevel: 15
-                    
-                    // Permitir interacción con el mapa (sin usar gesture directamente)
-                    enabled: true
-                    
-                    // Marcador para la ubicación actual/seleccionada
-                    MapQuickItem {
-                        id: marcadorActual
-                        coordinate: mapaTerrenos.center
-                        anchorPoint.x: 16
-                        anchorPoint.y: 16
-                        
-                        sourceItem: Rectangle {
-                            width: 32
-                            height: 32
-                            color: "transparent"
-                            
-                            Rectangle {
-                                anchors.centerIn: parent
-                                width: 16
-                                height: 16
-                                radius: 8
-                                color: "#4CAF50"
-                                border.color: "white"
-                                border.width: 2
-                            }
-                        }
-                    }
-                    
-                    // Marcador para mostrar la ubicación seleccionada
-                    MapQuickItem {
-                        id: marcadorSeleccion
-                        visible: false
-                        anchorPoint.x: 16
-                        anchorPoint.y: 32
-                        
-                        sourceItem: Column {
-                            spacing: 2
-                            
-                            Rectangle {
-                                width: 32
-                                height: 32
-                                radius: width/2
-                                color: "#F44336"
-                                border.color: "white"
-                                border.width: 2
-                                
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "P"
-                                    color: "white"
-                                    font.bold: true
-                                }
-                            }
-                            
-                            Rectangle {
-                                color: "#80FFFFFF"
-                                radius: 2
-                                width: textoMarcador.width + 6
-                                height: textoMarcador.height + 4
-                                
-                                Text {
-                                    id: textoMarcador
-                                    text: "Parcela"
-                                    font.pixelSize: 12
-                                    anchors.centerIn: parent
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Manejo de clic en el mapa
-                    MouseArea {
-                        id: mapMouseArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        
-                        property bool panning: false
-                        property int lastX: 0
-                        property int lastY: 0
-                        
-                        onPressed: {
-                            lastX = mouse.x
-                            lastY = mouse.y
-                            panning = true
-                        }
-                        
-                        onPositionChanged: {
-                            if (panning) {
-                                // Calcular el desplazamiento
-                                var dx = mouse.x - lastX
-                                var dy = mouse.y - lastY
-                                
-                                // Convertir el desplazamiento a coordenadas
-                                var c1 = mapaTerrenos.toCoordinate(Qt.point(width/2, height/2))
-                                var c2 = mapaTerrenos.toCoordinate(Qt.point(width/2 - dx, height/2 - dy))
-                                
-                                // Mover el centro del mapa
-                                mapaTerrenos.center = QtPositioning.coordinate(
-                                    mapaTerrenos.center.latitude + (c1.latitude - c2.latitude),
-                                    mapaTerrenos.center.longitude + (c1.longitude - c2.longitude)
-                                )
-                                
-                                // Actualizar la posición de referencia
-                                lastX = mouse.x
-                                lastY = mouse.y
-                            }
-                        }
-                        
-                        onReleased: {
-                            if (panning) {
-                                panning = false
-                            } else {
-                                // Es un clic, no un arrastre
-                                var coordinate = mapaTerrenos.toCoordinate(Qt.point(mouse.x, mouse.y))
-                                marcadorSeleccion.coordinate = coordinate
-                                marcadorSeleccion.visible = true
-                                textoMarcador.text = "Lat: " + coordinate.latitude.toFixed(4) + ", Lng: " + coordinate.longitude.toFixed(4)
-                                
-                                console.log("Ubicación seleccionada:", coordinate.latitude, coordinate.longitude)
-                                
-                                if (dialogNuevaParcela.visible) {
-                                    dialogNuevaParcela.latitudSeleccionada = coordinate.latitude
-                                    dialogNuevaParcela.longitudSeleccionada = coordinate.longitude
-                                    showMessage("Ubicación seleccionada: " + coordinate.latitude.toFixed(6) + ", " + coordinate.longitude.toFixed(6))
-                                }
-                            }
-                        }
-                        
-                        // Zoom con la rueda del ratón
-                        onWheel: function(wheel) {
-                            if (wheel.angleDelta.y > 0)
-                                mapaTerrenos.zoomLevel += 0.5
-                            else
-                                mapaTerrenos.zoomLevel -= 0.5
-                        }
-                    }
-                    
-                    // Información de coordenadas
-                    Rectangle {
-                        anchors.bottom: parent.bottom
-                        anchors.left: parent.left
-                        anchors.margins: 10
-                        color: "#80FFFFFF"
-                        border.color: "#CCCCCC"
-                        border.width: 1
-                        radius: 5
-                        width: textoCoords.width + 20
-                        height: textoCoords.height + 10
-                        
-                        Text {
-                            id: textoCoords
-                            anchors.centerIn: parent
-                            font.pixelSize: 12
-                            text: "Centro: " + mapaTerrenos.center.latitude.toFixed(4) + ", " + 
-                                mapaTerrenos.center.longitude.toFixed(4) + " | Zoom: " + mapaTerrenos.zoomLevel.toFixed(1)
-                        }
-                    }
-                    
-                    // Actualizar la información de coordenadas cuando cambia el centro del mapa
-                    onCenterChanged: {
-                        textoCoords.text = "Centro: " + center.latitude.toFixed(4) + ", " + 
-                                        center.longitude.toFixed(4) + " | Zoom: " + zoomLevel.toFixed(1)
-                    }
-                    
-                    onZoomLevelChanged: function() {
-                        textoCoords.text = "Centro: " + center.latitude.toFixed(4) + ", " + 
-                                        center.longitude.toFixed(4) + " | Zoom: " + zoomLevel.toFixed(1)
-                    }
-                }
-                
-                // Panel de controles para el mapa
-                Column {
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.margins: 20
-                    spacing: 10
-                    
-                    // Zoom in
-                    Button {
-                        width: 40
-                        height: 40
-                        text: "+"
-                        font.pixelSize: 20
-                        onClicked: mapaTerrenos.zoomLevel += 1
-                    }
-                    
-                    // Zoom out
-                    Button {
-                        width: 40
-                        height: 40
-                        text: "-"
-                        font.pixelSize: 20
-                        onClicked: mapaTerrenos.zoomLevel -= 1
-                    }
-                    
-                    // Centrar en Yapacaní
-                    Button {
-                        width: 40
-                        height: 40
-                        text: "Y"
-                        font.pixelSize: 14
-                        onClicked: {
-                            mapaTerrenos.center = QtPositioning.coordinate(-17.4001, -63.9260)
-                            mapaTerrenos.zoomLevel = 15
-                        }
-                        
-                        ToolTip.visible: hovered
-                        ToolTip.text: "Centrar en Yapacaní"
-                    }
-                }
-            }
-            
-            // Función para crear marcadores de parcelas
-            function crearMarcadorParcela(parcela) {
-                var component = Qt.createComponent("MapMarker.qml")
-                if (component.status === Component.Ready) {
-                    var marker = component.createObject(mapaTerrenos, {
-                        coordinate: QtPositioning.coordinate(parcela.latitud, parcela.longitud),
-                        title: parcela.nombre,
-                        parcelaId: parcela.id
-                    })
-                } else if (component.status === Component.Error) {
-                    console.error("Error al crear marcador:", component.errorString())
-                }
-            }
-            
-            // Cargar marcadores cuando se complete
-            Component.onCompleted: {
-                if (agricultoresparcelas && agricultoresparcelas.parcelas) {
-                    for (var i = 0; i < agricultoresparcelas.parcelas.length; i++) {
-                        var parcela = agricultoresparcelas.parcelas[i]
-                        if (parcela.latitud && parcela.longitud) {
-                            crearMarcadorParcela(parcela)
-                        }
-                    }
-                }
+                anchors.margins: 10
             }
         }
     }
@@ -1333,7 +1214,7 @@ Rectangle {
                         id: cmbPropietario
                         Layout.fillWidth: true
                         model: agricultoresparcelas ? agricultoresparcelas.propietarios : []
-                        textRole: "nombre--"
+                        textRole: "nombre"
                         valueRole: "id"
 
                         // Actualizar cuando cambien los propietarios
@@ -1572,7 +1453,7 @@ Rectangle {
                     
                     sourceItem: Image { 
                         id: selectorIcon
-                        source: "Image/Image_UI_interfaz/Inconos/marcador-de-mapa.svg"
+                        source: "Image/Image_UI_interfaz/Inconos/marcado_de_mapa.svg"
                         width: 30
                         height: 30
                     }
@@ -2007,6 +1888,20 @@ Rectangle {
             }
         }
     }
+
+    // Funciones para el Mapa
+    // Funciones para gestionar el servicio de mapas
+    function inicializar_servicio_mapa() {
+        // Llamar a Python para iniciar el servicio
+        var exito = contentContainer.iniciarServicioMapa()
+        console.log("Resultado inicio servicio:", exito)
+        return exito
+    }
+
+    function obtener_url_mapa() {
+        return contentContainer.obtenerUrlMapa()
+    }
+
     function obtenerPropietariosModel() {
             var propietariosArray = [];
             if (agricultoresparcelas && agricultoresparcelas.propietarios) {

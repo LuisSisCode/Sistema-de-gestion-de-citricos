@@ -1,0 +1,83 @@
+/SISTEMA_CITRICOS
+|
+|   BD_Citricos // Solo posee los script para generar la base de datos
+|       |------ Produccion_Citricos(Oficial).sql
+|       |   
+|   bd_conecciones  // aqui estan todos los archivos .py para las consultas a la base de datos
+|	
+|       |----- __init__.py
+|       |------ /nucleo
+|       |       |------ __init__.py
+|       |       |------ bd_conection.py
+|       |       |------ excepciones.py
+|       |       |------ repositorio_base.py
+|       |------ /repositorio	// CRUD
+|       |       |------ __init__.py
+|       |       |------ # AGRICULTORES Y PARCELAS
+|       |       |------/Agricultor_Parcelas_rep
+|       |       	|------ __init__.py.py
+|       |       	|------ agricultor_repositorio.py
+|       |       	|------ parcela_repositorio.py
+|       |       	|------ relacion_repositorio.py
+|       |       |------ # CULTIVOS - TIPOS - CICLO PRODUCCION
+|       |       |------ /CultivosRepositorio
+|       |       	|------ __init__.py.py
+|       |       	|------ tipo_cultivo_repositorio.py 
+|       |       	|------ variedad_cultivo_repositorio.py
+|       |       	|------ ciclo_produccion_repositoiro.py
+|       |       	|------ relacion_cultivo_repositorio.py
+|       |------ /servicios	// LOGICA DE NEGOCIO
+|       |       |------ __init__.py
+|       |       |------ # AGRICULTORES Y PARCELAS 
+|       |       |------ /AgricultorParcelasServ
+|       |       	|------ __init__.py.py
+|       |       	|------ agricultor_servicio.py
+|       |       	|------ parela_servicio.py
+|       |       	|------ gestion_servicio.py
+|       |       |------ # CULTIVOS - Variedades - Ciclos
+|       |       |------ /CultivosServ
+|       |       	|------ __init__.py.py
+|       |       	|------ tipo_cultivo_servicio.py  
+|       |       	|------ variedad_cultivo_servicio.py 
+|       |       	|------ ciclo_produccion_servicio.py 
+|       |       	|------ gestion_cultivo_servicio.py // 
+|       |------ bd_agroquimicos.py
+|       |------ bd_cultivos.py
+|       |------ bd_maquinaria.py
+|       |------ bd_usuario_roles.py
+|       |------ bd_ventas_clientes_integrado.py
+|       |------ bd_ventas.py
+|       |------ bd_clientes.py
+|   /Image // Posee imagenes para la interfaz
+|   /models    // archivos.py para enviar conexciones con los archivos .qml se conecta con los repositorios y servicios y los demas db.py 
+|       |------ agricultores_parcelas_model.py
+|       |------ agroquimicos_model.py
+|       |------ cultivos_model.py
+|       |------ maquinaria_model.py
+|       |------ usuario_roles_model.py
+|       |------ venta_cliente_model.py
+|   /recursos
+|       |------ /mapa
+|               |------ css
+|               |------ js
+
+|   agricultores_parcelas.qml
+|   agroquimico.qml
+|   configuracion.qml
+|   cultivos.qml
+|   DatePicker.qml
+|   inicio.qml
+|   login.qml
+|   main.qml
+|   MapaInteractivo.qml // Un intento de usar qml con html para GeoServer, no funciono
+|   maquinaria.qml
+|   usuario_roles.qml
+|   ventas_cliente.qml
+|   login.py
+|   main.py
+|   star_aplication.py
+|   user_session.py
+|   mapa_service_integrado.py
+|   mapa_service.py
+|   index.html
+Fin

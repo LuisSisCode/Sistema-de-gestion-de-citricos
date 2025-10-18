@@ -11,6 +11,7 @@ Rectangle {
     ListModel { id: clientesViewModel }
     ListModel { id: clientesComboModel }
 
+
     // Agregar después de la línea ListModel { id: clientesComboModel }
     function safeGetModelData(functionName, defaultValue) {
         try {
@@ -136,29 +137,6 @@ Rectangle {
             ventasListViewModel.append(resultados[i]);
         }
     }
-
-    function actualizarResumenVentas() {
-        var resumenJson = safeGetModelData("get_resumen_ventas_json");
-        var resumen = JSON.parse(resumenJson);
-        
-        // Actualizar los campos de estadísticas
-        // (ajusta estos nombres de campo según tu interfaz)
-        txtVentasMes.text = "Bs. " + (resumen.totales?.monto_total || 0).toFixed(2);
-        txtPagosPendientes.text = "Bs. " + (resumen.totales?.pendiente || 0).toFixed(2);
-        txtVentasVencidas.text = "Bs. " + (resumen.totales?.vencido || 0).toFixed(2);
-        
-        // Cliente top
-        var clienteTopJson = safeGetModelData("get_cliente_top_json");
-        var clienteTop = JSON.parse(clienteTopJson);
-        
-        if (clienteTop && clienteTop.nombre) {
-            txtClienteTop.text = clienteTop.nombre;
-            txtPorcentajeVentas.text = (clienteTop.porcentaje || 0).toFixed(1) + "% de las ventas";
-        } else {
-            txtClienteTop.text = "Sin datos";
-            txtPorcentajeVentas.text = "0% de las ventas";
-        }
-    }
     function verDetalleVenta() {
         var ventaJson = safeGetModelData("get_venta_seleccionada_json");
         try {
@@ -255,9 +233,9 @@ Rectangle {
         showMessage("Datos exportados correctamente");
     }
 
-    function cargarVariedadesCitricos() {
+    function cargarVariedades() {
         // Obtener variedades del modelo Python
-        variedadesCitricosModel.clear();
+        variedadesModel.clear();
         
         try {
             if (ventaModel && typeof ventaModel.obtener_variedades_disponibles === 'function') {
@@ -265,7 +243,7 @@ Rectangle {
                 
                 for (var i = 0; i < variedades.length; i++) {
                     if (variedades[i].activo) {
-                        variedadesCitricosModel.append({
+                        variedadesModel.append({
                             id_variedad: variedades[i].id_variedad,
                             nombre: variedades[i].variedad,
                             nombre_tipo_cultivo: variedades[i].tipo_cultivo,
@@ -283,7 +261,7 @@ Rectangle {
 
     // Propiedades para edición de ventas mostrarFilaEdicionVenta
     property bool mostrarDialogoNuevaVenta: false
-
+    property int filaSeleccionada: -1
     property var nuevaVenta: {
         "ventaId": "",
         "codigo": "",
@@ -309,12 +287,12 @@ Rectangle {
     }
     Component.onCompleted: {
         // Cargar datos iniciales
-        cargarVariedadesCitricos();
+        cargarVariedades();
         cargarClientesCombo();
         cargarVentasDesdeModelo();
         
         // Actualizar estadísticas y resumen
-        actualizarResumenVentas();
+        // Ninguna
     }
 
     // Título de la página
@@ -370,23 +348,6 @@ Rectangle {
 
         TabButton {
             text: "Clientes"
-            width: implicitWidth + 40
-            height: 30
-            background: Rectangle {
-                color: parent.checked ? "#32CD32":"#4CAF50"
-                radius: height / 2
-            }
-            contentItem: Text {
-                text: parent.text
-                color: "white"
-                font.bold: true
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
-        }
-
-        TabButton {
-            text: "Estadísticas"
             width: implicitWidth + 40
             height: 30
             background: Rectangle {
@@ -657,7 +618,7 @@ Rectangle {
                             icon.source: "Image/Image_UI_interfaz/Inconos/agregar.svg"
                             implicitHeight: 36
                             background: Rectangle {
-                                color: "#f5922f"
+                                color: parent.hovered ? "#E65A00" : "#f5922f"
                                 radius: height / 2
                             }
                             contentItem: Row {
@@ -695,10 +656,27 @@ Rectangle {
                         TextField {
                             Layout.preferredWidth: 250
                             placeholderText: "Buscar venta por código o cliente..."
-                            implicitHeight: 36
+                            implicitWidth: 450
+                            implicitHeight: 28
+                            leftPadding: 30  // Espacio para el icono
+                            
                             background: Rectangle {
-                                color: "#b2c4c9"
+                                color: "#ffffff"
                                 radius: height / 2
+                                border.color: "#808080"
+                                border.width: 1
+                                
+                                // Icono de lupa
+                                Image {
+                                    anchors {
+                                        left: parent.left
+                                        leftMargin: 10
+                                        verticalCenter: parent.verticalCenter
+                                    }
+                                    source: "Image/Image_UI_interfaz/Inconos/lupa.png" // Cambia por tu ruta
+                                    width: 16
+                                    height: 16
+                                }
                             }
                             // Agregar esto:
                             onTextChanged: {
@@ -842,19 +820,24 @@ Rectangle {
                                 Text {
                                     width: parent.width * 0.25
                                     height: parent.height
-                                    text: "Acciones"
+                                    text: "Detalle"
                                     font.bold: true
                                     verticalAlignment: Text.AlignVCenter
                                     horizontalAlignment: Text.AlignHCenter
                                 }
                             }
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    filaSeleccionada = index
+                                }
+                            }
                         }
-                        
                         // Delegado para cada fila con las nuevas columnas
                         delegate: Rectangle {
                             width: ventasClientesRoot.width
                             height: 50
-                            color: index % 2 === 0 ? "#FFFFFF" : "#F9F9F9"
+                            color: index === filaSeleccionada ? "#E3F2FD" : (index % 2 === 0 ? "#FFFFFF" : "#F9F9F9")
                             
                             // Usamos Row con Rectangles para cada columna
                             Row {
@@ -971,89 +954,79 @@ Rectangle {
                                     }
                                 }
                                 
-                                // Acciones
+                                // Detalle/Acciones
                                 Rectangle {
                                     width: parent.width * 0.25
                                     height: parent.height
                                     color: "transparent"
                                     
-                                    Row {
-                                        spacing: 10
+                                    Column {
                                         anchors.centerIn: parent
+                                        spacing: 2
                                         
-                                        Button {
-                                            width: 36
-                                            height: 36
-                                            icon.source: "Image/Image_UI_interfaz/Inconos/ojos.svg"
-                                            icon.color: "white"
-                                            background: Rectangle {
+                                        Text {
+                                            text: "Ver detalle"
+                                            color: "#666666"
+                                            font.pixelSize: 14
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                            visible: index !== filaSeleccionada
+                                            
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                onClicked: {
+                                                    ventaModel.cargar_venta_por_id(model.id_venta);
+                                                    verDetalleVenta();
+                                                }
+                                            }
+                                        }
+                                        
+                                        // Opciones cuando está seleccionada
+                                        Row {
+                                            spacing: 10
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                            visible: index === filaSeleccionada
+                                            
+                                            Text {
+                                                text: "Editar"
                                                 color: "#2196F3"
-                                                radius: width / 2
-                                            }
-                                            ToolTip.visible: hovered
-                                            ToolTip.text: "Ver detalles"
-                                            onClicked: {
-                                                ventaModel.cargar_venta_por_id(model.id_venta);
-                                                // Mostrar diálogo o vista detallada con los datos cargados
-                                                verDetalleVenta();
-                                            }
-                                        }
-                                        
-                                        Button {
-                                            width: 36
-                                            height: 36
-                                            icon.source: "Image/Image_UI_interfaz/Inconos/imprimir.svg"
-                                            icon.color: "white"
-                                            background: Rectangle {
-                                                color: "#4CAF50"
-                                                radius: width / 2
-                                            }
-                                            ToolTip.visible: hovered
-                                            ToolTip.text: "Imprimir"
-                                            onClicked: showMessage("Función para imprimir no implementada")
-                                        }
-                                        
-                                        Button {
-                                            width: 36
-                                            height: 36
-                                            icon.source: "Image/Image_UI_interfaz/Inconos/gastos.svg"
-                                            icon.color: "white"
-                                            visible: model.estado !== "Pagada"
-                                            background: Rectangle {
-                                                color: "#FF9800"
-                                                radius: width / 2
-                                            }
-                                            ToolTip.visible: hovered
-                                            ToolTip.text: "Registrar pago"
-                                            onClicked: showMessage("Función para registrar pago no implementada")
-                                        }
-                                        
-                                        Button {
-                                            width: 36
-                                            height: 36
-                                            icon.source: "Image/Image_UI_interfaz/Inconos/basura.svg"
-                                            icon.color: "white"
-                                            background: Rectangle {
-                                                color: "#F44336"
-                                                radius: width / 2
-                                            }
-                                            ToolTip.visible: hovered
-                                            ToolTip.text: "Eliminar"
-                                            onClicked: {
-                                                // Mostrar confirmación
-                                                confirmDialog.text = "¿Está seguro que desea eliminar esta venta?";
-                                                confirmDialog.acceptHandler = function() {
-                                                    // Llamar al modelo para eliminar
-                                                    if (ventaModel.cancelar_venta(model.id_venta, "Eliminada por usuario")) {
-                                                        cargarVentasDesdeModelo();
-                                                        showMessage("Venta eliminada correctamente");
-                                                    } else {
-                                                        showMessage("Error al eliminar la venta");
+                                                font.pixelSize: 12
+                                                
+                                                MouseArea {
+                                                    anchors.fill: parent
+                                                    onClicked: {
+                                                        showMessage("Función editar venta (por implementar)")
+                                                        filaSeleccionada = -1 // Deseleccionar
                                                     }
-                                                };
-                                                confirmDialog.open();
-                                                productosVentaModel.remove(index);
-                                                actualizarTotalVenta();
+                                                }
+                                            }
+                                            
+                                            Text {
+                                                text: "|"
+                                                color: "#CCCCCC"
+                                                font.pixelSize: 12
+                                            }
+                                            
+                                            Text {
+                                                text: "Eliminar"
+                                                color: "#F44336"
+                                                font.pixelSize: 12
+                                                
+                                                MouseArea {
+                                                    anchors.fill: parent
+                                                    onClicked: {
+                                                        confirmDialog.text = "¿Está seguro que desea eliminar esta venta?";
+                                                        confirmDialog.acceptHandler = function() {
+                                                            if (ventaModel.cancelar_venta(model.id_venta, "Eliminada por usuario")) {
+                                                                cargarVentasDesdeModelo();
+                                                                showMessage("Venta eliminada correctamente");
+                                                            } else {
+                                                                showMessage("Error al eliminar la venta");
+                                                            }
+                                                            filaSeleccionada = -1; // Deseleccionar
+                                                        };
+                                                        confirmDialog.open();
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -1099,7 +1072,7 @@ Rectangle {
                             icon.source: "Image/Image_UI_interfaz/Inconos/agregar-usuario.svg"
                             implicitHeight: 36
                             background: Rectangle {
-                                color: "#f5922f"
+                                color: parent.hovered ? "#E65A00" : "#f5922f"
                                 radius: height / 2
                             }
                             onClicked: {
@@ -1124,10 +1097,27 @@ Rectangle {
                         TextField {
                             Layout.preferredWidth: 250
                             placeholderText: "Buscar cliente..."
-                            implicitHeight: 36
+                            implicitWidth: 450
+                            implicitHeight: 28
+                            leftPadding: 30
+                             
                             background: Rectangle {
-                                color: "#b2c4c9"
+                                color: "#ffffff"
                                 radius: height / 2
+                                border.color: "#808080"
+                                border.width: 1
+                                
+                                // Icono de lupa
+                                Image {
+                                    anchors {
+                                        left: parent.left
+                                        leftMargin: 10
+                                        verticalCenter: parent.verticalCenter
+                                    }
+                                    source: "Image/Image_UI_interfaz/Inconos/lupa.png" // Cambia por tu ruta
+                                    width: 16
+                                    height: 16
+                                }
                             }
                         }
                         
@@ -1365,116 +1355,11 @@ Rectangle {
                 }
             }
         }
-
-        // Página de Estadísticas
-        Item {
-            ColumnLayout {
-                anchors.fill: parent
-                spacing: 20
-                
-                // Filtros y controles
-                Rectangle {
-                    Layout.fillWidth: true
-                    height: 50
-                    color: "white"
-                    radius: 25
-                    border.color: "#EEEEEE"
-                    
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.margins: 10
-                        spacing: 15
-                        
-                        Text {
-                            text: "Período:"
-                            font.pixelSize: 14
-                        }
-                        
-                        ComboBox {
-                            Layout.preferredWidth: 200
-                            model: ["Último mes", "Último trimestre", "Último año", "Personalizado"]
-                            implicitHeight: 36
-                        }
-                        
-                        Text {
-                            text: "Producto:"
-                            font.pixelSize: 14
-                        }
-                        
-                        ComboBox {
-                            Layout.preferredWidth: 200
-                            model: ["Todos los productos", "Limón", "Naranja", "Mandarina", "Toronja", "Lima"]
-                            implicitHeight: 36
-                        }
-                        
-                        Item { Layout.fillWidth: true }
-                        
-                        Button {
-                            text: "Generar Reporte"
-                            icon.source: "Image/Image_UI_interfaz/Inconos/comercio.svg"
-                            implicitHeight: 36
-                            background: Rectangle {
-                                color: "#4CAF50"
-                                radius: height / 2
-                            }
-                            onClicked: showMessage("Función para generar reporte no implementada")
-                        }
-                    }
-                }
-                
-                // Mensaje cuando no hay datos estadísticos
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    color: "white"
-                    radius: 5
-                    border.color: "#EEEEEE"
-                    
-                    Column {
-                        anchors.centerIn: parent
-                        spacing: 15
-                        
-                        Text {
-                            text: "No hay suficientes datos para mostrar estadísticas"
-                            font.pixelSize: 18
-                            font.bold: true
-                            anchors.horizontalCenter: parent.horizontalCenter
-                        }
-                        
-                        Text {
-                            text: "Las estadísticas serán generadas cuando se registren ventas en el sistema."
-                            font.pixelSize: 14
-                            color: "#757575"
-                            anchors.horizontalCenter: parent.horizontalCenter
-                        }
-                        
-                        Button {
-                            text: "Ir a Ventas"
-                            icon.source: "Image/Image_UI_interfaz/Inconos/siguiente.svg"
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            background: Rectangle {
-                                color: "#4CAF50"
-                                radius: height / 2
-                            }
-                            contentItem: Text {
-                                text: parent.text
-                                color: "white"
-                                font.bold: true
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                            }
-                            onClicked: tabBar.currentIndex = 0
-                        }
-                    }
-                }
-            }
-        }
-
-            // Página de Nueva Venta
+        // Página de Nueva Venta Mejorada
         Item {
             id: nuevaVentaPage
-            visible: tabBar.currentIndex === 3  // Ajustar según sea necesario
-            // Scroll para todo el contenido
+            visible: tabBar.currentIndex === 3
+
             ScrollView {
                 id: scrollViewNuevaVenta
                 anchors.fill: parent
@@ -1482,50 +1367,62 @@ Rectangle {
                 ScrollBar.vertical.policy: ScrollBar.AsNeeded
                 ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                 
-                // Contenedor principal
                 ColumnLayout {
                     width: scrollViewNuevaVenta.width
                     spacing: 20
-                    Layout.margins: 20  // Usar esta propiedad en lugar de anchors.margins
+                    Layout.margins: 20
 
-                                    
                     // Título de la página
                     Rectangle {
                         Layout.fillWidth: true
-                        height: 60
+                        height: 50
                         color: "#4CAF50"
                         radius: 5
                         
                         Text {
                             anchors.centerIn: parent
                             text: "FACTURA DE VENTA"
-                            font.pixelSize: 20
+                            font.pixelSize: 18
                             font.bold: true
                             color: "white"
                         }
                     }
 
-                    // Formulario con GridLayout para información general
+                    // Usuario Actual
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 25
+                        color: "#edf7ed"
+                        radius: 4
+                        
+                        Text {
+                            anchors.centerIn: parent
+                            text: "Usuario actual: " + (ventaModel && ventaModel.current_user_name ? ventaModel.current_user_name : "Luis Lopez Beltran")
+                            font.pixelSize: 11
+                            color: "#2E7D32"
+                        }
+                    }
+
+                    // Información General
                     GridLayout {
                         Layout.fillWidth: true
-                        columns: 6  // Usamos 6 columnas para manejar pares de etiqueta/campo
+                        columns: 6
                         columnSpacing: 15
                         rowSpacing: 15
                         
-                        // COLUMNA 1 - 3 filas
-                        
-                        // Fila 1: Código
+                        // FILA 1
                         Text {
                             text: "Código:"
                             Layout.alignment: Qt.AlignRight
-                            font.pixelSize: 14
+                            font.pixelSize: 13
                         }
                         
                         TextField {
                             id: txtCodigoVenta
                             text: nuevaVenta.codigo
                             readOnly: true
-                            Layout.preferredWidth: 150
+                            Layout.preferredWidth: 120
+                            font.pixelSize: 13
                             background: Rectangle {
                                 border.color: "#DDDDDD"
                                 border.width: 1
@@ -1534,11 +1431,10 @@ Rectangle {
                             }
                         }
                         
-                        // Fila 1: Fecha (COLUMNA 2)
                         Text {
                             text: "Fecha:"
                             Layout.alignment: Qt.AlignRight
-                            font.pixelSize: 14
+                            font.pixelSize: 13
                         }
                         
                         TextField {
@@ -1547,7 +1443,8 @@ Rectangle {
                             readOnly: false
                             placeholderText: "DD/MM/YYYY"
                             inputMask: "99/99/9999"
-                            Layout.preferredWidth: 150
+                            Layout.preferredWidth: 120
+                            font.pixelSize: 13
                             background: Rectangle {
                                 border.color: "#DDDDDD"
                                 border.width: 1
@@ -1555,517 +1452,586 @@ Rectangle {
                             }
                         }
                         
-                        // Fila 1, COLUMNA 3: Producto y Botón
-                        ComboBox {
-                            id: cmbVariedadCitrico
-                            Layout.preferredWidth: 150
-                            model: ListModel { id: variedadesCitricosModel }
-                            textRole: "nombre"
-                            valueRole: "id_variedad"
-                            displayText: currentIndex >= 0 ? currentText : "Seleccionar producto"
-                            
-                            Component.onCompleted: {
-                                cargarVariedadesCitricos();
-                                currentIndex = -1;
+                        Row {
+                            spacing: 5
+                            CheckBox {
+                                id: chkActivarEntrega
+                                checked: true
+                                anchors.verticalCenter: parent.verticalCenter
+                                
+                                onCheckedChanged: {
+                                    txtFechaEntrega.enabled = checked
+                                    txtFechaEntrega.opacity = checked ? 1.0 : 0.5
+                                    if (!checked) txtFechaEntrega.text = ""
+                                }
+                            }
+                            Text {
+                                text: "F. Entrega:"
+                                anchors.verticalCenter: parent.verticalCenter
+                                font.pixelSize: 13
                             }
                         }
                         
-                        Button {
-                            text: "Añadir"
-                            Layout.preferredWidth: 80
-                            implicitHeight: 36
+                        TextField {
+                            id: txtFechaEntrega
+                            placeholderText: "DD/MM/YYYY"
+                            inputMask: "99/99/9999"
+                            Layout.preferredWidth: 120
+                            font.pixelSize: 13
                             background: Rectangle {
-                                color: "#4CAF50"
-                                radius: height / 2
-                            }
-                            contentItem: Text {
-                                text: parent.text
-                                color: "white"
-                                font.bold: true
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                            }
-                            onClicked: {
-                                // El mismo código del botón original
-                                if (cmbVariedadCitrico.currentIndex < 0) {
-                                    mensajeValidacionVenta.text = "Seleccione un producto";
-                                    return;
-                                }
-                                
-                                if (!txtCantidadProducto.text || !txtPrecioProducto.text) {
-                                    mensajeValidacionVenta.text = "Ingrese cantidad y precio";
-                                    return;
-                                }
-                                
-                                var variedad = variedadesCitricosModel.get(cmbVariedadCitrico.currentIndex);
-                                var cantidad = parseInt(txtCantidadProducto.text);
-                                var precioUnitario = parseFloat(txtPrecioProducto.text);
-                                var unidad = cmbUnidadMedida.currentText;
-                                
-                                var subtotal = (precioUnitario * cantidad) / 100;
-                                
-                                productosVentaModel.append({
-                                    id_variedad: variedad.id_variedad,
-                                    nombre: variedad.nombre + " (" + variedad.nombre_tipo_cultivo + ")",
-                                    cantidad: cantidad,
-                                    unidad: unidad,
-                                    precioUnitario: precioUnitario,
-                                    subtotal: subtotal
-                                });
-                                actualizarTotalVenta();
-    
-                                mensajeValidacionVenta.text = "";
+                                border.color: "#DDDDDD"
+                                border.width: 1
+                                radius: 4
+                                color: parent.enabled ? "white" : "#F5F5F5"
                             }
                         }
                         
-                        // Fila 2: Cliente (COLUMNA 1)
+                        // FILA 2
                         Text {
                             text: "Cliente:"
                             Layout.alignment: Qt.AlignRight
-                            font.pixelSize: 14
+                            font.pixelSize: 13
                         }
                         
                         ComboBox {
                             id: cmbClienteVenta
+                            Layout.preferredWidth: 120
                             model: clientesComboModel
                             textRole: "nombre"
                             valueRole: "id"
+                            font.pixelSize: 13
                             
                             onCurrentIndexChanged: {
-                                console.log("Índice actual: " + currentIndex);
-                                console.log("Valor actual: " + (currentIndex >= 0 ? currentValue : "ninguno"));
-                                console.log("Texto actual: " + (currentIndex >= 0 ? currentText : "ninguno"));
-                                
-                                if (currentIndex > 0) {  // El índice 0 es "Seleccione cliente"
-                                    nuevaVenta.cliente = currentText;
-                                    nuevaVenta.id_cliente = currentValue;
-                                    console.log("ID de cliente asignado: " + nuevaVenta.id_cliente);
+                                if (currentIndex > 0) {
+                                    nuevaVenta.cliente = currentText
+                                    nuevaVenta.id_cliente = currentValue
                                 } else {
-                                    nuevaVenta.cliente = "";
-                                    nuevaVenta.id_cliente = null;  // Usar null en lugar de 0
+                                    nuevaVenta.cliente = ""
+                                    nuevaVenta.id_cliente = null
                                 }
                             }
                         }
                         
-                        // Fila 2: Estado de venta (COLUMNA 2)
                         Text {
-                            text: "Estado de venta:"
+                            text: "Estado venta:"
                             Layout.alignment: Qt.AlignRight
-                            font.pixelSize: 14
+                            font.pixelSize: 13
                         }
                         
                         ComboBox {
                             id: cmbEstadoVenta
+                            Layout.preferredWidth: 120
                             model: ListModel { id: estadosVentaModel }
                             textRole: "nombre"
                             valueRole: "id"
-                            Layout.preferredWidth: 150
+                            font.pixelSize: 13
                             
                             onCurrentIndexChanged: {
                                 if (currentIndex >= 0) {
-                                    nuevaVenta.estado = currentText;
-                                    nuevaVenta.id_estado = currentValue;
-                                    console.log("Estado seleccionado: " + currentText + " (ID: " + currentValue + ")");
+                                    nuevaVenta.estado = currentText
+                                    nuevaVenta.id_estado = currentValue
                                 }
                             }
                             
                             Component.onCompleted: {
-                                cargarEstadosVenta();
-                                currentIndex = 0; // Seleccionar "En Proceso" por defecto
+                                cargarEstadosVenta()
+                                currentIndex = 0
                             }
                         }
-                                                
-                        // Fila 2, COLUMNA 3: Cantidad y Precio
-                        TextField {
-                            id: txtCantidadProducto
-                            Layout.preferredWidth: 100
-                            placeholderText: "Cantidad"
-                            validator: IntValidator { bottom: 1 }
-                        }
                         
-                        TextField {
-                            id: txtPrecioProducto
-                            Layout.preferredWidth: 100
-                            placeholderText: "Precio/100u"
-                            validator: DoubleValidator { bottom: 0.01 }
-                        }
-                        
-                        // Fila 3: Estado de pago (COLUMNA 1)
                         Text {
-                            text: "Estado de pago:"
+                            text: "Condiciones:"
                             Layout.alignment: Qt.AlignRight
-                            font.pixelSize: 14
-                        }
-                        
-                        ComboBox {
-                            id: cmbEstadoPago
-                            model: ["Pendiente", "Parcial", "Pagado"]
-                            Layout.preferredWidth: 150
-                            onCurrentTextChanged: nuevaVenta.estado_pago = currentText
-                        }
-                        
-                        // Fila 3: Condiciones de pago (COLUMNA 2)
-                        Text {
-                            text: "Condiciones de pago:"
-                            Layout.alignment: Qt.AlignRight
-                            font.pixelSize: 14
+                            font.pixelSize: 13
                         }
                         
                         TextField {
                             id: txtCondicionesPago
-                            placeholderText: "Ej: 30 días, contado, etc."
-                            Layout.preferredWidth: 150
+                            placeholderText: "Ej: 30 días"
+                            Layout.preferredWidth: 120
+                            font.pixelSize: 13
+                            background: Rectangle {
+                                border.color: "#DDDDDD"
+                                border.width: 1
+                                radius: 4
+                            }
                         }
                         
-                        // Fila 3, COLUMNA 3: Unidad y Fecha de entrega
-                        ComboBox {
-                            id: cmbUnidadMedida
-                            Layout.preferredWidth: 80
-                            model: ["Kg", "Ton", "Unidad"]
-                            currentIndex: 0
-                        }
-                        
-                        RowLayout {
+                        // FILA 3
+                        Row {
                             spacing: 5
-                            
+                            CheckBox {
+                                id: chkActivarLugar
+                                checked: true
+                                anchors.verticalCenter: parent.verticalCenter
+                                
+                                onCheckedChanged: {
+                                    txtLugarEntrega.enabled = checked
+                                    txtLugarEntrega.opacity = checked ? 1.0 : 0.5
+                                    if (!checked) txtLugarEntrega.text = ""
+                                }
+                            }
                             Text {
-                                text: "Entrega:"
-                                font.pixelSize: 14
+                                text: "Lugar entrega:"
+                                anchors.verticalCenter: parent.verticalCenter
+                                font.pixelSize: 13
                             }
-                            
-                            TextField {
-                                id: txtFechaEntrega
-                                placeholderText: "DD/MM/YYYY"
-                                inputMask: "99/99/9999"
-                                Layout.preferredWidth: 95
-                            }
-                        }
-                        
-                        // Fila 4: Solo el campo de lugar de entrega
-                        Text {
-                            text: "Lugar de entrega:"
-                            Layout.alignment: Qt.AlignRight
-                            font.pixelSize: 14
                         }
                         
                         TextField {
                             id: txtLugarEntrega
-                            placeholderText: "Dirección de entrega"
-                            Layout.preferredWidth: 150
+                            placeholderText: "Dirección"
                             Layout.columnSpan: 5
                             Layout.fillWidth: true
-                        }
-                    }
-                                
-                    // Tabla de productos
-                    Rectangle {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 200
-                        border.color: "#DDDDDD"
-                        border.width: 1
-                        radius: 5
-                        
-                        ListView {
-                            id: listaProductosVenta
-                            anchors.fill: parent
-                            anchors.margins: 5
-                            clip: true
-                            model: ListModel { id: productosVentaModel }
-                            
-                            header: Rectangle {
-                                width: parent.width
-                                height: 30
-                                color: "#f5f5f5"
-                                
-                                Row {
-                                    anchors.fill: parent
-                                    
-                                    Text { 
-                                        width: parent.width * 0.05
-                                        height: parent.height
-                                        text: "ID"
-                                        font.bold: true
-                                        font.pixelSize: 12
-                                        verticalAlignment: Text.AlignVCenter
-                                        horizontalAlignment: Text.AlignHCenter
-                                    }
-                                    
-                                    Text { 
-                                        width: parent.width * 0.30
-                                        height: parent.height
-                                        text: "Producto"
-                                        font.bold: true
-                                        font.pixelSize: 12
-                                        verticalAlignment: Text.AlignVCenter
-                                        leftPadding: 5
-                                    }
-                                    
-                                    Text { 
-                                        width: parent.width * 0.15
-                                        height: parent.height
-                                        text: "Cantidad" 
-                                        font.bold: true
-                                        font.pixelSize: 12
-                                        verticalAlignment: Text.AlignVCenter
-                                        horizontalAlignment: Text.AlignCenter
-                                    }
-                                    
-                                    Text { 
-                                        width: parent.width * 0.15
-                                        height: parent.height
-                                        text: "Precio 100u" 
-                                        font.bold: true
-                                        font.pixelSize: 12
-                                        verticalAlignment: Text.AlignVCenter
-                                        horizontalAlignment: Text.AlignCenter
-                                    }
-                                    
-                                    Text { 
-                                        width: parent.width * 0.15
-                                        height: parent.height
-                                        text: "Subtotal" 
-                                        font.bold: true
-                                        font.pixelSize: 12
-                                        verticalAlignment: Text.AlignVCenter
-                                        horizontalAlignment: Text.AlignCenter
-                                    }
-                                    
-                                    Text { 
-                                        width: parent.width * 0.20
-                                        height: parent.height
-                                        text: "Acciones" 
-                                        font.bold: true
-                                        font.pixelSize: 12
-                                        verticalAlignment: Text.AlignVCenter
-                                        horizontalAlignment: Text.AlignCenter
-                                    }
-                                }
+                            font.pixelSize: 13
+                            background: Rectangle {
+                                border.color: "#DDDDDD"
+                                border.width: 1
+                                radius: 4
+                                color: parent.enabled ? "white" : "#F5F5F5"
                             }
-                            
-                            delegate: Rectangle {
-                                width: parent.width
-                                height: 40
-                                color: index % 2 === 0 ? "white" : "#f9f9f9"
-                                
-                                Row {
-                                    anchors.fill: parent
-                                    
-                                    Text { 
-                                        width: parent.width * 0.05
-                                        height: parent.height
-                                        text: index + 1
-                                        verticalAlignment: Text.AlignVCenter
-                                        horizontalAlignment: Text.AlignHCenter
-                                    }
-                                    
-                                    Text { 
-                                        width: parent.width * 0.30
-                                        height: parent.height
-                                        text: nombre
-                                        elide: Text.ElideRight
-                                        verticalAlignment: Text.AlignVCenter
-                                        leftPadding: 5
-                                    }
-                                    
-                                    Text { 
-                                        width: parent.width * 0.15
-                                        height: parent.height
-                                        text: cantidad + " " + unidad
-                                        verticalAlignment: Text.AlignVCenter
-                                        horizontalAlignment: Text.AlignCenter
-                                    }
-                                    
-                                    Text { 
-                                        width: parent.width * 0.15
-                                        height: parent.height
-                                        text: "Bs. " + precioUnitario.toFixed(2)
-                                        verticalAlignment: Text.AlignVCenter
-                                        horizontalAlignment: Text.AlignCenter
-                                    }
-                                    
-                                    Text { 
-                                        width: parent.width * 0.15
-                                        height: parent.height
-                                        text: "Bs. " + subtotal.toFixed(2)
-                                        verticalAlignment: Text.AlignVCenter
-                                        horizontalAlignment: Text.AlignCenter
-                                    }
-                                    
-                                    Row {
-                                        width: parent.width * 0.20
-                                        height: parent.height
-                                        spacing: 5
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        layoutDirection: Qt.RightToLeft
-                                        rightPadding: 5
-                                        
-                                        Button {
-                                            width: 28
-                                            height: 28
-                                            icon.source: "Image/Image_UI_interfaz/Inconos/basura.svg"
-                                            icon.color: "white"
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            background: Rectangle {
-                                                color: "#F44336"
-                                                radius: width / 2
-                                            }
-                                            onClicked: {
-                                                productosVentaModel.remove(index);
-                                                actualizarTotalVenta();
-                                            }
-                                        }
-                                        
-                                        Button {
-                                            width: 28
-                                            height: 28
-                                            icon.source: "Image/Image_UI_interfaz/Inconos/editar.svg"
-                                            icon.color: "white"
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            background: Rectangle {
-                                                color: "#2196F3"
-                                                radius: width / 2
-                                            }
-                                            onClicked: {
-                                                // Aquí iría lógica para editar producto
-                                                // Por simplicidad, podemos implementarlo después
-                                                showMessage("Edición de producto no implementada");
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            // Mensaje cuando no hay productos
-                            Text {
-                                anchors.centerIn: parent
-                                text: "No hay productos agregados a la venta.\nUse el formulario superior para agregar productos."
-                                color: "#757575"
-                                font.pixelSize: 12
-                                horizontalAlignment: Text.AlignHCenter
-                                visible: productosVentaModel.count === 0
-                            }
-                        }
-                    }                   
-                    // Resumen de totales
-                    GridLayout {
-                        Layout.fillWidth: true
-                        columns: 2
-                        columnSpacing: 15
-                        rowSpacing: 15
-                        
-                        Item { Layout.fillWidth: true }
-                        
-                        GridLayout {
-                            columns: 2
-                            columnSpacing: 15
-                            rowSpacing: 10
-                            Layout.alignment: Qt.AlignRight
-                            Layout.preferredWidth: 300
-                            
-                            // Subtotal
-                            Text {
-                                text: "Subtotal:"
-                                Layout.alignment: Qt.AlignRight
-                                font.pixelSize: 14
-                            }
-                            
-                            TextField {
-                                id: txtSubtotalVenta
-                                text: "0.00"
-                                readOnly: true
-                                Layout.preferredWidth: 150
-                                horizontalAlignment: Text.AlignRight
-                                background: Rectangle {
-                                    border.color: "#DDDDDD"
-                                    border.width: 1
-                                    radius: 4
-                                    color: "#F5F5F5"
-                                }
-                            }
-                            
-                            // Total
-                            Text {
-                                text: "Total:"
-                                Layout.alignment: Qt.AlignRight
-                                font.pixelSize: 14
-                                font.bold: true
-                            }
-                            
-                            TextField {
-                                id: txtTotalVenta
-                                text: "0.00"
-                                readOnly: true
-                                Layout.preferredWidth: 150
-                                horizontalAlignment: Text.AlignRight
-                                font.bold: true
-                                background: Rectangle {
-                                    border.color: "#DDDDDD"
-                                    border.width: 1
-                                    radius: 4
-                                    color: "#F0F7FF"
-                                }
-                            }
-                        }
-                    }
-                    // Información del usuario actual
-                    Rectangle {
-                        Layout.fillWidth: true
-                        height: 30
-                        color: "#edf7ed"  // Color verde claro para que coincida con tu tema
-                        radius: 5
-                        
-                        Text {
-                            id: currentUserActiveLabel  // Cambié el nombre del ID para que sea único
-                            text: "Usuario actual: " + (ventaModel && ventaModel.current_user_name ? ventaModel.current_user_name : "Usuario Desconocido")
-                            font.pixelSize: 12
-                            color: "#2E7D32"  // Verde que coincide con tu tema
-                            anchors.centerIn: parent
                         }
                     }
                     
-                    // Sección de observaciones
+                    // Sección Agregar Productos
                     Rectangle {
                         Layout.fillWidth: true
-                        height: 40
+                        height: 120
+                        color: "#fff7ed"
+                        radius: 8
+                        border.color: "#fb923c"
+                        border.width: 1
+                        
+                        ColumnLayout {
+                            anchors.fill: parent
+                            anchors.margins: 15
+                            spacing: 10
+                            
+                            Text {
+                                text: "🍊 Agregar Productos"
+                                font.pixelSize: 16
+                                font.bold: true
+                                color: "#92400e"
+                            }
+                            
+                            GridLayout {
+                                Layout.fillWidth: true
+                                columns: 5
+                                columnSpacing: 10
+                                rowSpacing: 8
+                                
+                                Text { text: "Producto:"; font.pixelSize: 12; font.bold: true }
+                                Text { text: "Cantidad:"; font.pixelSize: 12; font.bold: true }
+                                Text { text: "Unidad:"; font.pixelSize: 12; font.bold: true }
+                                Text { text: "Precio/u:"; font.pixelSize: 12; font.bold: true }
+                                Text { text: ""; font.pixelSize: 12 }
+                                
+                                ComboBox {
+                                    id: cmbVariedadCitrico
+                                    Layout.preferredWidth: 180
+                                    model: ListModel { id: variedadesModel }
+                                    textRole: "nombre"
+                                    valueRole: "id_variedad"
+                                    displayText: currentIndex >= 0 ? currentText : "Seleccionar"
+                                    font.pixelSize: 12
+                                    
+                                    Component.onCompleted: {
+                                        cargarVariedades()
+                                        currentIndex = -1
+                                    }
+                                }
+                                
+                                TextField {
+                                    id: txtCantidadProducto
+                                    Layout.preferredWidth: 80
+                                    placeholderText: "0"
+                                    validator: IntValidator { bottom: 1 }
+                                    font.pixelSize: 12
+                                    background: Rectangle {
+                                        border.color: "#DDDDDD"
+                                        border.width: 1
+                                        radius: 4
+                                    }
+                                }
+                                
+                                ComboBox {
+                                    id: cmbUnidadMedida
+                                    Layout.preferredWidth: 80
+                                    model: ["Unidad","Caja","Ciento","Ton","Fanega","Quintal"]
+                                    currentIndex: 1
+                                    font.pixelSize: 12
+                                }
+                                
+                                TextField {
+                                    id: txtPrecioProducto
+                                    Layout.preferredWidth: 80
+                                    placeholderText: "0.00"
+                                    validator: DoubleValidator { bottom: 0.01 }
+                                    font.pixelSize: 12
+                                    background: Rectangle {
+                                        border.color: "#DDDDDD"
+                                        border.width: 1
+                                        radius: 4
+                                    }
+                                }
+                                
+                                Button {
+                                    text: "Añadir"
+                                    Layout.preferredWidth: 70
+                                    implicitHeight: 32
+                                    background: Rectangle {
+                                        color: "#4CAF50"
+                                        radius: height / 2
+                                    }
+                                    contentItem: Text {
+                                        text: parent.text
+                                        color: "white"
+                                        font.bold: true
+                                        font.pixelSize: 11
+                                        horizontalAlignment: Text.AlignHCenter
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
+                                    onClicked: {
+                                        if (cmbVariedadCitrico.currentIndex < 0) {
+                                            mensajeValidacionVenta.text = "Seleccione un producto"
+                                            return
+                                        }
+                                        
+                                        if (!txtCantidadProducto.text || !txtPrecioProducto.text) {
+                                            mensajeValidacionVenta.text = "Ingrese cantidad y precio"
+                                            return
+                                        }
+                                        
+                                        var variedad = variedadesModel.get(cmbVariedadCitrico.currentIndex)
+                                        var cantidad = parseInt(txtCantidadProducto.text)
+                                        var precioUnitario = parseFloat(txtPrecioProducto.text)
+                                        var unidad = cmbUnidadMedida.currentText
+                                        
+                                        // Nueva lógica: cantidad × precio unitario
+                                        var subtotal = precioUnitario * cantidad
+                                        
+                                        productosVentaModel.append({
+                                            id_variedad: variedad.id_variedad,
+                                            nombre: variedad.nombre + " (" + variedad.nombre_tipo_cultivo + ")",
+                                            cantidad: cantidad,
+                                            unidad: unidad,
+                                            precioUnitario: precioUnitario,
+                                            subtotal: subtotal
+                                        })
+                                        actualizarTotalVenta()
+                                        
+                                        txtCantidadProducto.text = ""
+                                        txtPrecioProducto.text = ""
+                                        cmbVariedadCitrico.currentIndex = -1
+                                        
+                                        mensajeValidacionVenta.text = ""
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Tabla de productos y Totales (en la misma fila)
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 20
+                        
+                        // Tabla de productos
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 200
+                            border.color: "#DDDDDD"
+                            border.width: 1
+                            radius: 5
+                            
+                            ListView {
+                                id: listaProductosVenta
+                                anchors.fill: parent
+                                anchors.margins: 5
+                                clip: true
+                                model: ListModel { id: productosVentaModel }
+                                
+                                header: Rectangle {
+                                    width: parent.width
+                                    height: 30
+                                    color: "#f5f5f5"
+                                    
+                                    Row {
+                                        anchors.fill: parent
+                                        
+                                        Text { 
+                                            width: parent.width * 0.05
+                                            height: parent.height
+                                            text: "ID"
+                                            font.bold: true
+                                            font.pixelSize: 11
+                                            verticalAlignment: Text.AlignVCenter
+                                            horizontalAlignment: Text.AlignHCenter
+                                        }
+                                        
+                                        Text { 
+                                            width: parent.width * 0.35
+                                            height: parent.height
+                                            text: "Producto"
+                                            font.bold: true
+                                            font.pixelSize: 11
+                                            verticalAlignment: Text.AlignVCenter
+                                            leftPadding: 5
+                                        }
+                                        
+                                        Text { 
+                                            width: parent.width * 0.15
+                                            height: parent.height
+                                            text: "Cantidad" 
+                                            font.bold: true
+                                            font.pixelSize: 11
+                                            verticalAlignment: Text.AlignVCenter
+                                            horizontalAlignment: Text.AlignCenter
+                                        }
+                                        
+                                        Text { 
+                                            width: parent.width * 0.15
+                                            height: parent.height
+                                            text: "Precio/u" 
+                                            font.bold: true
+                                            font.pixelSize: 11
+                                            verticalAlignment: Text.AlignVCenter
+                                            horizontalAlignment: Text.AlignCenter
+                                        }
+                                        
+                                        Text { 
+                                            width: parent.width * 0.15
+                                            height: parent.height
+                                            text: "Subtotal" 
+                                            font.bold: true
+                                            font.pixelSize: 11
+                                            verticalAlignment: Text.AlignVCenter
+                                            horizontalAlignment: Text.AlignCenter
+                                        }
+                                        
+                                        Text { 
+                                            width: parent.width * 0.15
+                                            height: parent.height
+                                            text: "Acciones" 
+                                            font.bold: true
+                                            font.pixelSize: 11
+                                            verticalAlignment: Text.AlignVCenter
+                                            horizontalAlignment: Text.AlignCenter
+                                        }
+                                    }
+                                }
+                                
+                                delegate: Rectangle {
+                                    width: parent.width
+                                    height: 35
+                                    color: index % 2 === 0 ? "white" : "#f9f9f9"
+                                    
+                                    Row {
+                                        anchors.fill: parent
+                                        
+                                        Text { 
+                                            width: parent.width * 0.05
+                                            height: parent.height
+                                            text: index + 1
+                                            verticalAlignment: Text.AlignVCenter
+                                            horizontalAlignment: Text.AlignHCenter
+                                            font.pixelSize: 11
+                                        }
+                                        
+                                        Text { 
+                                            width: parent.width * 0.35
+                                            height: parent.height
+                                            text: nombre
+                                            elide: Text.ElideRight
+                                            verticalAlignment: Text.AlignVCenter
+                                            leftPadding: 5
+                                            font.pixelSize: 11
+                                        }
+                                        
+                                        Text { 
+                                            width: parent.width * 0.15
+                                            height: parent.height
+                                            text: cantidad + " " + unidad
+                                            verticalAlignment: Text.AlignVCenter
+                                            horizontalAlignment: Text.AlignCenter
+                                            font.pixelSize: 11
+                                        }
+                                        
+                                        Text { 
+                                            width: parent.width * 0.15
+                                            height: parent.height
+                                            text: "Bs. " + precioUnitario.toFixed(2)
+                                            verticalAlignment: Text.AlignVCenter
+                                            horizontalAlignment: Text.AlignCenter
+                                            font.pixelSize: 11
+                                        }
+                                        
+                                        Text { 
+                                            width: parent.width * 0.15
+                                            height: parent.height
+                                            text: "Bs. " + subtotal.toFixed(2)
+                                            verticalAlignment: Text.AlignVCenter
+                                            horizontalAlignment: Text.AlignCenter
+                                            font.pixelSize: 11
+                                            font.bold: true
+                                            color: "#065f46"
+                                        }
+                                        
+                                        Row {
+                                            width: parent.width * 0.15
+                                            height: parent.height
+                                            spacing: 3
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            layoutDirection: Qt.RightToLeft
+                                            rightPadding: 3
+                                            
+                                            Button {
+                                                width: 22
+                                                height: 22
+                                                text: "×"
+                                                background: Rectangle {
+                                                    color: "#F44336"
+                                                    radius: width / 2
+                                                }
+                                                contentItem: Text {
+                                                    text: parent.text
+                                                    color: "white"
+                                                    font.bold: true
+                                                    font.pixelSize: 12
+                                                    horizontalAlignment: Text.AlignHCenter
+                                                    verticalAlignment: Text.AlignVCenter
+                                                }
+                                                onClicked: {
+                                                    productosVentaModel.remove(index)
+                                                    actualizarTotalVenta()
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "No hay productos agregados.\nUse el formulario para agregar productos."
+                                    color: "#757575"
+                                    font.pixelSize: 11
+                                    horizontalAlignment: Text.AlignHCenter
+                                    visible: productosVentaModel.count === 0
+                                }
+                            }
+                        }
+                        
+                        // Totales (lado derecho)
+                        Rectangle {
+                            Layout.preferredWidth: 250
+                            Layout.preferredHeight: 200
+                            color: "#ecfdf5"
+                            radius: 8
+                            border.color: "#4CAF50"
+                            border.width: 1
+                            
+                            ColumnLayout {
+                                anchors.fill: parent
+                                anchors.margins: 15
+                                spacing: 10
+                                
+                                Text {
+                                    text: "💰 Totales"
+                                    font.pixelSize: 16
+                                    font.bold: true
+                                    color: "#166534"
+                                    Layout.alignment: Qt.AlignHCenter
+                                }
+                                
+                                Item { Layout.fillHeight: true }
+                                
+                                GridLayout {
+                                    columns: 2
+                                    columnSpacing: 10
+                                    rowSpacing: 8
+                                    Layout.alignment: Qt.AlignCenter
+                                    
+                                    Text {
+                                        text: "Subtotal:"
+                                        font.pixelSize: 13
+                                        font.bold: true
+                                        color: "#374151"
+                                    }
+                                    
+                                    TextField {
+                                        id: txtSubtotalVenta
+                                        text: "0.00"
+                                        readOnly: true
+                                        Layout.preferredWidth: 120
+                                        horizontalAlignment: Text.AlignRight
+                                        font.pixelSize: 13
+                                        font.bold: true
+                                        color: "#065f46"
+                                        background: Rectangle {
+                                            border.color: "#4CAF50"
+                                            border.width: 1
+                                            radius: 4
+                                            color: "white"
+                                        }
+                                    }
+                                    
+                                    Text {
+                                        text: "Total:"
+                                        font.pixelSize: 15
+                                        font.bold: true
+                                        color: "#374151"
+                                    }
+                                    
+                                    TextField {
+                                        id: txtTotalVenta
+                                        text: "0.00"
+                                        readOnly: true
+                                        Layout.preferredWidth: 120
+                                        horizontalAlignment: Text.AlignRight
+                                        font.pixelSize: 15
+                                        font.bold: true
+                                        color: "#065f46"
+                                        background: Rectangle {
+                                            border.color: "#4CAF50"
+                                            border.width: 2
+                                            radius: 4
+                                            color: "#f0fdf4"
+                                        }
+                                    }
+                                }
+                                
+                                Item { Layout.fillHeight: true }
+                            }
+                        }
+                    }
+
+                    // Observaciones
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 30
                         color: "#e8f5e9"
                         radius: 5
                         
                         Text {
                             anchors.centerIn: parent
                             text: "OBSERVACIONES"
-                            font.pixelSize: 14
+                            font.pixelSize: 13
                             font.bold: true
                             color: "#2E7D32"
                         }
                     }
                     
-                    // Observaciones
                     TextArea {
                         id: txtObservacionesVenta
                         Layout.fillWidth: true
-                        height: 100
+                        height: 80
                         placeholderText: "Ingrese observaciones o notas adicionales sobre esta venta..."
                         wrapMode: TextEdit.Wrap
+                        font.pixelSize: 12
                         background: Rectangle {
                             border.color: "#DDDDDD"
                             border.width: 1
                             radius: 4
-                        }
-                    }
-
-                    // Información del usuario actual - ESTE ES EL CÓDIGO NUEVO
-                    Rectangle {
-                        Layout.fillWidth: true
-                        height: 30
-                        color: "#edf7ed"  // Color verde claro para que coincida con tu tema
-                        radius: 5
-                        
-                        Text {
-                            id: currentUserLabel
-                            text: "Usuario actual: " + (ventaModel && ventaModel.current_user_name ? ventaModel.current_user_name : "Usuario Desconocido")
-                            font.pixelSize: 12
-                            color: "#2E7D32"  // Verde que coincide con tu tema
-                            anchors.centerIn: parent
                         }
                     }
 
@@ -2077,24 +2043,21 @@ Rectangle {
                         color: "red"
                         visible: text !== ""
                         horizontalAlignment: Text.AlignHCenter
-                        font.pixelSize: 14
+                        font.pixelSize: 13
                     }
-                    
 
-                    
-                    
                     // Botones de acción
                     RowLayout {
                         Layout.fillWidth: true
-                        Layout.topMargin: 20
+                        Layout.topMargin: 15
                         spacing: 15
                         
                         Item { Layout.fillWidth: true }
                         
                         Button {
                             text: "Cancelar"
-                            implicitHeight: 40
-                            implicitWidth: 120
+                            implicitHeight: 35
+                            implicitWidth: 100
                             background: Rectangle {
                                 color: "#EEEEEE"
                                 radius: height / 2
@@ -2103,95 +2066,73 @@ Rectangle {
                                 text: parent.text
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
+                                font.pixelSize: 12
                             }
                             onClicked: {
-                                // Volver a la pestaña de ventas
-                                tabBar.currentIndex = 0;
-                                nuevaVentaTab.visible = false;
+                                tabBar.currentIndex = 0
+                                nuevaVentaTab.visible = false
                             }
                         }
-                        //
                         
                         Button {
                             text: "Guardar"
-                            implicitHeight: 40
-                            implicitWidth: 120
+                            implicitHeight: 35
+                            implicitWidth: 100
                             background: Rectangle {
                                 color: "#4CAF50"
                                 radius: height / 2
                             }
-                            contentItem: Row {
-                                spacing: 5
-                                anchors.centerIn: parent
-                                Image {
-                                    source: "Image/Image_UI_interfaz/Inconos/hogar.png"
-                                    width: 18
-                                    height: 18
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                                Text {
-                                    text: "Guardar"
-                                    color: "white"
-                                    font.bold: true
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
+                            contentItem: Text {
+                                text: parent.text
+                                color: "white"
+                                font.bold: true
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                font.pixelSize: 12
                             }
                             onClicked: {
-                                // Debugging - imprimir valores
-                                console.log("Cliente seleccionado index: " + cmbClienteVenta.currentIndex);
-                                console.log("Cliente seleccionado text: " + cmbClienteVenta.currentText);
-                                console.log("Cliente seleccionado value: " + (cmbClienteVenta.currentIndex >= 0 ? cmbClienteVenta.currentValue : "ninguno"));
-                                
-                                // Validación de datos
                                 if (cmbClienteVenta.currentIndex <= 0) {
-                                    mensajeValidacionVenta.text = "Por favor, seleccione un cliente";
-                                    return;
+                                    mensajeValidacionVenta.text = "Por favor, seleccione un cliente"
+                                    return
                                 }
                                 
-                                // Obtener ID directamente del ComboBox en lugar de nuevaVenta
-                                var clienteID = cmbClienteVenta.currentValue;
-                                console.log("ID del cliente obtenido directamente: " + clienteID);
+                                var clienteID = cmbClienteVenta.currentValue
                                 
                                 if (!clienteID) {
-                                    mensajeValidacionVenta.text = "Seleccione un cliente válido";
-                                    return;
+                                    mensajeValidacionVenta.text = "Seleccione un cliente válido"
+                                    return
                                 }
                                 
                                 if (productosVentaModel.count === 0) {
-                                    mensajeValidacionVenta.text = "Debe agregar al menos un producto a la venta";
-                                    return;
+                                    mensajeValidacionVenta.text = "Debe agregar al menos un producto a la venta"
+                                    return
                                 }
                                 
                                 if (parseFloat(txtTotalVenta.text) <= 0) {
-                                    mensajeValidacionVenta.text = "El total debe ser mayor a cero";
-                                    return;
+                                    mensajeValidacionVenta.text = "El total debe ser mayor a cero"
+                                    return
                                 }
                                 
-                                if (txtFechaEntrega.text !== "" && !validarFecha(txtFechaEntrega.text)) {
-                                    mensajeValidacionVenta.text = "El formato de fecha de entrega debe ser DD/MM/AAAA";
-                                    return;
-                                }
-                                
-                                // Preparar objeto venta completo
                                 var venta = {
-                                    id_cliente: clienteID, // Usar el valor obtenido directamente del ComboBox
+                                    id_cliente: clienteID,
                                     codigo_venta: txtCodigoVenta.text,
                                     fecha_venta: formatearFechaBD(txtFechaVenta.text),
                                     subtotal: parseFloat(txtSubtotalVenta.text),
                                     total: parseFloat(txtTotalVenta.text),
                                     condiciones_pago: txtCondicionesPago.text,
-                                    fecha_entrega: txtFechaEntrega.text ? formatearFechaBD(txtFechaEntrega.text) : "",
-                                    lugar_entrega: txtLugarEntrega.text || "",
+                                    fecha_entrega: chkActivarEntrega.checked && txtFechaEntrega.text ? formatearFechaBD(txtFechaEntrega.text) : "",
+                                    lugar_entrega: chkActivarLugar.checked ? txtLugarEntrega.text : "",
                                     id_estado: obtenerIdEstado(cmbEstadoVenta.currentText),
-                                    estado_pago: cmbEstadoPago.currentText,
+                                    estado_pago: "Pendiente",
                                     observaciones: txtObservacionesVenta.text || "",
-                                    registrado_por: 1  // ID del usuario actual (habría que obtenerlo de algún sistema de autenticación)
-                                };
+                                    entrega_inmediata: !chkActivarEntrega.checked,
+                                    lugar_activado: chkActivarLugar.checked,
+                                    registrado_por: 1
+                                }
                                 
-                                // Preparar detalles de venta
-                                var detalles = [];
+                                var detalles = []
                                 for (var i = 0; i < productosVentaModel.count; i++) {
-                                    var producto = productosVentaModel.get(i);
+                                    var producto = productosVentaModel.get(i)
                                     detalles.push({
                                         id_variedad: producto.id_variedad,
                                         cantidad: producto.cantidad,
@@ -2200,74 +2141,50 @@ Rectangle {
                                         subtotal: producto.subtotal,
                                         total: producto.subtotal,
                                         observaciones: ""
-                                    });
+                                    })
                                 }
                                 
-                                // Convertir a JSON para enviar al modelo Python
-                                var ventaJSON = JSON.stringify(venta);
-                                var detallesJSON = JSON.stringify(detalles);
+                                var ventaJSON = JSON.stringify(venta)
+                                var detallesJSON = JSON.stringify(detalles)
                                 
-                                // Agregar logs para debugging
-                                console.log("Enviando venta JSON:", ventaJSON);
-                                console.log("Enviando detalles JSON:", detallesJSON);
-                                
-                                // Llamar al modelo Python para guardar
-                                var success = ventaModel.agregar_venta(ventaJSON, detallesJSON);
+                                var success = ventaModel.agregar_venta(ventaJSON, detallesJSON)
                                 
                                 if (success) {
-                                    // Actualizar la lista de ventas
-                                    cargarVentasDesdeModelo();
-                                    
-                                    // Limpiar formulario y volver a la lista de ventas
-                                    limpiarFormularioVenta();
-                                    
-                                    // Mostrar mensaje de éxito
-                                    showMessage("Venta registrada correctamente");
-                                    
-                                    // Volver a la pestaña de ventas
-                                    tabBar.currentIndex = 0;
-                                    nuevaVentaTab.visible = false;
+                                    cargarVentasDesdeModelo()
+                                    limpiarFormularioVenta()
+                                    showMessage("Venta registrada correctamente")
+                                    tabBar.currentIndex = 0
+                                    nuevaVentaTab.visible = false
                                 } else {
-                                    mensajeValidacionVenta.text = "Error al guardar la venta";
+                                    mensajeValidacionVenta.text = "Error al guardar la venta"
                                 }
                             }
-                        }                       
+                        }
+                        
                         Button {
                             text: "Guardar e Imprimir"
-                            implicitHeight: 40
-                            implicitWidth: 180
+                            implicitHeight: 35
+                            implicitWidth: 140
                             background: Rectangle {
                                 color: "#FF9800"
                                 radius: height / 2
                             }
-                            contentItem: Row {
-                                spacing: 5
-                                anchors.centerIn: parent
-                                Image {
-                                    source: "Image/Image_UI_interfaz/Inconos/imprimir.svg"
-                                    width: 18
-                                    height: 18
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                                Text {
-                                    text: "Guardar e Imprimir"
-                                    color: "white"
-                                    font.bold: true
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
+                            contentItem: Text {
+                                text: parent.text
+                                color: "white"
+                                font.bold: true
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                font.pixelSize: 12
                             }
                             onClicked: {
-                                // Primero guardar, luego imprimir
-                                // Por ahora solo mostramos mensaje
-                                showMessage("Función para guardar e imprimir no implementada");
-
+                                showMessage("Función para guardar e imprimir no implementada")
                             }
                         }
                     }
                 }
             }
         }
-    
     }
     
     // Componente para mostrar mensajes
@@ -3074,7 +2991,7 @@ Rectangle {
     // Función para mostrar la pestaña de nueva venta
     function mostrarNuevaVenta() {
         nuevaVentaTab.visible = true;
-        tabBar.currentIndex = 3;  // Índice de la nueva pestaña
+        tabBar.currentIndex = 2;  // Índice de la nueva pestaña
     }
 
     // Función para generar factura (vista previa)
@@ -3189,5 +3106,13 @@ Rectangle {
             return partes[2] + "-" + partes[1] + "-" + partes[0];
         }
         return fecha; // Si el formato es incorrecto, devolver original
+    }
+    function cargarVentasPorPeriodo(periodo) {
+        var ventasJson = safeGetModelData("get_ventas_por_periodo_json", "[]");
+        // Procesar datos para gráficos
+    }
+    // Función para deseleccionar fila
+    function deseleccionarFila() {
+        filaSeleccionada = -1
     }
 }

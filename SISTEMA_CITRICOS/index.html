@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; img-src * data: blob:;">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa de Parcelas - Sistema Cítricos</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+          crossorigin=""/>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%);
+            color: white;
+            padding: 12px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin: 0;
+        }
+
+        .header p {
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .controls {
+            background: white;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-weight: 500;
+            color: #555;
+        }
+
+        .control-group select, .control-group button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .control-group button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .control-group button:hover {
+            background: #45a049;
+        }
+
+        .control-group button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .stats {
+            background: #fff3cd;
+            padding: 10px 20px;
+            border-bottom: 1px solid #ffeaa7;
+            font-size: 14px;
+            color: #856404;
+        }
+
+        /* Leyenda de colores */
+        .legend {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            max-width: 250px;
+            z-index: 1000;
+            font-size: 12px;
+        }
+
+        .legend-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #2E7D32;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+            gap: 8px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 15px;
+            border-radius: 3px;
+            border: 1px solid #333;
+        }
+
+        .legend-label {
+            flex: 1;
+        }
+
+        #map {
+            height: calc(100vh - 180px);
+            width: 100%;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        /* Estilos para popups */
+        .leaflet-popup-content-wrapper {
+            border-radius: 8px;
+        }
+
+        .popup-content {
+            min-width: 250px;
+        }
+
+        .popup-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #2E7D32;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 5px;
+        }
+
+        .popup-field {
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .popup-field strong {
+            color: #555;
+            min-width: 80px;
+        }
+
+        .popup-usage {
+            margin: 10px 0;
+        }
+
+        .usage-bar {
+            width: 100%;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 5px 0;
+        }
+
+        .usage-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #2E7D32);
+            transition: width 0.3s ease;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            margin: 20px;
+            border-radius: 5px;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* Controles de coloración */
+        .color-controls {
+            background: #f8f9fa;
+            padding: 10px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .controls, .color-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .control-group {
+                justify-content: space-between;
+            }
+            
+            #map {
+                height: calc(100vh - 250px);
+            }
+
+            .legend {
+                bottom: 20px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>🗺️ Mapa de Parcelas Agrícolas</h1>
+        <p>Sistema de Gestión de Cítricos - Vista Flexible: Polígonos, Puntos o Ambos</p>
+    </div>
+
+    <!-- Controles de coloración y vista -->
+    <div class="color-controls">
+        <div class="control-group">
+            <label for="colorMode">Colorear por:</label>
+            <select id="colorMode">
+                <option value="propietario">Propietario</option>
+                <option value="cultivo" disabled>Cultivo (Próximamente)</option>
+                <option value="area" disabled>Área (Próximamente)</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <label for="viewMode">Modo de vista:</label>
+            <select id="viewMode">
+                <option value="polygons">Solo Polígonos</option>
+                <option value="points">Solo Puntos</option>
+                <option value="both">Polígonos + Puntos</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <button id="btnToggleLegend">🎨 Mostrar/Ocultar Leyenda</button>
+        </div>
+    </div>
+
+    <!-- Controles principales -->
+    <div class="controls">
+        <div class="control-group">
+            <label for="propietarioFilter">Filtrar por propietario:</label>
+            <select id="propietarioFilter">
+                <option value="">Todos los propietarios</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="tipoVista">Vista del mapa:</label>
+            <select id="tipoVista">
+                <option value="osm">OpenStreetMap</option>
+                <option value="satellite">Vista Satelital</option>
+                <option value="terrain">Terreno</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <button id="btnActualizar">🔄 Actualizar Datos</button>
+            <button id="btnCentrar">🎯 Centrar Vista</button>
+            <button id="btnEstadisticas">📊 Estadísticas</button>
+        </div>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="stats" id="statsBar">
+        Cargando información del sistema...
+    </div>
+
+    <!-- Loading indicator -->
+    <div class="loading" id="loadingIndicator">
+        <div>⏳ Cargando parcelas...</div>
+    </div>
+
+    <!-- Leyenda de colores -->
+    <div class="legend" id="colorLegend">
+        <div class="legend-title">Propietarios</div>
+        <div id="legendContent">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #ccc;"></div>
+                <div class="legend-label">Cargando...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mapa -->
+    <div id="map"></div>
+
+    <!-- Error message -->
+    <div id="errorContainer"></div>
+
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
+            crossorigin=""></script>
+
+    <script>
+        // Configuración global
+        const CONFIG = {
+            apiBaseUrl: 'http://localhost:5001/api',
+            defaultCenter: [-17.345418, -63.906383], // Santa Cruz, Bolivia
+            defaultZoom: 12,
+            maxZoom: 18,
+            minZoom: 8
+        };
+
+        // Variables globales
+        let map;
+        let parcelasLayer;
+        let puntosLayer;
+        let allParcelas = [];
+        let propietarios = [];
+        let currentFilter = '';
+        let colorsByPropietario = {};
+        let currentColorMode = 'propietario';
+        let showPolygons = true;
+        let showPoints = false;
+        let viewMode = 'polygons'; // 'polygons', 'points', 'both'
+
+        // Paleta de colores para propietarios
+        const COLOR_PALETTE = [
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57',
+            '#FF9FF3', '#54A0FF', '#5F27CD', '#00D2D3', '#FF9F43',
+            '#10AC84', '#EE5A24', '#0652DD', '#9C88FF', '#FFC312',
+            '#C4E538', '#12CBC4', '#FDA7DF', '#ED4C67', '#6F1E51',
+            '#B33771', '#3742FA', '#2F3542', '#FF3838', '#FF6348',
+            '#FF4757', '#5352ED', '#3742FA', '#2F3542', '#FF9FF3'
+        ];
+
+        // Función para convertir geometría de SQL Server a coordenadas Leaflet
+        function parseGeometry(geometryData, properties = {}) {
+            try {
+                if (!geometryData) return null;
+                
+                // Si es WKT POLYGON
+                if (geometryData.startsWith && geometryData.startsWith('POLYGON')) {
+                    return parseWKTPolygon(geometryData);
+                }
+                
+                // Si es JSON array de coordenadas
+                if (typeof geometryData === 'string' && geometryData.startsWith('[')) {
+                    return JSON.parse(geometryData).map(coord => [coord[1], coord[0]]); // Convertir a [lat, lng]
+                }
+                
+                // Si ya es un array de coordenadas
+                if (Array.isArray(geometryData)) {
+                    return geometryData[0].length === 2 ? 
+                           geometryData.map(coord => [coord[1], coord[0]]) : // [lng, lat] -> [lat, lng]
+                           geometryData;
+                }
+                
+                return null;
+            } catch (error) {
+                console.warn('Error parseando geometría:', error);
+                return null;
+            }
+        }
+
+        function parseWKTPolygon(wkt) {
+            try {
+                // Extraer coordenadas del WKT POLYGON
+                const match = wkt.match(/POLYGON\s*\(\s*\((.*?)\)\s*\)/);
+                if (!match) return null;
+                
+                const coords = match[1].split(',').map(coord => {
+                    const [lng, lat] = coord.trim().split(' ').map(Number);
+                    return [lat, lng]; // Leaflet usa [lat, lng]
+                });
+                
+                return coords;
+            } catch (error) {
+                console.warn('Error parsing WKT:', error);
+                return null;
+            }
+        }
+
+        // Generar polígono irregular más realista basado en área
+        function generateRealisticPolygon(centerLat, centerLng, areaHa, seed = 0) {
+            const area = areaHa || 1; // Default 1 hectárea
+            const radiusMeters = Math.sqrt(area * 10000) / 2; // Radio base en metros
+            
+            // Factores de conversión a grados
+            const latFactor = 1 / 111320;
+            const lngFactor = 1 / (111320 * Math.cos(centerLat * Math.PI / 180));
+            
+            const points = [];
+            const numPoints = 8; // Octágono irregular
+            
+            for (let i = 0; i < numPoints; i++) {
+                const angle = (i * 45) * Math.PI / 180; // Cada 45 grados
+                
+                // Generar variación pseudo-aleatoria basada en seed
+                const variation = 0.6 + (0.8 * ((seed + i * 13) % 100) / 100); // Entre 0.6 y 1.4
+                const adjustedRadius = radiusMeters * variation;
+                
+                // Agregar pequeña rotación aleatoria al ángulo
+                const angleVariation = ((seed + i * 7) % 30 - 15) * Math.PI / 180; // ±15 grados
+                const finalAngle = angle + angleVariation;
+                
+                const lat = centerLat + (adjustedRadius * Math.sin(finalAngle) * latFactor);
+                const lng = centerLng + (adjustedRadius * Math.cos(finalAngle) * lngFactor);
+                
+                points.push([lat, lng]);
+            }
+            
+            // Cerrar el polígono
+            points.push(points[0]);
+            
+            return points;
+        }
+
+        // Generar forma específica según tipo de cultivo (para futuro)
+        function generateCropSpecificShape(centerLat, centerLng, areaHa, cropType = 'citricos') {
+            switch (cropType.toLowerCase()) {
+                case 'citricos':
+                case 'frutales':
+                    // Formas más circulares para frutales
+                    return generateCircularShape(centerLat, centerLng, areaHa);
+                
+                case 'cereales':
+                case 'granos':
+                    // Formas más rectangulares para cereales
+                    return generateRectangularShape(centerLat, centerLng, areaHa);
+                
+                default:
+                    return generateRealisticPolygon(centerLat, centerLng, areaHa);
+            }
+        }
+
+        function generateCircularShape(centerLat, centerLng, areaHa) {
+            const radiusMeters = Math.sqrt(areaHa * 10000 / Math.PI);
+            const latFactor = 1 / 111320;
+            const lngFactor = 1 / (111320 * Math.cos(centerLat * Math.PI / 180));
+            
+            const points = [];
+            const numPoints = 16; // Más puntos para forma circular
+            
+            for (let i = 0; i < numPoints; i++) {
+                const angle = (i * 360 / numPoints) * Math.PI / 180;
+                const lat = centerLat + (radiusMeters * Math.sin(angle) * latFactor);
+                const lng = centerLng + (radiusMeters * Math.cos(angle) * lngFactor);
+                points.push([lat, lng]);
+            }
+            
+            points.push(points[0]);
+            return points;
+        }
+
+        function generateRectangularShape(centerLat, centerLng, areaHa) {
+            const areaMeters = areaHa * 10000;
+            const ratio = 2; // Relación largo/ancho
+            const width = Math.sqrt(areaMeters / ratio);
+            const height = width * ratio;
+            
+            const latFactor = 1 / 111320;
+            const lngFactor = 1 / (111320 * Math.cos(centerLat * Math.PI / 180));
+            
+            const halfWidth = (width / 2) * lngFactor;
+            const halfHeight = (height / 2) * latFactor;
+            
+            return [
+                [centerLat - halfHeight, centerLng - halfWidth],
+                [centerLat - halfHeight, centerLng + halfWidth],
+                [centerLat + halfHeight, centerLng + halfWidth],
+                [centerLat + halfHeight, centerLng - halfWidth],
+                [centerLat - halfHeight, centerLng - halfWidth]
+            ];
+        }
+
+        // Generar color para propietario
+        function getColorForPropietario(propietarioNombre) {
+            if (!colorsByPropietario[propietarioNombre]) {
+                const colorIndex = Object.keys(colorsByPropietario).length % COLOR_PALETTE.length;
+                colorsByPropietario[propietarioNombre] = COLOR_PALETTE[colorIndex];
+            }
+            return colorsByPropietario[propietarioNombre];
+        }
+
+        // Inicializar la aplicación
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Iniciando aplicación de mapas con polígonos...');
+            initializeMap();
+            loadInitialData();
+            setupEventListeners();
+        });
+
+        // Inicializar el mapa
+        function initializeMap() {
+            console.log('🗺️ Inicializando mapa...');
+            
+            map = L.map('map').setView(CONFIG.defaultCenter, CONFIG.defaultZoom);
+
+            // Capas base del mapa
+            const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: CONFIG.maxZoom
+            });
+
+            const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '© Esri',
+                maxZoom: CONFIG.maxZoom
+            });
+
+            const terrainLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenTopoMap contributors',
+                maxZoom: CONFIG.maxZoom
+            });
+
+            // Agregar capa por defecto
+            osmLayer.addTo(map);
+
+            // Controlar cambio de capas
+            const baseLayers = {
+                'osm': osmLayer,
+                'satellite': satelliteLayer,
+                'terrain': terrainLayer
+            };
+
+            document.getElementById('tipoVista').addEventListener('change', function() {
+                const selectedLayer = this.value;
+                map.eachLayer(layer => {
+                    if (layer !== parcelasLayer && layer !== puntosLayer) {
+                        map.removeLayer(layer);
+                    }
+                });
+                baseLayers[selectedLayer].addTo(map);
+            });
+
+            // Crear capas para las parcelas
+            parcelasLayer = L.layerGroup().addTo(map); // Para polígonos
+            puntosLayer = L.layerGroup().addTo(map);   // Para puntos
+
+            console.log('✅ Mapa inicializado correctamente');
+        }
+
+        // Cargar datos iniciales
+        async function loadInitialData() {
+            showLoading(true);
+            
+            try {
+                await Promise.all([
+                    loadParcelas(),
+                    loadPropietarios(),
+                    loadEstadisticas()
+                ]);
+                console.log('✅ Datos iniciales cargados');
+            } catch (error) {
+                console.error('❌ Error cargando datos iniciales:', error);
+                showError('Error al cargar los datos iniciales. Verifique la conexión con el servidor.');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Cargar parcelas desde la API
+        async function loadParcelas(propietarioId = '') {
+            console.log('📍 Cargando parcelas...');
+            
+            try {
+                let url = `${CONFIG.apiBaseUrl}/parcelas/geojson`;
+                if (propietarioId) {
+                    url += `?propietario_id=${propietarioId}`;
+                }
+
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                allParcelas = data.features || [];
+                
+                console.log(`📍 ${allParcelas.length} parcelas cargadas`);
+                renderParcelas();
+                updateStats(data.metadata);
+                updateLegend();
+                
+            } catch (error) {
+                console.error('❌ Error cargando parcelas:', error);
+                throw error;
+            }
+        }
+
+        // Cargar lista de propietarios
+        async function loadPropietarios() {
+            try {
+                const response = await fetch(`${CONFIG.apiBaseUrl}/propietarios`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const data = await response.json();
+                propietarios = data.propietarios || [];
+                
+                populatePropietariosFilter();
+                console.log(`👥 ${propietarios.length} propietarios cargados`);
+                
+            } catch (error) {
+                console.error('❌ Error cargando propietarios:', error);
+            }
+        }
+
+        // Cargar estadísticas
+        async function loadEstadisticas() {
+            try {
+                const response = await fetch(`${CONFIG.apiBaseUrl}/estadisticas`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const data = await response.json();
+                updateGeneralStats(data);
+                
+            } catch (error) {
+                console.error('❌ Error cargando estadísticas:', error);
+            }
+        }
+
+        // Renderizar parcelas en el mapa
+        function renderParcelas() {
+            console.log(`🎨 Renderizando parcelas en modo: ${viewMode}...`);
+            
+            // Limpiar capas actuales
+            parcelasLayer.clearLayers();
+            puntosLayer.clearLayers();
+            colorsByPropietario = {}; // Reset colores
+
+            if (allParcelas.length === 0) {
+                showError('No se encontraron parcelas para mostrar.');
+                return;
+            }
+
+            let bounds = [];
+
+            allParcelas.forEach(parcela => {
+                const props = parcela.properties;
+                const geometry = parcela.geometry;
+                
+                if (!geometry || !geometry.coordinates) {
+                    console.warn('Parcela sin coordenadas:', props.nombre);
+                    return;
+                }
+
+                const [lng, lat] = geometry.coordinates;
+                bounds.push([lat, lng]);
+
+                // Obtener color según el modo actual
+                let fillColor = '#4CAF50'; // Color por defecto
+                
+                if (currentColorMode === 'propietario' && props.propietario) {
+                    fillColor = getColorForPropietario(props.propietario);
+                }
+
+                // RENDERIZAR POLÍGONOS (si está habilitado)
+                if (viewMode === 'polygons' || viewMode === 'both') {
+                    renderPolygon(props, geometry, fillColor, bounds);
+                }
+
+                // RENDERIZAR PUNTOS (si está habilitado)
+                if (viewMode === 'points' || viewMode === 'both') {
+                    renderPoint(props, lat, lng, fillColor);
+                }
+            });
+
+            // Ajustar vista para mostrar todas las parcelas
+            if (bounds.length > 0) {
+                const allLayers = [...parcelasLayer.getLayers(), ...puntosLayer.getLayers()];
+                if (allLayers.length > 0) {
+                    const group = new L.featureGroup(allLayers);
+                    map.fitBounds(group.getBounds().pad(0.1));
+                }
+            }
+
+            console.log(`✅ ${allParcelas.length} parcelas renderizadas en modo: ${viewMode}`);
+        }
+
+        // Renderizar polígono individual
+        function renderPolygon(props, geometry, fillColor, bounds) {
+            // Obtener coordenadas del polígono
+            let polygonCoords = null;
+            
+            // 1. Primero intentar con geometria_polygon si existe
+            if (props.geometria_polygon) {
+                polygonCoords = parseGeometry(props.geometria_polygon, props);
+            }
+            
+            // 2. Intentar con polygon_coordinates_json si existe (desde la nueva vista)
+            if (!polygonCoords && props.polygon_coordinates_json) {
+                polygonCoords = parseGeometry(props.polygon_coordinates_json, props);
+            }
+            
+            // 3. Si no hay polígono, crear uno realista basado en el área
+            if (!polygonCoords && geometry && geometry.coordinates) {
+                const [lng, lat] = geometry.coordinates;
+                const area = props.area_total || 1; // Área en hectáreas
+                const parcelaId = props.id_parcela || props.id || 1;
+                
+                // Generar polígono realista irregular
+                polygonCoords = generateRealisticPolygon(lat, lng, area, parcelaId);
+                
+                console.log(`🎨 Generando polígono realista para ${props.nombre}: ${area} ha`);
+            }
+            
+            if (!polygonCoords) {
+                console.warn('No se pudieron obtener coordenadas para:', props.nombre);
+                return;
+            }
+
+            // Crear polígono
+            const polygon = L.polygon(polygonCoords, {
+                fillColor: fillColor,
+                fillOpacity: viewMode === 'both' ? 0.5 : 0.7, // Menos opacidad si hay puntos también
+                color: '#2E7D32',
+                weight: 2,
+                opacity: 0.8
+            });
+
+            // Crear popup con información
+            const popupContent = createPopupContent(props);
+            polygon.bindPopup(popupContent);
+
+            // Agregar tooltip
+            polygon.bindTooltip(`${props.nombre} - ${props.propietario || 'Sin propietario'}`, {
+                permanent: false,
+                direction: 'center',
+                sticky: true
+            });
+
+            // Efectos de hover
+            polygon.on('mouseover', function(e) {
+                this.setStyle({
+                    fillOpacity: viewMode === 'both' ? 0.8 : 0.9,
+                    weight: 3
+                });
+            });
+
+            polygon.on('mouseout', function(e) {
+                this.setStyle({
+                    fillOpacity: viewMode === 'both' ? 0.5 : 0.7,
+                    weight: 2
+                });
+            });
+
+            // Agregar al grupo de parcelas
+            parcelasLayer.addLayer(polygon);
+            
+            // Agregar bounds para centrar vista
+            polygonCoords.forEach(coord => {
+                bounds.push(coord);
+            });
+        }
+
+        // Renderizar punto individual
+        function renderPoint(props, lat, lng, fillColor) {
+            // Crear icono personalizado con el color del propietario
+            const customIcon = L.divIcon({
+                className: 'custom-parcela-marker',
+                html: `
+                    <div style="
+                        width: 24px;
+                        height: 24px;
+                        background: ${fillColor};
+                        border: 3px solid white;
+                        border-radius: 50%;
+                        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        color: white;
+                        font-size: 12px;
+                        font-weight: bold;
+                    ">🌱</div>
+                `,
+                iconSize: [30, 30],
+                iconAnchor: [15, 15],
+                popupAnchor: [0, -15]
+            });
+
+            // Crear marcador
+            const marker = L.marker([lat, lng], { icon: customIcon });
+            
+            // Crear popup con información
+            const popupContent = createPopupContent(props);
+            marker.bindPopup(popupContent);
+
+            // Agregar tooltip permanente si es solo puntos
+            marker.bindTooltip(props.nombre, {
+                permanent: viewMode === 'points',
+                direction: 'top',
+                offset: [0, -10]
+            });
+
+            // Agregar animación para marcadores
+            marker.on('mouseover', function() {
+                this.openPopup();
+                this.setZIndexOffset(1000);  // Elevar marcador
+            });
+            
+            marker.on('mouseout', function() {
+                if (viewMode !== 'points') { // Solo cerrar popup automáticamente si no es vista de solo puntos
+                    this.closePopup();
+                }
+                this.setZIndexOffset(0);  // Restaurar posición
+            });
+            
+            // Agregar al grupo de puntos
+            puntosLayer.addLayer(marker);
+        }
+
+        // Crear contenido del popup
+        function createPopupContent(properties) {
+            const color = currentColorMode === 'propietario' && properties.propietario ? 
+                         getColorForPropietario(properties.propietario) : '#4CAF50';
+            
+            return `
+                <div class="popup-content">
+                    <div class="popup-title" style="border-bottom-color: ${color};">
+                        ${properties.nombre}
+                    </div>
+                    
+                    <div class="popup-field">
+                        <strong>Propietario:</strong>
+                        <span style="color: ${color}; font-weight: bold;">
+                            ${properties.propietario || 'No especificado'}
+                        </span>
+                    </div>
+                    
+                    <div class="popup-field">
+                        <strong>Ubicación:</strong>
+                        <span>${properties.ubicacion || 'No especificada'}</span>
+                    </div>
+                    
+                    <div class="popup-field">
+                        <strong>Área:</strong>
+                        <span>${properties.area_texto || properties.area_total + ' ha' || '0 ha'}</span>
+                    </div>
+                    
+                    <div class="popup-field">
+                        <strong>Tipo de suelo:</strong>
+                        <span>${properties.tipoSuelo || properties.tipo_suelo || 'No especificado'}</span>
+                    </div>
+                    
+                    <div class="popup-field">
+                        <strong>Fuente de agua:</strong>
+                        <span>${properties.fuenteAgua || properties.fuente_agua || 'No especificada'}</span>
+                    </div>
+                    
+                    ${properties.fechaAdquisicion || properties.fecha_adquisicion ? `
+                        <div class="popup-field">
+                            <strong>Adquisición:</strong>
+                            <span>${properties.fechaAdquisicion || properties.fecha_adquisicion}</span>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="popup-usage">
+                        <strong>Uso de la parcela:</strong>
+                        <div class="usage-bar">
+                            <div class="usage-fill" style="width: ${properties.porcentajeUso || 0}%; background-color: ${color};"></div>
+                        </div>
+                        <small>${properties.porcentajeUso || 0}% en uso</small>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Actualizar leyenda de colores
+        function updateLegend() {
+            const legendContent = document.getElementById('legendContent');
+            const legendTitle = document.querySelector('.legend-title');
+            
+            if (currentColorMode === 'propietario') {
+                legendTitle.textContent = 'Propietarios';
+                
+                const propietariosUnicos = [...new Set(
+                    allParcelas
+                        .map(p => p.properties.propietario)
+                        .filter(p => p && p.trim() !== '')
+                )].sort();
+
+                legendContent.innerHTML = propietariosUnicos.map(propietario => {
+                    const color = getColorForPropietario(propietario);
+                    return `
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: ${color};"></div>
+                            <div class="legend-label">${propietario}</div>
+                        </div>
+                    `;
+                }).join('');
+
+                if (propietariosUnicos.length === 0) {
+                    legendContent.innerHTML = '<div class="legend-item">No hay datos de propietarios</div>';
+                }
+            }
+        }
+
+        // Poblar filtro de propietarios
+        function populatePropietariosFilter() {
+            const select = document.getElementById('propietarioFilter');
+            
+            select.innerHTML = '<option value="">Todos los propietarios</option>';
+            
+            propietarios.forEach(propietario => {
+                const option = document.createElement('option');
+                option.value = propietario.id;
+                option.textContent = propietario.nombre_completo;
+                select.appendChild(option);
+            });
+        }
+
+        // Actualizar estadísticas
+        function updateStats(metadata) {
+            const statsBar = document.getElementById('statsBar');
+            
+            // Contar polígonos reales vs generados
+            let realPolygons = 0;
+            let generatedPolygons = 0;
+            
+            allParcelas.forEach(parcela => {
+                if (parcela.properties.geometria_polygon || parcela.properties.polygon_coordinates_json) {
+                    realPolygons++;
+                } else {
+                    generatedPolygons++;
+                }
+            });
+
+            // Describir modo de vista actual
+            const viewModeText = {
+                'polygons': 'Solo Polígonos',
+                'points': 'Solo Puntos', 
+                'both': 'Polígonos + Puntos'
+            }[viewMode] || viewMode;
+            
+            if (metadata) {
+                statsBar.innerHTML = `
+                    📊 Total de parcelas: <strong>${metadata.total_parcelas}</strong> | 
+                    📍 Con coordenadas: <strong>${metadata.parcelas_con_coordenadas}</strong> | 
+                    🗺️ Polígonos reales: <strong>${realPolygons}</strong> |
+                    🎨 Polígonos generados: <strong>${generatedPolygons}</strong> |
+                    👁️ Vista: <strong>${viewModeText}</strong> |
+                    🎯 Color: <strong>${currentColorMode}</strong> |
+                    🕒 Actualizado: ${new Date(metadata.generado).toLocaleString()}
+                `;
+            }
+        }
+
+        function updateGeneralStats(data) {
+            const resumen = data.resumen || {};
+            const statsBar = document.getElementById('statsBar');
+
+            const areaTotal = resumen.area_total ? 
+            new Intl.NumberFormat('es-BO', {maximumFractionDigits: 2}).format(resumen.area_total) : '0';
+            
+            // Contar tipos de polígonos
+            let realPolygons = 0;
+            let generatedPolygons = 0;
+            
+            allParcelas.forEach(parcela => {
+                if (parcela.properties.geometria_polygon || parcela.properties.polygon_coordinates_json) {
+                    realPolygons++;
+                } else {
+                    generatedPolygons++;
+                }
+            });
+
+            // Describir modo de vista actual
+            const viewModeText = {
+                'polygons': 'Solo Polígonos',
+                'points': 'Solo Puntos', 
+                'both': 'Polígonos + Puntos'
+            }[viewMode] || viewMode;
+            
+            statsBar.innerHTML = `
+                👥 Agricultores: <strong>${resumen.total_agricultores || 0}</strong> | 
+                🏠 Propietarios: <strong>${resumen.total_propietarios || 0}</strong> | 
+                📊 Parcelas: <strong>${resumen.total_parcelas || 0}</strong> | 
+                🌍 Área total: <strong>${areaTotal} ha</strong> |
+                🗺️ Reales: <strong>${realPolygons}</strong> |
+                🎨 Generados: <strong>${generatedPolygons}</strong> |
+                👁️ Vista: <strong>${viewModeText}</strong> |
+                🎯 Color: <strong>${currentColorMode}</strong>
+            `;
+        }
+
+        // Configurar event listeners
+        function setupEventListeners() {
+            // Modo de coloración
+            document.getElementById('colorMode').addEventListener('change', function() {
+                currentColorMode = this.value;
+                renderParcelas();
+                updateLegend();
+            });
+
+            // Modo de vista (Nuevo)
+            document.getElementById('viewMode').addEventListener('change', function() {
+                viewMode = this.value;
+                renderParcelas();
+                // Actualizar estadísticas generales
+                if (allParcelas.length > 0) {
+                    updateGeneralStats({ resumen: {} });
+                }
+            });
+
+            // Toggle leyenda
+            document.getElementById('btnToggleLegend').addEventListener('click', function() {
+                const legend = document.getElementById('colorLegend');
+                legend.style.display = legend.style.display === 'none' ? 'block' : 'none';
+            });
+
+            // Filtro por propietario
+            document.getElementById('propietarioFilter').addEventListener('change', function() {
+                const propietarioId = this.value;
+                currentFilter = propietarioId;
+                
+                showLoading(true);
+                loadParcelas(propietarioId).finally(() => showLoading(false));
+            });
+
+            // Botón actualizar
+            document.getElementById('btnActualizar').addEventListener('click', function() {
+                this.disabled = true;
+                showLoading(true);
+                
+                loadInitialData().finally(() => {
+                    this.disabled = false;
+                    showLoading(false);
+                });
+            });
+
+            // Botón centrar vista
+            document.getElementById('btnCentrar').addEventListener('click', function() {
+                if (allParcelas.length > 0) {
+                    const allLayers = [...parcelasLayer.getLayers(), ...puntosLayer.getLayers()];
+                    if (allLayers.length > 0) {
+                        const group = new L.featureGroup(allLayers);
+                        map.fitBounds(group.getBounds().pad(0.1));
+                    }
+                } else {
+                    map.setView(CONFIG.defaultCenter, CONFIG.defaultZoom);
+                }
+            });
+
+            // Botón estadísticas
+            document.getElementById('btnEstadisticas').addEventListener('click', function() {
+                const propietariosCount = Object.keys(colorsByPropietario).length;
+                const parcelasCount = allParcelas.length;
+                
+                // Contar tipos de polígonos
+                let realPolygons = 0;
+                let generatedPolygons = 0;
+                let totalArea = 0;
+                
+                allParcelas.forEach(parcela => {
+                    const area = parseFloat(parcela.properties.area_total) || 0;
+                    totalArea += area;
+                    
+                    if (parcela.properties.geometria_polygon || parcela.properties.polygon_coordinates_json) {
+                        realPolygons++;
+                    } else {
+                        generatedPolygons++;
+                    }
+                });
+                
+                const avgArea = parcelasCount > 0 ? (totalArea / parcelasCount).toFixed(2) : 0;
+
+                // Contar elementos renderizados según el modo
+                const polygonsRendered = parcelasLayer.getLayers().length;
+                const pointsRendered = puntosLayer.getLayers().length;
+
+                // Describir modo de vista actual
+                const viewModeText = {
+                    'polygons': 'Solo Polígonos',
+                    'points': 'Solo Puntos', 
+                    'both': 'Polígonos + Puntos'
+                }[viewMode] || viewMode;
+                
+                alert(`📊 Estadísticas Detalladas del Mapa:
+                
+🏗️ GEOMETRÍAS:
+• Parcelas con polígonos reales: ${realPolygons}
+• Polígonos generados automáticamente: ${generatedPolygons}
+• Total de parcelas mostradas: ${parcelasCount}
+
+🎨 VISUALIZACIÓN:
+• Modo de vista: ${viewModeText}
+• Polígonos renderizados: ${polygonsRendered}
+• Puntos renderizados: ${pointsRendered}
+• Propietarios únicos: ${propietariosCount}
+• Colores utilizados: ${propietariosCount} de ${COLOR_PALETTE.length} disponibles
+• Modo de coloración: ${currentColorMode}
+
+📏 ÁREAS:
+• Área total: ${totalArea.toFixed(2)} hectáreas
+• Área promedio por parcela: ${avgArea} ha
+• Zoom actual: ${Math.round(map.getZoom())}
+
+💡 MODOS DE VISTA:
+• Solo Polígonos: Muestra las formas reales/estimadas de las parcelas
+• Solo Puntos: Muestra marcadores en el centro de cada parcela
+• Polígonos + Puntos: Combina ambas visualizaciones
+
+🔄 Los polígonos generados son aproximaciones realistas
+basadas en el área registrada y la ubicación central.`);
+            });
+        }
+
+        // Mostrar/ocultar indicador de carga
+        function showLoading(show) {
+            const indicator = document.getElementById('loadingIndicator');
+            indicator.style.display = show ? 'block' : 'none';
+        }
+
+        // Mostrar mensaje de error
+        function showError(message) {
+            const container = document.getElementById('errorContainer');
+            container.innerHTML = `<div class="error-message">❌ ${message}</div>`;
+            
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+
+        // Comunicación con QML
+        function notifyQML(event, data) {
+            if (typeof qmlBridge !== 'undefined') {
+                qmlBridge.sendMessage(JSON.stringify({ event, data }));
+            }
+        }
+    </script>
+</body>
+</html>

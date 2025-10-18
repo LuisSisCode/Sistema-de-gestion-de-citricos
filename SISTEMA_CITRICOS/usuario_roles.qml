@@ -56,7 +56,7 @@ Rectangle {
                     icon.source: "Image/Image_UI_interfaz/Inconos/agregar-usuario.svg"
                     implicitHeight: 36
                     background: Rectangle {
-                        color: "#f5922f"
+                        color: parent.hovered ? "#E65A00" : "#f5922f"
                         radius: height / 2
                     }
                     onClicked: {
@@ -76,14 +76,31 @@ Rectangle {
                 }
 
                 TextField {
-                    id : txtBuscarUsuarios
+                    id: txtBuscarUsuarios
                     placeholderText: "Buscar usuario..."
                     implicitWidth: 450
-                    implicitHeight: 25
+                    implicitHeight: 28
+                    leftPadding: 30  // Espacio para el icono
+                    
                     background: Rectangle {
-                        color: "#b2c4c9"
+                        color: "#ffffff"
                         radius: height / 2
+                        border.color: "#808080"
+                        border.width: 1
+                        
+                        // Icono de lupa
+                        Image {
+                            anchors {
+                                left: parent.left
+                                leftMargin: 10
+                                verticalCenter: parent.verticalCenter
+                            }
+                            source: "Image/Image_UI_interfaz/Inconos/lupa.png" // Cambia por tu ruta
+                            width: 16
+                            height: 16
+                        }
                     }
+                    
                     onTextChanged: {
                         usuariosRolesModel.filtrar_usuarios(text)
                     }
@@ -260,9 +277,10 @@ Rectangle {
                                 anchors.verticalCenter: parent.verticalCenter
                                 anchors.left: parent.left
                                 anchors.leftMargin: 10
-                                text: modelData.rol
+                                text: modelData.rol + (modelData.activo ? "" : " (Inactivo)")
                                 elide: Text.ElideRight
                                 width: parent.width - 20
+                                color: modelData.activo ? "black" : "gray"
                             }
                         }
 
@@ -475,7 +493,9 @@ Rectangle {
                                 }
                             }
                             Component.onCompleted: {
-                                currentIndex = 0;  // Simplemente selecciona el primer elemento
+                                if (usuariosRolesModel) {
+                                    usuariosRolesModel.cargar_roles();
+                                }
                             }
                         }
 
@@ -739,249 +759,349 @@ Rectangle {
     }
 
     // DIÁLOGO DE EDICIÓN DE USUARIO
-Dialog {
-    id: editUsuarioDialog
-    title: "Editar Usuario"
-    modal: true
-    width: 500
-    height: 420
-    x: (usuariosRolesRoot.width - width) / 2
-    y: (usuariosRolesRoot.height - height) / 2
-  
-    // Método para preparar el diálogo antes de abrirlo
-    function prepararEdicion(usuario) {
-        // Crear una copia del objeto usuario para editar
-        usuarioEditando = {
-            "id_usuario": usuario.id_usuario,
-            "nombre": usuario.nombre,
-            "apellido": usuario.apellido,
-            "usuario": usuario.usuario,
-            "correo": usuario.correo,
-            "id_rol": usuario.id_rol,
-            "activo": usuario.activo
-        };
-        
-        // Actualizar los campos del formulario
-        txtEditNombre.text = usuario.nombre || "";
-        txtEditApellido.text = usuario.apellido || "";
-        txtEditUsuario.text = usuario.usuario || "";
-        txtEditCorreo.text = usuario.correo || "";
-        chkEditActivo.checked = usuario.activo;
-        
-        // Seleccionar el rol correcto en el ComboBox
-        let rolIndex = -1;
-        if (cmbEditRol.model) {
-            for (let i = 0; i < cmbEditRol.model.length; i++) {
-                if (cmbEditRol.model[i].id_rol === usuario.id_rol) {
-                    rolIndex = i;
-                    break;
-                }
+    Dialog {
+        id: editUsuarioDialog
+        title: "Editar Usuario"
+        modal: true
+        width: 555
+        height: 575
+        x: (usuariosRolesRoot.width - width) / 2
+        y: (usuariosRolesRoot.height - height) / 2
+        padding: 0
+    
+        // Método para preparar el diálogo antes de abrirlo
+        function prepararEdicion(usuario) {
+            if (!usuario) {
+                console.error("Usuario no válido para edición");
+                return;
             }
             
-            if (rolIndex >= 0) {
-                cmbEditRol.currentIndex = rolIndex;
+            // Crear copia completa del usuario
+            usuarioEditando = {
+                "id_usuario": usuario.id_usuario,
+                "nombre": usuario.nombre || "",
+                "apellido": usuario.apellido || "",
+                "usuario": usuario.usuario || "",
+                "correo": usuario.correo || "",
+                "telefono": usuario.telefono || "",
+                "direccion": usuario.direccion || "",
+                "id_rol": usuario.id_rol || 1,
+                "activo": usuario.activo !== undefined ? usuario.activo : true
+            };
+            
+            // Actualizar todos los campos
+            txtEditNombre.text = usuarioEditando.nombre;
+            txtEditApellido.text = usuarioEditando.apellido;
+            txtEditUsuario.text = usuarioEditando.usuario;
+            txtEditCorreo.text = usuarioEditando.correo;
+            txtEditTelefono.text = usuarioEditando.telefono;  // Ahora este campo existe
+            txtEditDireccion.text = usuarioEditando.direccion;  // Y este también
+            chkEditActivo.checked = usuarioEditando.activo;
+            
+            // Seleccionar el rol correcto
+            if (cmbEditRol.model && cmbEditRol.model.length > 0) {
+                var rolIndex = -1;
+                for (var i = 0; i < cmbEditRol.model.length; i++) {
+                    if (cmbEditRol.model[i].id_rol === usuarioEditando.id_rol) {
+                        rolIndex = i;
+                        break;
+                    }
+                }
+                cmbEditRol.currentIndex = rolIndex >= 0 ? rolIndex : 0;
             }
         }
-    }
-    
-    // Contenido del diálogo
-    contentItem: Rectangle {
-        color: "white"
         
-        Column {
-            anchors.fill: parent
-            anchors.margins: 20
-            spacing: 15
-            
-            // Título
-            Text {
-                text: "Editar Usuario"
-                font.pixelSize: 18
-                font.bold: true
-                width: parent.width
-                horizontalAlignment: Text.AlignHCenter
-            }
-            
-            // Formulario
-            GridLayout {
-                width: parent.width
-                columns: 2
-                columnSpacing: 10
-                rowSpacing: 15
-                
-                // Nombre
-                Text {
-                    text: "Nombre:"
-                    Layout.alignment: Qt.AlignRight
-                }
-                
-                TextField {
-                    id: txtEditNombre
-                    placeholderText: "Ingrese nombre"
-                    Layout.fillWidth: true
-                }
-                
-                // Apellido
-                Text {
-                    text: "Apellido:"
-                    Layout.alignment: Qt.AlignRight
-                }
-                
-                TextField {
-                    id: txtEditApellido
-                    placeholderText: "Ingrese apellido"
-                    Layout.fillWidth: true
-                }
-                
-                // Usuario
-                Text {
-                    text: "Usuario:"
-                    Layout.alignment: Qt.AlignRight
-                }
-                
-                TextField {
-                    id: txtEditUsuario
-                    placeholderText: "Ingrese nombre de usuario"
-                    Layout.fillWidth: true
-                }
-                
-                // Correo electrónico
-                Text {
-                    text: "Correo electrónico:"
-                    Layout.alignment: Qt.AlignRight
-                }
-                
-                TextField {
-                    id: txtEditCorreo
-                    placeholderText: "Ingrese correo electrónico"
-                    Layout.fillWidth: true
-                    inputMethodHints: Qt.ImhEmailCharactersOnly
-                }
-                
-                // Rol
-                Text {
-                    text: "Rol:"
-                    Layout.alignment: Qt.AlignRight
-                }
-                
-                ComboBox {
-                    id: cmbEditRol
-                    Layout.fillWidth: true
-                    model: usuariosRolesModel ? usuariosRolesModel.roles : []
-                    textRole: "nombre"
-                    onCurrentIndexChanged: {
-                        if (usuarioEditando && currentIndex >= 0 && model && currentIndex < model.length) {
-                            usuarioEditando.id_rol = model[currentIndex].id_rol;
+        // Contenido del diálogo
+        contentItem: Rectangle {
+            color: "white"
+            radius : 5
+
+            ScrollView {
+                id: scrollViews
+                anchors.fill: parent
+                clip: true
+                ScrollBar.vertical.policy: ScrollBar.AsNeeded
+
+                Column {
+                    id: mainColumns
+                    width: scrollView.width
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: parent.top
+                    anchors.topMargin: 20
+                    spacing: 15
+                    
+                    // Título
+                    Text {
+                        text: "Editar Usuario"
+                        font.pixelSize: 18
+                        font.bold: true
+                        color: "#2E7D32"
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        bottomPadding: 5
+                    }
+                    
+                    // Formulario
+                    GridLayout {
+                        width: parent.width
+                        columns: 2
+                        columnSpacing: 15
+                        rowSpacing: 15
+                        
+                        // Nombre
+                        Text {
+                            text: "Nombre:"
+                            font.pixelSize: 14
+                            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+                        }
+                        
+                        TextField {
+                            id: txtEditNombre
+                            placeholderText: "Ingrese nombre"
+                            Layout.fillWidth: true
+                            height: 36
+                            background: Rectangle {
+                                radius: 4
+                                border.color: "#CCCCCC"
+                                border.width: 1
+                            }
+                        }
+                        
+                        // Apellido
+                        Text {
+                            text: "Apellido:"
+                            font.pixelSize: 14
+                            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+                        }
+                        
+                        TextField {
+                            id: txtEditApellido
+                            placeholderText: "Ingrese apellido"
+                            Layout.fillWidth: true
+                            height: 36
+                            background: Rectangle {
+                                radius: 4
+                                border.color: "#CCCCCC"
+                                border.width: 1
+                            }
+                        }
+                        
+                        // Usuario
+                        Text {
+                            text: "Usuario:"
+                            font.pixelSize: 14
+                            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+                        }
+                        
+                        TextField {
+                            id: txtEditUsuario
+                            placeholderText: "Ingrese nombre de usuario"
+                            Layout.fillWidth: true
+                            height: 36
+                            background: Rectangle {
+                                radius: 4
+                                border.color: "#CCCCCC"
+                                border.width: 1
+                            }
+                        }
+
+                        // Teléfono
+                        Text {
+                            text: "Teléfono:"
+                            font.pixelSize: 14
+                            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+                        }
+                        
+                        TextField {
+                            id: txtEditTelefono
+                            placeholderText: "000-000-00"
+                            Layout.fillWidth: true
+                            height: 36
+                            background: Rectangle {
+                                radius: 4
+                                border.color: "#CCCCCC"
+                                border.width: 1
+                            }
+                        }
+
+
+                        // Dirección (Campo nuevo)
+                        Text {
+                            text: "Dirección:"
+                            font.pixelSize: 14
+                            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+                        }
+
+                        TextField {
+                            id: txtEditDireccion
+                            placeholderText: "Ingrese dirección"
+                            Layout.fillWidth: true
+                            height: 36
+                            background: Rectangle {
+                                radius: 4
+                                border.color: "#CCCCCC"
+                                border.width: 1
+                            }
+                        }
+                        
+                        // Correo electrónico
+                        Text {
+                            text: "Correo electrónico:"
+                            font.pixelSize: 14
+                            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+                        }
+                        
+                        TextField {
+                            id: txtEditCorreo
+                            placeholderText: "Ingrese correo electrónico"
+                            Layout.fillWidth: true
+                            height: 36
+                            inputMethodHints: Qt.ImhEmailCharactersOnly
+                            background: Rectangle {
+                                radius: 4
+                                border.color: "#CCCCCC"
+                                border.width: 1
+                            }
+                        }
+                        
+                        // Rol
+                        Text {
+                            text: "Rol:"
+                            font.pixelSize: 14
+                            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+                        }
+                        
+                        ComboBox {
+                            id: cmbEditRol
+                            Layout.fillWidth: true
+                            height: 36
+                            model: usuariosRolesModel ? usuariosRolesModel.roles : []
+                            textRole: "nombre"
+                            background: Rectangle {
+                                radius: 4
+                                border.color: "#CCCCCC"
+                                border.width: 1
+                            }
+                        }
+                        
+                        // Activo
+                        Text {
+                            text: "Activo:"
+                            font.pixelSize: 14
+                            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+                        }
+                        CheckBox {
+                            id: chkEditActivo
+                            checked: true
+                        }
+                    }
+                    
+                    // Mensaje de validación
+                    Rectangle {
+                        width: parent.width
+                        height: mensajeValidacionEdit.text ? mensajeValidacionEdit.height + 20 : 0
+                        color: "#FFF0F0"
+                        border.color: "#FFD0D0"
+                        radius: 4
+                        visible: mensajeValidacionEdit.text !== ""
+                        
+                        Text {
+                            id: mensajeValidacionEdit
+                            anchors.centerIn: parent
+                            width: parent.width - 20
+                            text: ""
+                            color: "#D32F2F"
+                            font.pixelSize: 14
+                            horizontalAlignment: Text.AlignHCenter
+                            wrapMode: Text.WordWrap
                         }
                     }
                 }
-                
-                // Activo
-                Text {
-                    text: "Activo:"
-                    Layout.alignment: Qt.AlignRight
-                }
-                
-                CheckBox {
-                    id: chkEditActivo
-                    checked: true
-                }
             }
             
-            // Mensaje de validación
-            Rectangle {
-                width: parent.width
-                height: mensajeValidacionEdit.text ? mensajeValidacionEdit.height + 20 : 0
-                color: "#FFF0F0"
-                border.color: "#FFD0D0"
-                radius: 4
-                visible: mensajeValidacionEdit.text !== ""
-                
-                Text {
-                    id: mensajeValidacionEdit
-                    anchors.centerIn: parent
-                    width: parent.width - 20
-                    text: ""
-                    color: "#D32F2F"
-                    font.pixelSize: 14
-                    horizontalAlignment: Text.AlignHCenter
-                    wrapMode: Text.WordWrap
-                }
-            }
-        }
-    }
-    
-    footer: DialogButtonBox {
-        Button {
-            text: "Cancelar"
-            DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
-            implicitHeight: 36
-            implicitWidth: 100
-            onClicked: editUsuarioDialog.close()
+            
         }
         
-        Button {
-            text: "Guardar cambios"
-            DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
-            implicitHeight: 36
-            implicitWidth: 100
-            background: Rectangle {
-                color: "#4CAF50"
-                radius: 5
+        footer: DialogButtonBox {
+                background: Rectangle {
+                color: "#F5F5F5"
+                height: 60
             }
-            contentItem: Text {
-                text: parent.text
-                color: "white"
-                font.bold: true
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
+                Button {
+                text: "Cancelar"
+                DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
+                implicitHeight: 36
+                implicitWidth: 100
+                background: Rectangle {
+                    color: "#E0E0E0"
+                    radius: 5
+                }
+                onClicked: editUsuarioDialog.close()
             }
-            onClicked: {
-                // Validación básica
-                if (!usuarioEditando) {
-                    mensajeValidacionEdit.text = "Error: No hay usuario para editar";
-                    return;
+            
+            Button {
+                text: "Guardar cambios"
+                DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
+                implicitHeight: 36
+                implicitWidth: 120
+                background: Rectangle {
+                    color: parent.hovered ? "#388E3C" : "#4CAF50"
+                    radius: 5
                 }
-                
-                if (txtEditNombre.text === "" || txtEditUsuario.text === "" || txtEditCorreo.text === "") {
-                    mensajeValidacionEdit.text = "Por favor, complete todos los campos obligatorios";
-                    return;
+                contentItem: Text {
+                    text: parent.text
+                    color: "white"
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
                 }
-                
-                // Preparar datos para actualizar
-                var datosActualizados = {
-                    "nombre": txtEditNombre.text,
-                    "apellido": txtEditApellido.text,
-                    "usuario": txtEditUsuario.text,
-                    "correo": txtEditCorreo.text,
-                    "id_rol": cmbEditRol.model[cmbEditRol.currentIndex].id_rol,
-                    "activo": chkEditActivo.checked
-                };
-                
-                console.log("Datos a actualizar:", JSON.stringify(datosActualizados));
-                
-                // Llamar al modelo para actualizar
-                var exito = usuariosRolesModel.actualizar_usuario(usuarioEditando.id_usuario, JSON.stringify(datosActualizados));
-                if (exito) {
-                    editUsuarioDialog.close();
-                    showMessage("Usuario actualizado correctamente");
-                } else {
-                    mensajeValidacionEdit.text = "Error al actualizar el usuario";
+                onClicked: {
+                    // Validación básica
+                    if (!usuarioEditando) {
+                        mensajeValidacionEdit.text = "Error: No hay usuario para editar";
+                        return;
+                    }
+                    
+                    if (txtEditNombre.text === "" || txtEditUsuario.text === "" || txtEditCorreo.text === "") {
+                        mensajeValidacionEdit.text = "Por favor, complete todos los campos obligatorios";
+                        return;
+                    }
+                    
+                    // Preparar datos para actualizar
+                    var datosActualizados = {
+                        "nombre": txtEditNombre.text,
+                        "apellido": txtEditApellido.text,
+                        "usuario": txtEditUsuario.text,
+                        "correo": txtEditCorreo.text,
+                        "telefono": txtEditTelefono.text,
+                        "direccion": txtEditDireccion.text,
+                        "id_rol": cmbEditRol.model[cmbEditRol.currentIndex].id_rol,
+                        "activo": chkEditActivo.checked
+                    };
+                    
+                    console.log("Datos a actualizar:", JSON.stringify(datosActualizados));
+                    
+                    // Llamar al modelo para actualizar
+                    var exito = usuariosRolesModel.actualizar_usuario(
+                        usuarioEditando.id_usuario, 
+                        JSON.stringify(datosActualizados)
+                    );
+                    if (exito) {
+                        editUsuarioDialog.close();
+                        showMessage("Usuario actualizado correctamente");
+                    } else {
+                        mensajeValidacionEdit.text = "Error al actualizar el usuario";
+                    }
                 }
             }
         }
-    }
-    
-    // Limpiar al cerrar
-    onClosed: {
-        usuarioEditando = null;
-        txtEditNombre.text = "";
-        txtEditApellido.text = "";
-        txtEditUsuario.text = "";
-        txtEditCorreo.text = "";
-        mensajeValidacionEdit.text = "";
-    }    
-}   
+        
+        // Limpiar al cerrar
+        onClosed: {
+            usuarioEditando = null;
+            mensajeValidacionEdit.text = "";
+        }    
+    }   
     // Componente para mostrar mensajes
     Rectangle {
         id: messageToast

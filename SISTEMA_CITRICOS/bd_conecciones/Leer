@@ -1,0 +1,16 @@
+¿Porque el de cada carpeta (capa)?
+- Nucleo(base): Las herramientas basicas que todos vamos a usar, en este caso la conexcion
+con la base de datos "Producto_Citricos"
+- Repositorios (1er Piso): Los que hablan directamente con la base de datos, solo sabe buscar, guardar, actualizar
+y eliminar datos.
+No sabe nada de la logica del negocio, ejemplo si tenemos que eliminar a un agricultor, se
+tiene que desactivar la parcela en la que se asocia.
+- Servicios (2do Piso): Los que si tienen logica inteligente del negocio.
+Es como un gerente, sabe las reglas ("no puedes eliminar un agricultor que tenga parcelas")
+Usa al repositorio para realizar su logica o el trabajo.
+
+Nota: Los __init__.py en cada carpeta(capa) Son como directorios telefónicos de Python.
+¿Qué hacen exactamente?
+Dicen qué se puede importar: __all__ = ['AgricultorRepositorio']
+Hacen importaciones más fáciles: En lugar de from bd_capa.repositorios.agricultor_repositorio import AgricultorRepositorio
+Organizan el código: Como el índice de un libro

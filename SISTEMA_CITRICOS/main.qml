@@ -8,7 +8,7 @@ ApplicationWindow {
     visible: true
     width: 1280
     height: 720
-    title: "Sistema de Gestión Agrícola de Cítricos"
+    title: "AgroIchilo - Sistema de Gestión Agrícola"
     color: "#f5f5f5"
 
     // Propiedades de diseño - Basado en la paleta proporcionada
@@ -29,6 +29,10 @@ ApplicationWindow {
     property color colorAlertaAmarilla: "#FFC107"
     property int activeModule: 0  // 0: Inicio, 1: Usuarios, 2: Agricultores, etc.
 
+    property bool sideBarCollapsed: false
+    property int collapsedSidebarWidth: 70
+    property int expandedSidebarWidth: 250
+
     // Definimos el componente MenuButton
     component MenuButton: Rectangle {
         height: 50
@@ -43,40 +47,41 @@ ApplicationWindow {
         RowLayout {
             anchors.verticalCenter: parent.verticalCenter
             anchors.left: parent.left
-            anchors.leftMargin: 15
+            anchors.leftMargin:15
             spacing: 15
 
-            // Ícono
+            // Ícono - corregido
             Item {
                 width: 35
                 height: 35
                 
-                // Mostramos Text si es un emoji
-                Text {
-                    anchors.centerIn: parent
-                    text: icon.length <= 2 ? icon : ""  // Mostramos solo si parece un emoji
-                    font.pixelSize: 18
-                    color: colorAmarilloCalido
-                    visible: icon.length <= 2
-                }
-                
-                // Mostramos Image si es una ruta de archivo
+                // Imagen para rutas de archivo
                 Image {
                     anchors.fill: parent
-                    source: icon.length > 2 ? icon : ""  // Mostramos solo si parece una ruta
+                    source: icon.length > 2 ? icon : ""
                     fillMode: Image.PreserveAspectFit
                     visible: icon.length > 2
                 }
             }
 
-            // Texto
+            // Texto - solo visible cuando expandido
             Text {
                 text: parent.parent.text
                 font.family: "Arial"
                 font.pixelSize: 14
                 color: "white"
                 font.bold: true
+                visible: !mainWindow.sideBarCollapsed
             }
+        }
+
+        // Corrige el indicador de selección para que se oculte en estado colapsado
+        Rectangle {
+            width: 4
+            height: parent.height
+            anchors.left: parent.left
+            color: "white"
+            visible: mainWindow.activeModule === moduleIndex && !mainWindow.sideBarCollapsed
         }
 
         // Indicador de selección (visible cuando está activo)
@@ -102,11 +107,15 @@ ApplicationWindow {
 
     Rectangle {
         id: sideBar
-        width: 250
+        width: mainWindow.sideBarCollapsed ? collapsedSidebarWidth : expandedSidebarWidth
         anchors.left: parent.left
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         color: colorVerdeBosque
+
+        Behavior on width {
+            NumberAnimation { duration: 200; easing.type: Easing.InOutQuad }
+        }
 
         // Logo y título
         Rectangle {
@@ -118,19 +127,62 @@ ApplicationWindow {
             RowLayout {
                 anchors.centerIn: parent
                 spacing: 10
+                visible: !mainWindow.sideBarCollapsed
 
-                // Ícono de cítrico simplificado
-                Text {
-                    text: "🍊"
-                    font.pixelSize: 35
+                // Ícono de cítrico simplificado (Por ahora no)
+                // Agrega este Image para el icono
+                Image {
+                    source: "Image/Image_UI_interfaz/Inconos/AgroIchilo.svg" // Ruta a tu logo SVG
+                    sourceSize.width: 32
+                    sourceSize.height: 32
+                    fillMode: Image.PreserveAspectFit
                 }
 
                 Text {
-                    text: "SISTEMA CÍTRICOS"
+                    text: "AGROICHILO"
                     font.family: "Arial"
                     font.pixelSize: 16
                     font.bold: true
                     color: "white"
+                }
+            }
+
+            Image {
+                anchors.centerIn: parent
+                source: "Image/Image_UI_interfaz/Inconos/AgroIchilo.svg"
+                sourceSize.width: 30
+                sourceSize.height: 30
+                fillMode: Image.PreserveAspectFit
+                visible: mainWindow.sideBarCollapsed
+            }
+
+            // Boton Hamburguesa
+            Rectangle {
+                id: hamburgerButton
+                width: 40
+                height: 40
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.right: parent.right
+                anchors.rightMargin: 10
+                color: "transparent"
+                
+                
+                Image {
+                    anchors.centerIn: parent
+                    source: "Image/Image_UI_interfaz/Inconos/menu-hamburguesa.svg"
+                    width: 24
+                    height: 24
+                    rotation: mainWindow.sideBarCollapsed ? 180 : 0
+                    
+                    Behavior on rotation {
+                        NumberAnimation { duration: 200 }
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: mainWindow.sideBarCollapsed = !mainWindow.sideBarCollapsed
                 }
             }
         }
@@ -232,8 +284,28 @@ ApplicationWindow {
                     width: parent.width
                     icon: "Image/Image_UI_interfaz/Inconos/configuraciones.png"
                     text: "CONFIGURACION"
+                    moduleIndex: 7
+                    color: mainWindow.activeModule === 7 ? colorNaranjaCitrico : "transparent"
+                }
+                // reportes
+                MenuButton {
+                    id: btnReportes
+                    objectName: "btnReportes"
+                    width: parent.width
+                    icon: "Image/Image_UI_interfaz/Inconos/configuraciones.png"
+                    text: "REPORTES"
                     moduleIndex: 8
                     color: mainWindow.activeModule === 8 ? colorNaranjaCitrico : "transparent"
+                }
+                // Usuarios/Roles
+                MenuButton {
+                    id: btnGastos
+                    objectName: "btnGastos"
+                    width: parent.width
+                    icon: "Image/Image_UI_interfaz/Inconos/mandarinaincor.svg"
+                    text: "GASTOS"
+                    moduleIndex: 9
+                    color: mainWindow.activeModule === 1 ? colorNaranjaCitrico : "transparent"
                 }
 
                 Item {
@@ -381,13 +453,15 @@ ApplicationWindow {
         anchors.top: topBar.bottom
         anchors.bottom: parent.bottom
         asynchronous: true
-        
-        // El source se configurará desde Python cuando se haga clic en un botón del menú
+
+        // Añadir esta propiedad
+        property var agricultoresModel: agricultoresparcelas
         onLoaded: {
-            if (item.hasOwnProperty("agricultoresparcelas")) {
-                item.agricultoresparcelas = agricultoresparcelas; // 👈 Pasar explícitamente
+            if (source == "agricultores_parcela.qml" && item) {
+                item.agricultoresparcelas = agricultoresModel;
             }
         }
+        
     }
 
     // COMPONENTE MEJORADO: Modal para notificaciones
@@ -859,11 +933,12 @@ ApplicationWindow {
                     color: colorVerdeBosque
                     radius: 10
                     // Para evitar esquinas redondeadas abajo
-                    Rectangle {
-                        width: parent.width
-                        height: parent.height / 2
-                        anchors.bottom: parent.bottom
-                        color: colorVerdeBosque
+                    Image {
+                        anchors.centerIn: parent
+                        source: "Image/Image_UI_interfaz/Inconos/AgroIchilo.svg"
+                        sourceSize.width: 80
+                        sourceSize.height: 80
+                        fillMode: Image.PreserveAspectFit
                     }
 
                     ColumnLayout {

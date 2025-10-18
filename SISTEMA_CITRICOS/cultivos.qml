@@ -9,6 +9,32 @@ Rectangle {
     id: cultivosRoot
     anchors.fill: parent
     color: "#F8F9FA"
+
+    // Paginación para tipos de cultivo
+    property int paginaActualTipos: 1
+    property int totalPaginasTipos: 1
+    property int tiposPorPagina: 6
+
+    // Paginación para variedades
+    property int paginaActualVariedades: 1
+    property int totalPaginasVariedades: 1
+    property int variedadesPorPagina: 8
+
+    // Paginación para ciclos de producción
+    property int paginaActualCiclos: 1
+    property int totalPaginasCiclos: 1
+    property int ciclosPorPagina: 10
+
+    Timer {
+        id: calendarioTimer
+        interval: 1000 // 1 segundo de espera
+        repeat: false
+        onTriggered: {
+            console.log("Actualizando calendario después de cargar datos...")
+            actualizarCalendarioAnual()
+        }
+    }
+
     // FUNCIONEES
     // Función para formatear la fecha actual
     function getFormattedDate() {
@@ -40,7 +66,7 @@ Rectangle {
         }
         
         // Si hay un filtro de tipo, filtrar los eventos
-        if (filtroTipo) {
+        if (filtroTipo && filtroTipo !== "Todos los cultivos") {
             return eventosPorFecha[key].filter(function(evento) {
                 return evento.text.includes(filtroTipo);
             });
@@ -50,6 +76,9 @@ Rectangle {
     }
     // Función para actualizar el filtro de cultivos
     function actualizarCultivosFiltro() {
+        console.log("=== DEBUG: actualizarCultivosFiltro INICIADO ===")
+        console.log("- ciclosModel.count:", ciclosModel.count)
+        
         // Preservar selección actual si existe
         const seleccionActual = cmbFiltroCultivosCalendario.currentIndex > 0 ? cmbFiltroCultivosCalendario.currentText : null;
         
@@ -58,34 +87,50 @@ Rectangle {
             cultivosFiltroModel.remove(1);
         }
         
+        console.log("=== DEBUG: Modelo limpiado, count actual:", cultivosFiltroModel.count)
+        
         // Recopilar todos los tipos de cultivo usados en ciclos
         const tiposUsados = new Set();
         for (let i = 0; i < ciclosModel.count; i++) {
             const ciclo = ciclosModel.get(i);
+            console.log("- DEBUG: Procesando ciclo", i, "- activo:", ciclo.activo, "- tipo:", ciclo.nombre_tipo_cultivo)
             if (ciclo.activo) {
                 tiposUsados.add(ciclo.nombre_tipo_cultivo);
+                console.log("  - Tipo añadido:", ciclo.nombre_tipo_cultivo)
             }
         }
+        
+        console.log("=== DEBUG: Tipos únicos encontrados:", Array.from(tiposUsados))
+        console.log("=== DEBUG: Número de tipos únicos:", tiposUsados.size)
         
         // Añadir tipos usados al modelo
         var tiposArray = Array.from(tiposUsados);
         for (let i = 0; i < tiposArray.length; i++) {
             let nombreTipo = tiposArray[i];
+            console.log("- DEBUG: Añadiendo al modelo:", nombreTipo)
             cultivosFiltroModel.append({
                 text: nombreTipo,
-                value: nombreTipo
+                value: nombreTipo  // Usar string en lugar de number para consistencia
             });
         }
         
+        console.log("=== DEBUG: cultivosFiltroModel.count final:", cultivosFiltroModel.count)
+        
         // Restaurar selección si posible
         if (seleccionActual) {
+            console.log("=== DEBUG: Restaurando selección:", seleccionActual)
             for (let i = 0; i < cultivosFiltroModel.count; i++) {
                 if (cultivosFiltroModel.get(i).text === seleccionActual) {
                     cmbFiltroCultivosCalendario.currentIndex = i;
+                    console.log("- DEBUG: Selección restaurada en índice:", i)
                     break;
                 }
             }
+        } else {
+            console.log("=== DEBUG: No hay selección previa para restaurar")
         }
+        
+        console.log("=== DEBUG: actualizarCultivosFiltro FINALIZADO ===")
     }
     // Función para actualizar el combobox de tipos
     function actualizarTiposCombobox() {
@@ -135,47 +180,69 @@ Rectangle {
     }
 
     function cargarTiposCultivo() {
-        console.log("Cargando tipos de cultivo...")
+        console.log("Cargando tipos de cultivo con paginación...")
+        
+        // Llamar al método paginado del modelo Python
+        var datosPagina = cultivos.obtener_tipos_paginado(paginaActualTipos, tiposPorPagina)
+        
         tiposCultivoModel.clear()
         
-        // Obtener datos directamente del modelo Python
-        var tipos = cultivos.tipos_cultivo || []
-        console.log("Tipos recibidos: " + tipos.length)
-        
-        for (let i = 0; i < tipos.length; i++) {
-            let tipo = tipos[i]
-            tiposCultivoModel.append({
-                id_tipo_cultivo: tipo.id_tipo_cultivo,
-                nombre: tipo.nombre,
-                nombre_cientifico: tipo.nombre_cientifico || "",
-                tiempo_cosecha_min: tipo.tiempo_cosecha_min || 0,
-                tiempo_cosecha_max: tipo.tiempo_cosecha_max || 0,
-                descripcion: tipo.descripcion || "",
-                activo: tipo.activo
-            })
+        if (datosPagina && datosPagina.tipos_cultivo) {
+            var tipos = datosPagina.tipos_cultivo
+            for (let i = 0; i < tipos.length; i++) {
+                let tipo = tipos[i]
+                tiposCultivoModel.append({
+                    id_tipo_cultivo: tipo.id_tipo_cultivo,
+                    nombre: tipo.nombre,
+                    nombre_cientifico: tipo.nombre_cientifico || "",
+                    tiempo_cosecha_min: tipo.tiempo_cosecha_min || 0,
+                    tiempo_cosecha_max: tipo.tiempo_cosecha_max || 0,
+                    descripcion: tipo.descripcion || "",
+                    activo: tipo.activo
+                })
+            }
+            
+            // Actualizar información de paginación
+            totalPaginasTipos = datosPagina.total_paginas || 1
+            paginaActualTipos = datosPagina.pagina_actual || 1
+            
+            console.log(`Tipos cargados: ${tipos.length}, Página: ${paginaActualTipos}/${totalPaginasTipos}`)
         }
     }
+
     // Actualizar el modelo de variedades
     function cargarVariedades() {
-        variedadesModel.clear();
-        const variedades = cultivos.variedades;
-        for (let i = 0; i < variedades.length; i++) {
-            variedadesModel.append({
-                id_variedad: variedades[i].id_variedad,
-                id_tipo_cultivo: variedades[i].id_tipo_cultivo,
-                nombre: variedades[i].nombre,
-                tiempo_produccion: variedades[i].tiempo_produccion,
-                rendimiento_esperado: variedades[i].rendimiento_esperado,
-                resistencia_zona: variedades[i].resistencia_zona,
-                activo: variedades[i].activo,
-                nombre_tipo_cultivo: variedades[i].nombre_tipo_cultivo
-            });
-        }
+        console.log("Cargando variedades con paginación...")
+        
+        var datosPagina = cultivos.obtener_variedades_paginado(paginaActualVariedades, variedadesPorPagina)
+        
+        variedadesModel.clear()
+        
+        if (datosPagina && datosPagina.variedades) {
+            var variedades = datosPagina.variedades
+            for (let i = 0; i < variedades.length; i++) {
+                variedadesModel.append({
+                    id_variedad: variedades[i].id_variedad,
+                    id_tipo_cultivo: variedades[i].id_tipo_cultivo,
+                    nombre: variedades[i].nombre,
+                    tiempo_produccion: variedades[i].tiempo_produccion,
+                    rendimiento_esperado: variedades[i].rendimiento_esperado,
+                    resistencia_zona: variedades[i].resistencia_zona,
+                    activo: variedades[i].activo,
+                    nombre_tipo_cultivo: variedades[i].nombre_tipo_cultivo
+                })
+            }
             
-        // Actualizar también los combos de filtros
-        actualizarTiposFiltro();
-        actualizarTiposCombobox();
+            totalPaginasVariedades = datosPagina.total_paginas || 1
+            paginaActualVariedades = datosPagina.pagina_actual || 1
+            
+            console.log(`Variedades cargadas: ${variedades.length}, Página: ${paginaActualVariedades}/${totalPaginasVariedades}`)
+        }
+        
+        actualizarTiposFiltro()
+        actualizarTiposCombobox()
     }
+
     // Función para actualizar el combobox de variedades
     function actualizarVariedadesCombobox() {
         variedadesCicloModel.clear();
@@ -225,81 +292,158 @@ Rectangle {
             // Obtener la fecha actual real
             var hoy = new Date();
                 
-            // Actualizar las celdas del calendario
-            for (var i = 0; i < 42; i++) {
-                var celda = calendarRepeater.itemAt(i);
-                if (celda) {
-                    var diaMes = i - diaSemana;
-                    celda.diaNumero = diaMes > 0 && diaMes <= diasEnMes ? diaMes : 0;
-                    celda.esDiaMesActual = diaMes > 0 && diaMes <= diasEnMes;
-                    celda.esDiaActual = celda.esDiaMesActual && 
-                                    fechaActual.getMonth() === hoy.getMonth() && 
-                                    fechaActual.getFullYear() === hoy.getFullYear() && 
-                                    diaMes === hoy.getDate();
+            // Actualizar las celdas del calendario (si existe el repeater del calendario viejo)
+            if (typeof calendarRepeater !== "undefined" && calendarRepeater) {
+                for (var i = 0; i < 42; i++) {
+                    var celda = calendarRepeater.itemAt(i);
+                    if (celda) {
+                        var diaMes = i - diaSemana;
+                        celda.diaNumero = diaMes > 0 && diaMes <= diasEnMes ? diaMes : 0;
+                        celda.esDiaMesActual = diaMes > 0 && diaMes <= diasEnMes;
+                        celda.esDiaActual = celda.esDiaMesActual && 
+                                        fechaActual.getMonth() === hoy.getMonth() && 
+                                        fechaActual.getFullYear() === hoy.getFullYear() && 
+                                        diaMes === hoy.getDate();
+                    }
                 }
-            }
                 
-            // Actualizar el texto que muestra el mes y año actual
-            if (txtFechaActual) {
-                txtFechaActual.text = obtenerNombreMes(fechaActual.getMonth()) + " " + fechaActual.getFullYear();
+                // Actualizar el texto que muestra el mes y año actual
+                if (typeof txtFechaActual !== "undefined" && txtFechaActual) {
+                    txtFechaActual.text = obtenerNombreMes(fechaActual.getMonth()) + " " + fechaActual.getFullYear();
+                }
             }
                 
             // Actualizar eventos del calendario
             cargarEventosCalendario();
+            
+            // Si estamos en el calendario anual, usar esa función
+            if (typeof monthsRepeater !== "undefined" && monthsRepeater) {
+                actualizarCalendarioAnual();
+            }
         } catch (e) {
             console.error("Error al actualizar calendario:", e);
         }
     }
     // Función para cargar eventos del calendario desde los ciclos
     function cargarEventosCalendario() {
+        console.log("=== DEBUG: cargarEventosCalendario INICIADO ===")
+        console.log("- ciclosModel.count:", ciclosModel.count)
+        
+        // Si hay filtros activos, usar la versión con filtros
+        if (cmbFiltroCultivosCalendario.currentIndex > 0 ||
+            cmbFiltroEstadosCalendario.currentIndex > 0 ||
+            cmbFiltroParcelasCalendario.currentIndex > 0 ||
+            cmbFiltroTipoEvento.currentIndex > 0) {
+            console.log("=== DEBUG: Usando cargarEventosCalendarioConFiltros ===")
+            cargarEventosCalendarioConFiltros();
+            return;
+        }
+        
+        console.log("=== DEBUG: Cargando eventos sin filtros ===")
+        
+        // Código original de cargarEventosCalendario aquí...
         eventosPorFecha = {}
-            
+        
         for (let i = 0; i < ciclosModel.count; i++) {
             const ciclo = ciclosModel.get(i)
+            console.log("- DEBUG: Procesando ciclo", i, "- ID:", ciclo.id_ciclo, "- activo:", ciclo.activo, "- variedad:", ciclo.nombre_variedad)
             if (!ciclo.activo) continue
-                
+            
             // Añadir evento de siembra
             if (ciclo.fecha_siembra && ciclo.fecha_siembra !== "") {
+                console.log("  - DEBUG: Procesando fecha_siembra:", ciclo.fecha_siembra)
                 const fechaSiembra = parseDBDate(ciclo.fecha_siembra)
                 if (fechaSiembra) {
                     const key = fechaSiembra.getFullYear() + "-" + (fechaSiembra.getMonth() + 1) + "-" + fechaSiembra.getDate()
+                    console.log("    - DEBUG: Fecha siembra parseada - key:", key)
                     if (!eventosPorFecha[key]) eventosPorFecha[key] = []
                     eventosPorFecha[key].push({
                         text: "Siembra " + ciclo.nombre_variedad,
                         color: "#2E7D32"
                     })
+                    console.log("    - DEBUG: Evento siembra añadido")
+                } else {
+                    console.log("    - DEBUG: ERROR parseando fecha_siembra")
                 }
             }
-                
+            
             // Añadir evento de cosecha estimada
             if (ciclo.fecha_cosecha_estimada && ciclo.fecha_cosecha_estimada !== "") {
+                console.log("  - DEBUG: Procesando fecha_cosecha_estimada:", ciclo.fecha_cosecha_estimada)
                 const fechaCosecha = parseDBDate(ciclo.fecha_cosecha_estimada)
                 if (fechaCosecha) {
                     const key = fechaCosecha.getFullYear() + "-" + (fechaCosecha.getMonth() + 1) + "-" + fechaCosecha.getDate()
+                    console.log("    - DEBUG: Fecha cosecha parseada - key:", key)
                     if (!eventosPorFecha[key]) eventosPorFecha[key] = []
                     eventosPorFecha[key].push({
                         text: "Cosecha " + ciclo.nombre_variedad,
                         color: "#FF9800"
                     })
+                    console.log("    - DEBUG: Evento cosecha añadido")
+                } else {
+                    console.log("    - DEBUG: ERROR parseando fecha_cosecha_estimada")
                 }
             }
-                
-                // Añadir evento de poda (verificar que exista y no esté vacío)
+            
+            // Añadir evento de poda
             if (ciclo.fecha_poda && ciclo.fecha_poda !== "") {
+                console.log("  - DEBUG: Procesando fecha_poda:", ciclo.fecha_poda)
                 const fechaPoda = parseDBDate(ciclo.fecha_poda)
                 if (fechaPoda) {
                     const key = fechaPoda.getFullYear() + "-" + (fechaPoda.getMonth() + 1) + "-" + fechaPoda.getDate()
+                    console.log("    - DEBUG: Fecha poda parseada - key:", key)
                     if (!eventosPorFecha[key]) eventosPorFecha[key] = []
                     eventosPorFecha[key].push({
                         text: "Poda " + ciclo.nombre_variedad,
                         color: "#9C27B0"
                     })
+                    console.log("    - DEBUG: Evento poda añadido")
+                } else {
+                    console.log("    - DEBUG: ERROR parseando fecha_poda")
                 }
             }
-                
             
+            // Añadir evento de floración
+            if (ciclo.fecha_floracion && ciclo.fecha_floracion !== "") {
+                console.log("  - DEBUG: Procesando fecha_floracion:", ciclo.fecha_floracion)
+                const fechaFloracion = parseDBDate(ciclo.fecha_floracion)
+                if (fechaFloracion) {
+                    const key = fechaFloracion.getFullYear() + "-" + (fechaFloracion.getMonth() + 1) + "-" + fechaFloracion.getDate()
+                    console.log("    - DEBUG: Fecha floración parseada - key:", key)
+                    if (!eventosPorFecha[key]) eventosPorFecha[key] = []
+                    eventosPorFecha[key].push({
+                        text: "Floración " + ciclo.nombre_variedad,
+                        color: "#2196F3"
+                    })
+                    console.log("    - DEBUG: Evento floración añadido")
+                } else {
+                    console.log("    - DEBUG: ERROR parseando fecha_floracion")
+                }
+            }
+            
+            // Añadir evento de limpieza
+            if (ciclo.fecha_limpieza && ciclo.fecha_limpieza !== "") {
+                console.log("  - DEBUG: Procesando fecha_limpieza:", ciclo.fecha_limpieza)
+                const fechaLimpieza = parseDBDate(ciclo.fecha_limpieza)
+                if (fechaLimpieza) {
+                    const key = fechaLimpieza.getFullYear() + "-" + (fechaLimpieza.getMonth() + 1) + "-" + fechaLimpieza.getDate()
+                    console.log("    - DEBUG: Fecha limpieza parseada - key:", key)
+                    if (!eventosPorFecha[key]) eventosPorFecha[key] = []
+                    eventosPorFecha[key].push({
+                        text: "Limpieza " + ciclo.nombre_variedad,
+                        color: "#795548"
+                    })
+                    console.log("    - DEBUG: Evento limpieza añadido")
+                } else {
+                    console.log("    - DEBUG: ERROR parseando fecha_limpieza")
+                }
+            }
         }
-
+        
+        console.log("=== DEBUG: eventosPorFecha keys:", Object.keys(eventosPorFecha))
+        console.log("=== DEBUG: Total eventos generados:", Object.keys(eventosPorFecha).length)
+        console.log("=== DEBUG: eventosPorFecha completo:", JSON.stringify(eventosPorFecha))
+        console.log("=== DEBUG: cargarEventosCalendario FINALIZADO ===")
     }
     // Actualizar opciones de tipos para el filtro de variedades
     function actualizarTiposFiltro() {
@@ -364,59 +508,67 @@ Rectangle {
             default: return "#2196F3"; // Azul (por defecto)
         }
     }
-
-    
-
     // Funciones para cargar datos desde el modelo de Python
-
-    
-
-    // Actualizar el modelo de ciclos de producción
     function cargarCiclosProduccion() {
-        console.log("Intentando cargar ciclos de producción...")
+        console.log("=== DEBUG: cargarCiclosProduccion INICIADO ===")
+        console.log("Cargando ciclos de producción con paginación...")
+        
+        var datosPagina = cultivos.obtener_ciclos_paginado(paginaActualCiclos, ciclosPorPagina)
+        
+        console.log("=== DEBUG: Datos recibidos del backend ===")
+        console.log("- datosPagina existe:", !!datosPagina)
+        console.log("- datosPagina.ciclos existe:", !!(datosPagina && datosPagina.ciclos))
+        console.log("- Número de ciclos:", datosPagina && datosPagina.ciclos ? datosPagina.ciclos.length : "NINGUNO")
+        
         ciclosModel.clear()
         
-        const ciclos = cultivos.ciclos_produccion
-        console.log("Ciclos recibidos: " + ciclos.length)
-        
-        for (let i = 0; i < ciclos.length; i++) {
-            const ciclo = ciclos[i]
+        if (datosPagina && datosPagina.ciclos) {
+            var ciclos = datosPagina.ciclos
+            console.log("=== DEBUG: Primer ciclo recibido ===", JSON.stringify(ciclos[0]))
             
-            // Asegurar que todos los campos existan con valores predeterminados
-            const cicloFormateado = {
-                id_ciclo: ciclo.id_ciclo || 0,
-                id_parcela: ciclo.id_parcela || 0,
-                id_variedad: ciclo.id_variedad || 0,
-                fecha_siembra: ciclo.fecha_siembra || "",
-                fecha_cosecha_estimada: ciclo.fecha_cosecha_estimada || "",
-                fecha_cosecha_real: typeof ciclo.fecha_cosecha_real !== 'undefined' ? ciclo.fecha_cosecha_real : "",
-                area_sembrada: parseFloat(ciclo.area_sembrada || 0),
-                densidad_siembra: parseInt(ciclo.densidad_siembra || 0),
-                estado: ciclo.estado || "Planificado",
-                activo: !!ciclo.activo,
-                fecha_floracion: typeof ciclo.fecha_floracion !== 'undefined' ? ciclo.fecha_floracion : "",
-                fecha_poda: typeof ciclo.fecha_poda !== 'undefined' ? ciclo.fecha_poda : "",
-                fecha_limpieza: typeof ciclo.fecha_limpieza !== 'undefined' ? ciclo.fecha_limpieza : "",
-                frecuencia_limpieza: parseInt(ciclo.frecuencia_limpieza || 1),
-                nombre_parcela: ciclo.nombre_parcela || "Sin parcela",
-                nombre_variedad: ciclo.nombre_variedad || "Sin variedad",
-                nombre_tipo_cultivo: ciclo.nombre_tipo_cultivo || "Sin tipo"
+            for (let i = 0; i < ciclos.length; i++) {
+                const ciclo = ciclos[i]
+                const cicloFormateado = {
+                    id_ciclo: ciclo.id_ciclo || 0,
+                    id_parcela: ciclo.id_parcela || 0,
+                    id_variedad: ciclo.id_variedad || 0,
+                    fecha_siembra: ciclo.fecha_siembra || "",
+                    fecha_cosecha_estimada: ciclo.fecha_cosecha_estimada || "",
+                    fecha_cosecha_real: ciclo.fecha_cosecha_real || "",
+                    area_sembrada: parseFloat(ciclo.area_sembrada || 0),
+                    densidad_siembra: parseInt(ciclo.densidad_siembra || 0),
+                    estado: ciclo.estado || "Planificado",
+                    activo: !!ciclo.activo,
+                    fecha_floracion: ciclo.fecha_floracion || "",
+                    fecha_poda: ciclo.fecha_poda || "",
+                    fecha_limpieza: ciclo.fecha_limpieza || "",
+                    frecuencia_limpieza: parseInt(ciclo.frecuencia_limpieza || 1),
+                    nombre_parcela: ciclo.nombre_parcela || "Sin parcela",
+                    nombre_variedad: ciclo.nombre_variedad || "Sin variedad",
+                    nombre_tipo_cultivo: ciclo.nombre_tipo_cultivo || "Sin tipo"
+                }
+                ciclosModel.append(cicloFormateado)
             }
             
-            ciclosModel.append(cicloFormateado)
+            totalPaginasCiclos = datosPagina.total_paginas || 1
+            paginaActualCiclos = datosPagina.pagina_actual || 1
+            
+            console.log(`Ciclos cargados: ${ciclos.length}, Página: ${paginaActualCiclos}/${totalPaginasCiclos}`)
+            console.log("=== DEBUG: ciclosModel.count después de cargar:", ciclosModel.count)
+        } else {
+            console.log("=== ERROR: No hay datosPagina o ciclos ===")
         }
         
-        // Actualizar también los combos de filtros y otros modelos relacionados
+        console.log("=== DEBUG: Ejecutando funciones relacionadas ===")
         actualizarEstadosFiltro()
         actualizarParcelasCombobox()
         actualizarVariedadesCombobox()
         actualizarCultivosFiltro()
         cargarEventosCalendario()
+        actualizarEstadosCalendario()
+        actualizarParcelasCalendario()
+        console.log("=== DEBUG: Todas las funciones ejecutadas ===")
     }
-
-    
-
-
     // Actualizar opciones de estados para el filtro de ciclos
     function actualizarEstadosFiltro() {
         // Preservar selección actual si existe
@@ -425,8 +577,7 @@ Rectangle {
         // Limpiar modelo excepto el primer elemento "Todos los estados"
         while (estadosFiltroModel.count > 1) {
             estadosFiltroModel.remove(1);
-        }
-        
+        }    
         // Añadir estados desde la lista de estados válidos
         const estados = ["Planificado", "En Preparación", "Sembrado", "En Desarrollo", "En Cosecha", "Finalizado", "Cancelado"];
         for (let i = 0; i < estados.length; i++) {
@@ -612,7 +763,7 @@ Rectangle {
         // Cargar datos de la variedad en los campos
         cmbTipoCultivo.currentIndex = getTipoIndex(variedad.id_tipo_cultivo);
         txtNombreVariedad.text = variedad.nombre;
-        spinTiempoProduccion.value = variedad.tiempo_produccion || 0;
+        txtTiempoProduccion.text = (variedad.tiempo_produccion || 0).toString();
         txtRendimiento.text = variedad.rendimiento_esperado ? variedad.rendimiento_esperado.toString() : "";
         cmbResistencia.currentIndex = getResistenciaIndex(variedad.resistencia_zona);
         
@@ -702,13 +853,13 @@ Rectangle {
             fecha_cosecha_estimada: txtFechaCosechaEst.text,
             fecha_cosecha_real: txtFechaCosechaReal.text,
             area_sembrada: parseFloat(txtAreaSembrada.text),
-            densidad_siembra: spinDensidad.value,
+            densidad_siembra: txtDensidad.value,
             estado: cmbEstado.currentText,
             activo: ciclo_chkActivo.checked,
             fecha_floracion: txtFechaFloracion.text,
             fecha_poda: txtFechaPoda.text,
             fecha_limpieza: txtFechaLimpieza.text,
-            frecuencia_limpieza: spinFrecuenciaLimpieza.value
+            frecuencia_limpieza: txtFrecuenciaLimpieza.value
         };
         
         // Convertir objeto a JSON
@@ -986,8 +1137,8 @@ Rectangle {
     function cargarDetallesTipoCultivo(tipo) {
         txtNombreTipo.text = tipo.nombre;
         txtNombreCientifico.text = tipo.nombre_cientifico || "";
-        spinTiempoMin.value = tipo.tiempo_cosecha_min || 0;
-        spinTiempoMax.value = tipo.tiempo_cosecha_max || 0;
+        txtTiempoMin.text = (tipo.tiempo_cosecha_min || 0).toString();
+        txtTiempoMax.text = (tipo.tiempo_cosecha_max || 0).toString();
         chkActivo.checked = tipo.activo;
         txtDescripcion.text = tipo.descripcion || "";
 
@@ -1010,6 +1161,48 @@ Rectangle {
         console.log(csv);
         
         showMessage("Función de exportación a CSV implementada. Revise la consola para ver el resultado.");
+    }
+
+    function irPaginaAnteriorTipos() {
+        if (paginaActualTipos > 1) {
+            paginaActualTipos--
+            cargarTiposCultivo()
+        }
+    }
+
+    function irPaginaSiguienteTipos() {
+        if (paginaActualTipos < totalPaginasTipos) {
+            paginaActualTipos++
+            cargarTiposCultivo()
+        }
+    }
+
+    function irPaginaAnteriorVariedades() {
+        if (paginaActualVariedades > 1) {
+            paginaActualVariedades--
+            cargarVariedades()
+        }
+    }
+
+    function irPaginaSiguienteVariedades() {
+        if (paginaActualVariedades < totalPaginasVariedades) {
+            paginaActualVariedades++
+            cargarVariedades()
+        }
+    }
+
+    function irPaginaAnteriorCiclos() {
+        if (paginaActualCiclos > 1) {
+            paginaActualCiclos--
+            cargarCiclosProduccion()
+        }
+    }
+
+    function irPaginaSiguienteCiclos() {
+        if (paginaActualCiclos < totalPaginasCiclos) {
+            paginaActualCiclos++
+            cargarCiclosProduccion()
+        }
     }
 
     // Componente para mostrar mensajes
@@ -1095,7 +1288,7 @@ Rectangle {
             cmbParcelas.currentIndex = getParcelaIndex(cicloEncontrado.id_parcela);
             cmbVariedades.currentIndex = getVariedadIndex(cicloEncontrado.id_variedad);
             txtAreaSembrada.text = cicloEncontrado.area_sembrada.toString();
-            spinDensidad.value = cicloEncontrado.densidad_siembra || 0;
+            txtDensidad.text = (cicloEncontrado.densidad_siembra || 0).toString();
             cmbEstado.currentIndex = getEstadoIndex(cicloEncontrado.estado);
             ciclo_chkActivo.checked = cicloEncontrado.activo;
             
@@ -1105,8 +1298,8 @@ Rectangle {
             txtFechaCosechaReal.text = cicloEncontrado.fecha_cosecha_real || "";
             txtFechaFloracion.text = cicloEncontrado.fecha_floracion || "";
             txtFechaPoda.text = cicloEncontrado.fecha_poda || "";
-            txtFechaLimpieza.text = cicloEncontrado.fecha_limpieza || "";
-            spinFrecuenciaLimpieza.value = cicloEncontrado.frecuencia_limpieza || 1;
+            txtFechaLimpieza.text = (cicloEncontrado.fecha_limpieza || 0).toString();
+            txtFrecuenciaLimpieza.text = cicloEncontrado.frecuencia_limpieza || 1;
         });
     }
 
@@ -1243,19 +1436,31 @@ Rectangle {
     }
 
     function cargarDatosIniciales() {
-        console.log("Cargando datos iniciales...")
+        console.log("=== DEBUG: cargarDatosIniciales INICIADO ===")
+        
+        // Resetear paginación al inicio
+        paginaActualTipos = 1
+        paginaActualVariedades = 1
+        paginaActualCiclos = 1
         
         // Primero cargar desde la base de datos
         cultivos.cargar_tipos_cultivo()
         cultivos.cargar_variedades()
         cultivos.cargar_ciclos_produccion()
         
-        // Luego actualizar los modelos locales inmediatamente
+        console.log("=== DEBUG: Datos cargados desde backend ===")
+        
+        // Luego actualizar los modelos locales con paginación
         cargarTiposCultivo()
         cargarVariedades()
         cargarCiclosProduccion()
-        actualizarCalendario()
+        
+        console.log("=== DEBUG: Modelos locales actualizados ===")
+        
+        // Usar un timer para darle tiempo a que los componentes del calendario se carguen
+        calendarioTimer.start()
     }
+
 
     // Añade este Timer como propiedad en el componente principal
     Timer {
@@ -1279,7 +1484,7 @@ Rectangle {
         
 
         Text {
-            text: "GESTIÓN DE TIPOS Y VARIEDADES DE CÍTRICOS"
+            text: "GESTIÓN DE TIPOS Y VARIEDADES DE CULTIVOS"
             font.pixelSize: 28
             font.bold: true
             color: "#2E7D32"
@@ -1308,7 +1513,7 @@ Rectangle {
             width: implicitWidth + 40
             height: 30
             background: Rectangle {
-                color: parent.checked ? "#32CD32":"#4CAF50"
+                color: parent.checked ? "#105f10":"#4CAF50"
                 radius: height / 2
             }
             contentItem: Text {
@@ -1325,7 +1530,7 @@ Rectangle {
             width: implicitWidth + 40
             height: 30
             background: Rectangle {
-                color: parent.checked ? "#32CD32":"#4CAF50"
+                color: parent.checked ?  "#105f10":"#4CAF50"
                 radius: height / 2
             }
             contentItem: Text {
@@ -1341,7 +1546,7 @@ Rectangle {
             width: implicitWidth + 40
             height: 30
             background: Rectangle {
-                color: parent.checked ? "#32CD32":"#4CAF50"
+                color: parent.checked ?  "#105f10":"#4CAF50"
                 radius: height / 2
             }
             contentItem: Text {
@@ -1358,7 +1563,7 @@ Rectangle {
             width: implicitWidth + 40
             height: 30
             background: Rectangle {
-                color: parent.checked ? "#32CD32":"#4CAF50"
+                color: parent.checked ?  "#105f10":"#4CAF50"
                 radius: height / 2
             }
             contentItem: Text {
@@ -1382,426 +1587,541 @@ Rectangle {
 
         // Página de Tipos de Cultivo
         Item {
-            // Dividir en dos columnas: lista y detalles
-            Rectangle {
-                id: tiposCultivoList
-                width: parent.width * 0.3
-                height: parent.height
-                color: "white"
-                radius: 5
-                border.color: "#EEEEEE"
-
-                ColumnLayout {
-                    anchors.fill: parent
-                    anchors.margins: 15
-                    spacing: 15
-
-                    // Cabecera de la lista
-                    RowLayout {
-                        Layout.fillWidth: true
-                        
-                        Text {
-                            text: "Tipos de Cítricos"
-                            font.pixelSize: 18
-                            font.bold: true
-                        }
-                        
-                        Item { Layout.fillWidth: true }
-                        
-                        Button {
-                            text: "Nuevo Cultivo"
-                            icon.source: "Image//Image_UI_interfaz//Inconos//agregar.svg"
-                            implicitHeight: 40
-                            implicitWidth: 120
-                            background: Rectangle {
-                                
-                                color: "#f5922f"
-                                radius: height / 2
-                            }
-
-                            contentItem: Text {
-                                text: parent.text
-                                color: "white"
-                                font.bold: true
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                                leftPadding: 10 // Mejorar espaciado
-                            }
-
-                            onClicked: {
-                                // Inicializa los valores para el nuevo tipo de cultivo
-                                nuevoTipoCultivo = {
-                                    "nombre": "",
-                                    "nombre_cientifico": "",
-                                    "tiempo_cosecha_min": 0,
-                                    "tiempo_cosecha_max": 0,
-                                    "descripcion": "",
-                                    "activo": true
-                                }
-                                
-                                // Mostrar panel de detalles limpio para agregar
-                                mostrarFilaEdicionTipo = true
-                            }
-                        }
-                    }
+            // Contenido principal con dos marcos
+            RowLayout {
+                anchors.fill: parent
+                spacing: 20
+                
+                // Marco 1: Lista de tipos de cultivo
+                Rectangle {
+                    Layout.preferredWidth: parent.width * 0.4
+                    Layout.fillHeight: true
+                    color: "white"
+                    radius: 5
+                    border.color: "#EEEEEE"
                     
-                    // Campo de búsqueda
-                    TextField {
-                        id: txtBuscarTipoCultivo
-                        Layout.fillWidth: true
-                        placeholderText: "Buscar tipo de cultivo..."
-                        implicitHeight: 36
-                        background: Rectangle {
-                            color: "#b2c4c9"
-                            radius: height / 2
-                        }
-                        onTextChanged: filtrarTiposCultivo()
-                    }
-
-                    // Lista de tipos de cultivo
-                    ListView {
-                        id: tiposCultivoListView
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        clip: true
-                        model: ListModel { id: tiposCultivoModel }
-                        spacing: 5
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 15
+                        spacing: 15
                         
-                        delegate: Rectangle {
-                            width: parent.width
-                            height: 60
-                            color: ListView.isCurrentItem ? "#E3F2FD" : "transparent"
-                            radius: 4
-                            RowLayout {
-                                anchors.right: parent.right
-                                anchors.rightMargin: 10
-                                anchors.verticalCenter: parent.verticalCenter
-                                spacing: 8
-                                
+                        // Cabecera de la lista
+                        RowLayout {
+                            Layout.fillWidth: true
+                            
+                            Text {
+                                text: "Tipos de Cítricos"
+                                font.pixelSize: 18
+                                font.bold: true
                             }
-                            ColumnLayout {
-                                anchors.fill: parent
-                                anchors.margins: 10
-                                spacing: 2
-                                
-                                Text {
-                                    text: nombre
-                                    font.pixelSize: 16
+                            
+                            Item { Layout.fillWidth: true }
+                            
+                            Button {
+                                text: "Nuevo Cultivo"
+                                icon.source: "Image//Image_UI_interfaz//Inconos//agregar.svg"
+                                implicitHeight: 36
+                                background: Rectangle {
+                                    color: parent.hovered ? "#E65A00" : "#f5922f"
+                                    radius: height / 2
+                                }
+                                contentItem: Text {
+                                    text: parent.text
+                                    color: "white"
                                     font.bold: true
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                    leftPadding: 10
+                                }
+                                onClicked: {
+                                    nuevoTipoCultivo = {
+                                        "nombre": "",
+                                        "nombre_cientifico": "",
+                                        "tiempo_cosecha_min": 0,
+                                        "tiempo_cosecha_max": 0,
+                                        "descripcion": "",
+                                        "activo": true
+                                    }
+                                    
+                                    txtNombreTipo.text = "";
+                                    txtNombreCientifico.text = "";
+                                    txtTiempoMin.text = "0";
+                                    txtTiempoMax.text = "0";
+                                    chkActivo.checked = true;
+                                    txtDescripcion.text = "";
+                                    
+                                    mostrarFilaEdicionTipo = true
+                                    tiposCultivoListView.currentIndex = -1;
+                                }
+                            }
+                        }
+                        
+                        // Campo de búsqueda
+                        TextField {
+                            id: txtBuscarTipoCultivo
+                            Layout.fillWidth: true
+                            placeholderText: "Buscar tipo de cultivo..."
+                            implicitHeight: 28
+                            leftPadding: 30 
+                            background: Rectangle {
+                                color: "#ffffff"
+                                radius: height / 2
+                                border.color: "#808080"
+                                border.width: 1
+                                Image {
+                                    anchors {
+                                        left: parent.left
+                                        leftMargin: 10
+                                        verticalCenter: parent.verticalCenter
+                                    }
+                                    source: "Image/Image_UI_interfaz/Inconos/lupa.png"
+                                    width: 16
+                                    height: 16
+                                }
+                            }
+                            onTextChanged: filtrarTiposCultivo()
+                        }
+                        
+                        // Lista de tipos de cultivo
+                        ListView {
+                            id: tiposCultivoListView
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            clip: true
+                            model: ListModel { id: tiposCultivoModel }
+                            spacing: 5
+                            
+                            delegate: Rectangle {
+                                width: ListView.view.width
+                                height: 60
+                                color: ListView.isCurrentItem ? "#E3F2FD" : "transparent"
+                                radius: 4
+                                
+                                ColumnLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: 10
+                                    spacing: 2
+                                    
+                                    Text {
+                                        text: nombre
+                                        font.pixelSize: 16
+                                        font.bold: true
+                                    }
+                                    
+                                    Text {
+                                        text: nombre_cientifico || ""
+                                        font.pixelSize: 12
+                                        font.italic: true
+                                        color: "#757575"
+                                    }
                                 }
                                 
-                                Text {
-                                    text: nombre_cientifico || ""
-                                    font.pixelSize: 12
-                                    font.italic: true
-                                    color: "#757575"
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: {
+                                        tiposCultivoListView.currentIndex = index
+                                        mostrarFilaEdicionTipo = false
+                                        cargarDetallesTipoCultivo(model)
+                                    }
                                 }
                             }
                             
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: {
-                                    tiposCultivoListView.currentIndex = index
-                                    mostrarFilaEdicionTipo = false
-                                    cargarDetallesTipoCultivo(model)
-                                }
+                            Text {
+                                anchors.centerIn: parent
+                                text: "No hay tipos de cultivo registrados.\nHaga clic en 'Nuevo' para agregar uno."
+                                color: "#757575"
+                                font.pixelSize: 14
+                                horizontalAlignment: Text.AlignHCenter
+                                visible: tiposCultivoModel.count === 0
                             }
                         }
-                        
-                        // Mensaje cuando no hay datos
-                        Text {
-                            anchors.centerIn: parent
-                            text: "No hay tipos de cultivo registrados.\nHaga clic en 'Nuevo' para agregar uno."
-                            color: "#757575"
-                            font.pixelSize: 14
-                            horizontalAlignment: Text.AlignHCenter
-                            visible: tiposCultivoModel.count === 0
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 50
+                            color: "transparent"
+                            
+                            Row {
+                                anchors.centerIn: parent
+                                spacing: 10
+                                
+                                Button {
+                                    text: "← Anterior"
+                                    enabled: paginaActualTipos > 1
+                                    implicitHeight: 32
+                                    background: Rectangle {
+                                        color: parent.enabled ? (parent.hovered ? "#2E7D32" : "#4CAF50") : "#CCCCCC"
+                                        radius: height / 2
+                                    }
+                                    contentItem: Text {
+                                        text: parent.text
+                                        color: "white"
+                                        font.bold: true
+                                        horizontalAlignment: Text.AlignHCenter
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
+                                    onClicked: irPaginaAnteriorTipos()
+                                }
+                                
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: "Página " + paginaActualTipos + " de " + totalPaginasTipos
+                                    font.pixelSize: 14
+                                    color: "#2E7D32"
+                                }
+                                
+                                Button {
+                                    text: "Siguiente →"
+                                    enabled: paginaActualTipos < totalPaginasTipos
+                                    implicitHeight: 32
+                                    background: Rectangle {
+                                        color: parent.enabled ? (parent.hovered ? "#2E7D32" : "#4CAF50") : "#CCCCCC"
+                                        radius: height / 2
+                                    }
+                                    contentItem: Text {
+                                        text: parent.text
+                                        color: "white"
+                                        font.bold: true
+                                        horizontalAlignment: Text.AlignHCenter
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
+                                    onClicked: irPaginaSiguienteTipos()
+                                }
+                            }
                         }
                     }
                 }
-            }
-            
-            // Panel de detalles
-            Rectangle {
-                anchors.left: tiposCultivoList.right
-                anchors.leftMargin: 20
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
-                color: "white"
-                radius: 5
-                border.color: "#EEEEEE"
                 
-                ColumnLayout {
-                    anchors.fill: parent
-                    anchors.margins: 20
-                    spacing: 20
+                // Marco 2: Detalles, información y formulario de edición
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    color: "white"
+                    radius: 5
+                    border.color: "#EEEEEE"
                     
-                    // Cabecera de detalles
-                    Text {
-                        text: mostrarFilaEdicionTipo ? "Nuevo Tipo de Cultivo" : "Detalles del Tipo de Cultivo"
-                        font.pixelSize: 20
-                        font.bold: true
-                    }
-                    
-                    // Formulario
-                    GridLayout {
-                        Layout.fillWidth: true
-                        columns: 2
-                        rowSpacing: 15
-                        columnSpacing: 20
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 20
+                        spacing: 20
                         
-                        // Nombre
-                        Text {
-                            text: "Nombre:"
-                            font.pixelSize: 14
-                        }
-                        
-                        TextField {
-                            id: txtNombreTipo
-                            Layout.fillWidth: true
-                            placeholderText: "Nombre del tipo de cultivo"
-                            onTextChanged: if (mostrarFilaEdicionTipo) nuevoTipoCultivo.nombre = text
-                        }
-                        
-                        // Nombre Científico
-                        Text {
-                            text: "Nombre Científico:"
-                            font.pixelSize: 14
-                        }
-                        
-                        TextField {
-                            id: txtNombreCientifico
-                            Layout.fillWidth: true
-                            placeholderText: "Nombre científico"
-                            font.italic: true
-                            onTextChanged: if (mostrarFilaEdicionTipo) nuevoTipoCultivo.nombre_cientifico = text
-                        }
-                        
-                        // Tiempo de Cosecha Mínimo
-                        Text {
-                            text: "Tiempo mín. hasta cosecha (días):"
-                            font.pixelSize: 14
-                        }
-                        
-                        SpinBox {
-                            id: spinTiempoMin
-                            Layout.fillWidth: true
-                            from: 0
-                            to: 1000
-                            onValueChanged: if (mostrarFilaEdicionTipo) nuevoTipoCultivo.tiempo_cosecha_min = value
-                        }
-                        
-                        // Tiempo de Cosecha Máximo
-                        Text {
-                            text: "Tiempo máx. hasta cosecha (días):"
-                            font.pixelSize: 14
-                        }
-                        
-                        SpinBox {
-                            id: spinTiempoMax
-                            Layout.fillWidth: true
-                            from: 0
-                            to: 1000
-                            onValueChanged: if (mostrarFilaEdicionTipo) nuevoTipoCultivo.tiempo_cosecha_max = value
-                        }
-                        
-                        // Estado
-                        Text {
-                            text: "Estado:"
-                            font.pixelSize: 14
-                        }
-                        
+                        // Cabecera con título y botones
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: 10
                             
-                            CheckBox {
-                                id: chkActivo
-                                text: "Activo"
-                                checked: true
-                                onCheckedChanged: if (mostrarFilaEdicionTipo) nuevoTipoCultivo.activo = checked
-                            }
-                        }
-                        
-                        // Descripción
-                        Text {
-                            text: "Descripción:"
-                            font.pixelSize: 14
-                        }
-                        
-                        TextArea {
-                            id: txtDescripcion
-                            Layout.fillWidth: true
-                            Layout.rowSpan: 3
-                            Layout.minimumHeight: 100
-                            placeholderText: "Descripción del tipo de cultivo"
-                            wrapMode: TextArea.Wrap
-                            onTextChanged: if (mostrarFilaEdicionTipo) nuevoTipoCultivo.descripcion = text
-                        }
-                    }
-                    
-                    // Estadísticas de producción
-                    Rectangle {
-                        id: rectEstadisticas
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 120
-                        color: "#F5F5F5"
-                        radius: 5
-
-                        ColumnLayout{
-                            anchors.fill: parent
-                            anchors.margins: 10
-                            spacing: 5
-
                             Text {
-                                Layout.fillWidth: true
-                                text: "Estadísticas del Cultivo"
+                                text: mostrarFilaEdicionTipo ? (tiposCultivoListView.currentIndex < 0 ? "Nuevo Tipo de Cultivo" : "Editar Tipo de Cultivo") : "Información del Cultivo"
+                                font.pixelSize: 18
                                 font.bold: true
-                                font.pixelSize: 14
                             }
-
-                            RowLayout {
-                                Layout.fillWidth: true
-                                Layout.fillHeight: true
-                                spacing: 10
-
-                                // Elementos de estadísticas
-                                // Variedades
-                                Rectangle {
-                                     Layout.fillWidth: true
-                                    Layout.fillHeight: true
-                                    color: "#E8F5E9"
-                                    radius: 5
-
-                                    Column {
-                                        anchors.centerIn: parent
-                                        spacing: 5
-                                        
-                                        Text {
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                            text: "Variedades"
-                                            font.pixelSize: 14
-                                        }
-                                        
-                                        Text {
-                                            id: txtTotalVariedades
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                            text: "0"
-                                            font.pixelSize: 28
-                                            font.bold: true
-                                            color: "#4CAF50"
-                                        }
-                                    }
+                            
+                            Item { Layout.fillWidth: true }
+                            
+                            // Botones en modo edición
+                            Button {
+                                text: "Eliminar"
+                                implicitHeight: 32
+                                visible: mostrarFilaEdicionTipo && tiposCultivoListView.currentIndex >= 0
+                                background: Rectangle {
+                                    color: "#F44336"
+                                    radius: height / 2
                                 }
-                                // Ciclos Activos
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    Layout.fillHeight: true
-                                    color: "#E1F5FE"
-                                    radius: 5
-                                    
-                                    Column {
-                                        anchors.centerIn: parent
-                                        spacing: 5
-                                        
-                                        Text {
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                            text: "Ciclos Activos"
-                                            font.pixelSize: 14
-                                        }
-                                        
-                                        Text {
-                                            id: txtTotalCiclos
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                            text: "0"
-                                            font.pixelSize: 28
-                                            font.bold: true
-                                            color: "#2196F3"
-                                        }
-                                    }
+                                contentItem: Text {
+                                    text: parent.text
+                                    color: "white"
+                                    font.bold: true
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
                                 }
-                                // Area Sembrado
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    Layout.fillHeight: true
-                                    color: "#FFF8E1"
-                                    radius: 5
-                                    
-                                    Column {
-                                        anchors.centerIn: parent
-                                        spacing: 5
-                                        
-                                        Text {
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                            text: "Área Sembrada"
-                                            font.pixelSize: 14
-                                        }
-                                        
-                                        Text {
-                                            id: txtAreaSembradaTotal
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                            text: "0 ha"
-                                            font.pixelSize: 28
-                                            font.bold: true
-                                            color: "#FF9800"
-                                        }
+                                onClicked: {
+                                    if (tiposCultivoListView.currentIndex >= 0) {
+                                        const tipo = tiposCultivoModel.get(tiposCultivoListView.currentIndex);
+                                        confirmDeleteTipoDialog.tipoId = tipo.id_tipo_cultivo;
+                                        confirmDeleteTipoDialog.nombreTipo = tipo.nombre;
+                                        confirmDeleteTipoDialog.open();
                                     }
                                 }
                             }
-                        } 
-                    }
-                    
-                    // Botones de acción
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Layout.alignment: Qt.AlignRight
-                        spacing: 10
-
-                        Button {
-                            text: "Eliminar"
-                            implicitHeight: 36
-                            visible: !mostrarFilaEdicionTipo && tiposCultivoListView.currentIndex >= 0
-                            background: Rectangle {
-                                color: "#F44336"
-                                radius: height / 2
+                            
+                            Button {
+                                text: "Cancelar"
+                                implicitHeight: 32
+                                visible: mostrarFilaEdicionTipo
+                                background: Rectangle {
+                                    color: "#9E9E9E"
+                                    radius: height / 2
+                                }
+                                contentItem: Text {
+                                    text: parent.text
+                                    color: "white"
+                                    font.bold: true
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                }
+                                onClicked: {
+                                    mostrarFilaEdicionTipo = false;
+                                    if (tiposCultivoListView.currentIndex >= 0) {
+                                        const tipo = tiposCultivoModel.get(tiposCultivoListView.currentIndex);
+                                        cargarDetallesTipoCultivo(tipo);
+                                    }
+                                }
                             }
-                            contentItem: Text {
-                                text: parent.text
-                                color: "white"
-                                font.bold: true
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                            }
-                            onClicked: {
-                                if (tiposCultivoListView.currentIndex >= 0) {
-                                    const tipo = tiposCultivoModel.get(tiposCultivoListView.currentIndex);
-                                    confirmDeleteTipoDialog.tipoId = tipo.id_tipo_cultivo;
-                                    confirmDeleteTipoDialog.nombreTipo = tipo.nombre;
-                                    confirmDeleteTipoDialog.open();
+                            
+                            Button {
+                                text: mostrarFilaEdicionTipo ? "Guardar" : "Editar"
+                                implicitHeight: 32
+                                visible: mostrarFilaEdicionTipo || tiposCultivoListView.currentIndex >= 0
+                                background: Rectangle {
+                                    color: "#4CAF50"
+                                    radius: height / 2
+                                }
+                                contentItem: Text {
+                                    text: parent.text
+                                    color: "white"
+                                    font.bold: true
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                }
+                                onClicked: {
+                                    if (mostrarFilaEdicionTipo) {
+                                        if (tiposCultivoListView.currentIndex < 0) {
+                                            guardarNuevoTipoCultivo();
+                                        } else {
+                                            actualizarTipoCultivo();
+                                        }
+                                    } else {
+                                        mostrarFilaEdicionTipo = true;
+                                    }
                                 }
                             }
                         }
                         
-                        Button {
-                            text: "Cancelar"
-                            implicitHeight: 36
-                            flat: true
-                            onClicked: mostrarFilaEdicionTipo = false
-                        }
-                        
-                        Button {
-                            text: mostrarFilaEdicionTipo ? "Guardar" : "Guardar Cambios"
-                            implicitHeight: 36
-                            background: Rectangle {
-                                color: "#4CAF50"
-                                radius: height / 2
+                        // Contenido dinámico: formulario de edición o información
+                        StackLayout {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            currentIndex: mostrarFilaEdicionTipo ? 0 : 1
+                            
+                            // Índice 0: Formulario de edición
+                            Item {
+                                ScrollView {
+                                    anchors.fill: parent
+                                    clip: true
+                                    
+                                    GridLayout {
+                                        width: parent.width
+                                        columns: 2
+                                        rowSpacing: 15
+                                        columnSpacing: 20
+                                        
+                                        // Nombre
+                                        Text {
+                                            text: "Nombre:"
+                                            font.pixelSize: 14
+                                        }
+                                        
+                                        TextField {
+                                            id: txtNombreTipo
+                                            Layout.fillWidth: true
+                                            placeholderText: "Nombre del tipo de cultivo"
+                                            onTextChanged: if (mostrarFilaEdicionTipo) nuevoTipoCultivo.nombre = text
+                                        }
+                                        
+                                        // Nombre Científico
+                                        Text {
+                                            text: "Nombre Científico:"
+                                            font.pixelSize: 14
+                                        }
+                                        
+                                        TextField {
+                                            id: txtNombreCientifico
+                                            Layout.fillWidth: true
+                                            placeholderText: "Nombre científico"
+                                            font.italic: true
+                                            onTextChanged: if (mostrarFilaEdicionTipo) nuevoTipoCultivo.nombre_cientifico = text
+                                        }
+                                        
+                                        // Tiempo de Cosecha Mínimo
+                                        Text {
+                                            text: "Tiempo mín. hasta cosecha (días):"
+                                            font.pixelSize: 14
+                                        }
+                                        
+                                        TextField {
+                                            id: txtTiempoMin
+                                            Layout.fillWidth: true
+                                            placeholderText: "Ej: 90"
+                                            validator: IntValidator { bottom: 1; top: 10000 }
+                                            onTextChanged: {
+                                                if (mostrarFilaEdicionTipo && text.trim() !== "") {
+                                                    nuevoTipoCultivo.tiempo_cosecha_min = parseInt(text)
+                                                }
+                                            }
+                                        }
+                                        
+                                        // Tiempo de Cosecha Máximo
+                                        Text {
+                                            text: "Tiempo máx. hasta cosecha (días):"
+                                            font.pixelSize: 14
+                                        }
+                                        
+                                        TextField {
+                                            id: txtTiempoMax
+                                            Layout.fillWidth: true
+                                            placeholderText: "Ej: 365"
+                                            validator: IntValidator { bottom: 1; top: 10000 }
+                                            onTextChanged: {
+                                                if (mostrarFilaEdicionTipo && text.trim() !== "") {
+                                                    nuevoTipoCultivo.tiempo_cosecha_max = parseInt(text)
+                                                }
+                                            }
+                                        }
+                                        
+                                        // Estado
+                                        Text {
+                                            text: "Estado:"
+                                            font.pixelSize: 14
+                                        }
+                                        
+                                        CheckBox {
+                                            id: chkActivo
+                                            text: "Activo"
+                                            checked: true
+                                            onCheckedChanged: if (mostrarFilaEdicionTipo) nuevoTipoCultivo.activo = checked
+                                        }
+                                        
+                                        // Descripción
+                                        Text {
+                                            text: "Descripción:"
+                                            font.pixelSize: 14
+                                        }
+                                        
+                                        TextArea {
+                                            id: txtDescripcion
+                                            Layout.fillWidth: true
+                                            Layout.minimumHeight: 80
+                                            placeholderText: "Descripción del tipo de cultivo"
+                                            wrapMode: TextArea.Wrap
+                                            onTextChanged: if (mostrarFilaEdicionTipo) nuevoTipoCultivo.descripcion = text
+                                        }
+                                    }
+                                }
                             }
-                            onClicked: {
-                                if (mostrarFilaEdicionTipo) {
-                                    guardarNuevoTipoCultivo()
-                                } else {
-                                    actualizarTipoCultivo()
+                            
+                            // Índice 1: Vista de información y estadísticas
+                            Item {
+                                ColumnLayout {
+                                    anchors.fill: parent
+                                    spacing: 20
+                                    
+                                    // Estadísticas de producción
+                                    Rectangle {
+                                        Layout.fillWidth: true
+                                        Layout.preferredHeight: 150
+                                        color: "#F5F5F5"
+                                        radius: 5
+                                        
+                                        ColumnLayout{
+                                            anchors.fill: parent
+                                            anchors.margins: 15
+                                            spacing: 10
+                                            
+                                            Text {
+                                                text: "Estadísticas del Cultivo"
+                                                font.bold: true
+                                                font.pixelSize: 16
+                                            }
+                                            
+                                            RowLayout {
+                                                Layout.fillWidth: true
+                                                Layout.fillHeight: true
+                                                spacing: 15
+                                                
+                                                Rectangle {
+                                                    Layout.fillWidth: true
+                                                    Layout.fillHeight: true
+                                                    color: "#E8F5E9"
+                                                    radius: 5
+                                                    
+                                                    Column {
+                                                        anchors.centerIn: parent
+                                                        spacing: 5
+                                                        
+                                                        Text {
+                                                            anchors.horizontalCenter: parent.horizontalCenter
+                                                            text: "Variedades"
+                                                            font.pixelSize: 14
+                                                        }
+                                                        
+                                                        Text {
+                                                            id: txtTotalVariedades
+                                                            anchors.horizontalCenter: parent.horizontalCenter
+                                                            text: "0"
+                                                            font.pixelSize: 24
+                                                            font.bold: true
+                                                            color: "#4CAF50"
+                                                        }
+                                                    }
+                                                }
+                                                
+                                                Rectangle {
+                                                    Layout.fillWidth: true
+                                                    Layout.fillHeight: true
+                                                    color: "#E1F5FE"
+                                                    radius: 5
+                                                    
+                                                    Column {
+                                                        anchors.centerIn: parent
+                                                        spacing: 5
+                                                        
+                                                        Text {
+                                                            anchors.horizontalCenter: parent.horizontalCenter
+                                                            text: "Ciclos Activos"
+                                                            font.pixelSize: 14
+                                                        }
+                                                        
+                                                        Text {
+                                                            id: txtTotalCiclos
+                                                            anchors.horizontalCenter: parent.horizontalCenter
+                                                            text: "0"
+                                                            font.pixelSize: 24
+                                                            font.bold: true
+                                                            color: "#2196F3"
+                                                        }
+                                                    }
+                                                }
+                                                
+                                                Rectangle {
+                                                    Layout.fillWidth: true
+                                                    Layout.fillHeight: true
+                                                    color: "#FFF8E1"
+                                                    radius: 5
+                                                    
+                                                    Column {
+                                                        anchors.centerIn: parent
+                                                        spacing: 5
+                                                        
+                                                        Text {
+                                                            anchors.horizontalCenter: parent.horizontalCenter
+                                                            text: "Área Sembrada"
+                                                            font.pixelSize: 14
+                                                        }
+                                                        
+                                                        Text {
+                                                            id: txtAreaSembradaTotal
+                                                            anchors.horizontalCenter: parent.horizontalCenter
+                                                            text: "0 ha"
+                                                            font.pixelSize: 24
+                                                            font.bold: true
+                                                            color: "#FF9800"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    Item { Layout.fillHeight: true }
                                 }
                             }
                         }
@@ -1815,8 +2135,6 @@ Rectangle {
             ColumnLayout {
                 anchors.fill: parent
                 spacing: 20
-
-                
                 // Barra de acción
                 Rectangle {
                     //id: variedades  nose que poner
@@ -1837,7 +2155,7 @@ Rectangle {
                             icon.source: "Image/Image_UI_interfaz/Inconos/agregar.svg"
                             implicitHeight: 36
                             background: Rectangle {
-                                color: "#f5922f"
+                                color: parent.hovered ? "#E65A00" : "#f5922f"
                                 radius: height / 2
                             }
                             onClicked: {
@@ -1860,10 +2178,27 @@ Rectangle {
                             id: txtBuscarVariedad
                             Layout.preferredWidth: 250
                             placeholderText: "Buscar variedades..."
-                            implicitHeight: 25
+                            implicitWidth: 450
+                            implicitHeight: 28
+                            leftPadding: 30  // Espacio para el icono
+                            
                             background: Rectangle {
-                                color: "#b2c4c9"
+                                color: "#ffffff"
                                 radius: height / 2
+                                border.color: "#808080"
+                                border.width: 1
+                                
+                                // Icono de lupa
+                                Image {
+                                    anchors {
+                                        left: parent.left
+                                        leftMargin: 10
+                                        verticalCenter: parent.verticalCenter
+                                    }
+                                    source: "Image/Image_UI_interfaz/Inconos/lupa.png" // Cambia por tu ruta
+                                    width: 16
+                                    height: 16
+                                }
                             }
                             onTextChanged: filtrarVariedades()
                         }
@@ -2152,6 +2487,59 @@ Rectangle {
                             horizontalAlignment: Text.AlignHCenter
                             visible: variedadesModel.count === 0
                         }
+                    } 
+                }
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 50
+                    color: "transparent"
+                        
+                    Row {
+                        anchors.centerIn: parent
+                        spacing: 10
+                            
+                        Button {
+                            text: "← Anterior"
+                            enabled: paginaActualVariedades > 1
+                            implicitHeight: 32
+                            background: Rectangle {
+                                color: parent.enabled ? (parent.hovered ? "#2E7D32" : "#4CAF50") : "#CCCCCC"
+                                radius: height / 2
+                            }
+                            contentItem: Text {
+                                text: parent.text
+                                color: "white"
+                                font.bold: true
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                            onClicked: irPaginaAnteriorVariedades()
+                        }
+                            
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "Página " + paginaActualVariedades + " de " + totalPaginasVariedades
+                            font.pixelSize: 14
+                            color: "#2E7D32"
+                        }
+                            
+                        Button {
+                            text: "Siguiente →"
+                            enabled: paginaActualVariedades < totalPaginasVariedades
+                            implicitHeight: 32
+                            background: Rectangle {
+                                color: parent.enabled ? (parent.hovered ? "#2E7D32" : "#4CAF50") : "#CCCCCC"
+                                radius: height / 2
+                            }
+                            contentItem: Text {
+                                text: parent.text
+                                color: "white"
+                                font.bold: true
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                            onClicked: irPaginaSiguienteVariedades()
+                        }
                     }
                 }
             }
@@ -2181,7 +2569,7 @@ Rectangle {
                             icon.source: "Image/Image_UI_interfaz/Inconos/agregar.svg"
                             implicitHeight: 36
                             background: Rectangle {
-                                color: "#f5922f"
+                                color: parent.hovered ? "#E65A00" : "#f5922f"
                                 radius: height / 2
                             }
                             onClicked: {
@@ -2194,10 +2582,27 @@ Rectangle {
                             id: txtBuscarCiclo
                             Layout.preferredWidth: 250
                             placeholderText: "Buscar ciclos..."
-                            implicitHeight: 25
+                            implicitWidth: 450
+                            implicitHeight: 28
+                            leftPadding: 30  // Espacio para el icono
+                            
                             background: Rectangle {
-                                color: "#b2c4c9"
+                                color: "#ffffff"
                                 radius: height / 2
+                                border.color: "#808080"
+                                border.width: 1
+                                
+                                // Icono de lupa
+                                Image {
+                                    anchors {
+                                        left: parent.left
+                                        leftMargin: 10
+                                        verticalCenter: parent.verticalCenter
+                                    }
+                                    source: "Image/Image_UI_interfaz/Inconos/lupa.png" // Cambia por tu ruta
+                                    width: 16
+                                    height: 16
+                                }
                             }
                             onTextChanged: filtrarCiclos()
                         }
@@ -2228,7 +2633,7 @@ Rectangle {
                             icon.source: "Image/Image_UI_interfaz/Inconos/exportacion-de-archivos.svg"
                             implicitHeight: 36
                             background: Rectangle {
-                                color: "#4CAF50"
+                                color: parent.hovered ? "#00e654" : "#4CAF50"
                                 radius: height / 2
                             }
                             onClicked: exportarCiclos()
@@ -2546,9 +2951,62 @@ Rectangle {
                         }
                     }
                 }
+                // NAVEGACIÓN DE CICLOS - Agregar después del ListView ciclosListView
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 50
+                    color: "transparent"
+                        
+                    Row {
+                        anchors.centerIn: parent
+                        spacing: 10
+                            
+                        Button {
+                            text: "← Anterior"
+                            enabled: paginaActualCiclos > 1
+                            implicitHeight: 32
+                            background: Rectangle {
+                                color: parent.enabled ? (parent.hovered ? "#2E7D32" : "#4CAF50") : "#CCCCCC"
+                                radius: height / 2
+                            }
+                            contentItem: Text {
+                                text: parent.text
+                                color: "white"
+                                font.bold: true
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                            onClicked: irPaginaAnteriorCiclos()
+                        }
+                            
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "Página " + paginaActualCiclos + " de " + totalPaginasCiclos
+                            font.pixelSize: 14
+                            color: "#2E7D32"
+                        }
+                            
+                        Button {
+                            text: "Siguiente →"
+                            enabled: paginaActualCiclos < totalPaginasCiclos
+                            implicitHeight: 32
+                            background: Rectangle {
+                                color: parent.enabled ? (parent.hovered ? "#2E7D32" : "#4CAF50") : "#CCCCCC"
+                                radius: height / 2
+                            }
+                            contentItem: Text {
+                                text: parent.text
+                                color: "white"
+                                font.bold: true
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                            onClicked: irPaginaSiguienteCiclos()
+                        }
+                    }
+                }
             }
         }
-        // Página de Calendario de Cultivos
         // Página de Calendario de Cultivos
         Item {
             Rectangle {
@@ -2570,35 +3028,101 @@ Rectangle {
                         spacing: 20
                         
                         Text {
-                            text: "Calendario de Ciclos 2025"
+                            id: txtTituloCalendario
+                            text: "Calendario de Ciclos " + fechaActual.getFullYear()
                             font.pixelSize: 24
                             font.bold: true
                             color: "#9A6829"
                         }
                         
                         Item { Layout.fillWidth: true }
-                        
+                        Text {
+                            text: "Filtros:"
+                            font.pixelSize: 14
+                            font.bold: true
+                            color: "#9A6829"
+                        }
                         ComboBox {
                             id: cmbFiltroCultivosCalendario
-                            Layout.preferredWidth: 200
+                            Layout.preferredWidth: 180
                             model: ListModel { id: cultivosFiltroModel }
                             textRole: "text"
                             valueRole: "value"
                             Component.onCompleted: {
                                 cultivosFiltroModel.clear()
-                                cultivosFiltroModel.append({text: "Todos los cultivos", value: 0})
+                                cultivosFiltroModel.append({text: "Todos los cultivos", value: "todos"})
                                 actualizarCultivosFiltro()
                             }
-                            onCurrentIndexChanged: actualizarCalendario()
+                            onCurrentIndexChanged: {
+                                aplicarFiltrosCalendario()
+                            }
                         }
-                        
                         ComboBox {
-                            id: cmbVistaCalendario
-                            Layout.preferredWidth: 180
-                            model: ["Vista mensual", "Vista trimestral", "Vista anual"]
-                            currentIndex: 0
-                            onCurrentIndexChanged: actualizarCalendario()
+                            id: cmbFiltroEstadosCalendario
+                            Layout.preferredWidth: 150
+                            model: ListModel { id: estadosCalendarioModel }
+                            textRole: "text"
+                            valueRole: "value"
+                            Component.onCompleted: {
+                                estadosCalendarioModel.clear()
+                                estadosCalendarioModel.append({text: "Todos los estados", value: "todos"})
+                                actualizarEstadosCalendario()
+                            }
+                            onCurrentIndexChanged: {
+                                aplicarFiltrosCalendario()
+                            }
                         }
+                        ComboBox {
+                            id: cmbFiltroParcelasCalendario
+                            Layout.preferredWidth: 150
+                            model: ListModel { id: parcelasCalendarioModel }
+                            textRole: "text"
+                            valueRole: "value"
+                            Component.onCompleted: {
+                                parcelasCalendarioModel.clear()
+                                parcelasCalendarioModel.append({text: "Todas las parcelas", value: "todas"})
+                                actualizarParcelasCalendario()
+                            }
+                            onCurrentIndexChanged: {
+                                aplicarFiltrosCalendario()
+                            }
+                        }
+                        ComboBox {
+                            id: cmbFiltroTipoEvento
+                            Layout.preferredWidth: 150
+                            model: ListModel {
+                                id: tipoEventoModel
+                                ListElement { text: "Todos los eventos"; value: "todos" }
+                                ListElement { text: "Solo Siembra"; value: "siembra" }
+                                ListElement { text: "Solo Cosecha"; value: "cosecha" }
+                                ListElement { text: "Solo Poda"; value: "poda" }
+                                ListElement { text: "Solo Floración"; value: "floracion" }
+                                ListElement { text: "Solo Limpieza"; value: "limpieza" }
+                            }
+                            textRole: "text"
+                            valueRole: "value"
+                            onCurrentIndexChanged: {
+                                aplicarFiltrosCalendario()
+                            }
+                        }
+                        Item { Layout.fillWidth: true }
+                        Button {
+                            text: "Limpiar Filtros"
+                            implicitHeight: 32
+                            background: Rectangle {
+                                color: parent.hovered ? "#E65A00" : "#FF9800"
+                                radius: height / 2
+                            }
+                            contentItem: Text {
+                                text: parent.text
+                                color: "white"
+                                font.bold: true
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                            onClicked: limpiarFiltrosCalendario()
+                        }
+                    
                     }
                     
                     // Selector de mes y año
@@ -2618,7 +3142,7 @@ Rectangle {
                                 implicitHeight: 30
                                 implicitWidth: 40
                                 background: Rectangle {
-                                    color: "#9A6829"
+                                    color: parent.hovered ? "#7A5020" : "#9A6829"
                                     radius: height / 2
                                 }
                                 contentItem: Text {
@@ -2633,74 +3157,27 @@ Rectangle {
                                     var nuevaFecha = new Date(fechaActual);
                                     nuevaFecha.setFullYear(nuevaFecha.getFullYear() - 1);
                                     fechaActual = nuevaFecha;
-                                    actualizarCalendario();
+                                    txtTituloCalendario.text = "Calendario de Ciclos " + fechaActual.getFullYear();
+                                    actualizarCalendarioAnual();
                                 }
                             }
-                            
-                            Button {
-                                text: "<"
-                                implicitHeight: 30
-                                implicitWidth: 40
-                                background: Rectangle {
-                                    color: "#9A6829"
-                                    radius: height / 2
-                                }
-                                contentItem: Text {
-                                    text: parent.text
-                                    color: "white"
-                                    font.bold: true
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
-                                }
-                                onClicked: {
-                                    // Restar un mes
-                                    var nuevaFecha = new Date(fechaActual);
-                                    nuevaFecha.setMonth(nuevaFecha.getMonth() - 1);
-                                    fechaActual = nuevaFecha;
-                                    actualizarCalendario();
-                                }
-                            }
-                            
+                            Item { Layout.fillWidth: true }
+
                             Text {
-                                id: txtFechaActual
-                                text: obtenerNombreMes(fechaActual.getMonth()) + " " + fechaActual.getFullYear()
-                                font.pixelSize: 22
+                                text: "Año " + fechaActual.getFullYear()
+                                font.pixelSize: 18
                                 font.bold: true
                                 color: "#9A6829"
-                                Layout.fillWidth: true
                                 horizontalAlignment: Text.AlignHCenter
                             }
-                            
-                            Button {
-                                text: ">"
-                                implicitHeight: 30
-                                implicitWidth: 40
-                                background: Rectangle {
-                                    color: "#9A6829"
-                                    radius: height / 2
-                                }
-                                contentItem: Text {
-                                    text: parent.text
-                                    color: "white"
-                                    font.bold: true
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
-                                }
-                                onClicked: {
-                                    // Sumar un mes
-                                    var nuevaFecha = new Date(fechaActual);
-                                    nuevaFecha.setMonth(nuevaFecha.getMonth() + 1);
-                                    fechaActual = nuevaFecha;
-                                    actualizarCalendario();
-                                }
-                            }
+                            Item { Layout.fillWidth: true }
                             
                             Button {
                                 text: ">>"
                                 implicitHeight: 30
                                 implicitWidth: 40
                                 background: Rectangle {
-                                    color: "#9A6829"
+                                    color: parent.hovered ? "#7A5020" : "#9A6829"
                                     radius: height / 2
                                 }
                                 contentItem: Text {
@@ -2715,128 +3192,188 @@ Rectangle {
                                     var nuevaFecha = new Date(fechaActual);
                                     nuevaFecha.setFullYear(nuevaFecha.getFullYear() + 1);
                                     fechaActual = nuevaFecha;
-                                    actualizarCalendario();
+                                    txtTituloCalendario.text = "Calendario de Ciclos " + fechaActual.getFullYear();
+                                    actualizarCalendarioAnual();
                                 }
                             }
                         }
                     }
                     
-                    // Encabezado de días de la semana
+                    // Grid de 12 meses (4 filas x 3 columnas)
                     Grid {
                         Layout.fillWidth: true
                         columns: 7
                         spacing: 1
-                        
-                        Repeater {
-                            model: ["L", "M", "X", "J", "V", "S", "D"]
-                            
-                            Rectangle {
-                                width: (calendarContainer.width - 42) / 7
-                                height: 40
-                                color: "#9A6829"
-                                
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: modelData
-                                    font.pixelSize: 16
-                                    font.bold: true
-                                    color: "white"
-                                }
-                            }
-                        }
                     }
-                    
-                    // Cuadrícula del calendario
-                    Grid {
-                        id: calendarGrid
+
+                    // Grid de 12 meses (4 filas x 3 columnas)
+                    ScrollView {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        columns: 7
-                        spacing: 1
+                        clip: true
                         
-                        Repeater {
-                            id: calendarRepeater
-                            model: 42 // 6 semanas x 7 días
+                        Grid {
+                            id: yearGrid
+                            width: calendarContainer.width - 30
+                            columns: 3
+                            spacing: 8
                             
-                            Rectangle {
-                                width: (calendarContainer.width - 42) / 7
-                                height: (calendarContainer.height - 200) / 6
-                                //color: "white"
-                                border.width: 1
-                                border.color: "#E0E0E0"
-                                property bool esDiaActual: false
-                                property bool esDiaMesActual: false
-                                property int diaNumero: 0
+                            // Repetir para 12 meses
+                            Repeater {
+                                id: monthsRepeater
+                                model: 12
                                 
-                                // Color de fondo basado en si es día actual o del mes actual
-                                color: esDiaActual ? "#FFF8E1" : (esDiaMesActual ? "white" : "#F5F5F5")
-                                
-                                // Contenedor para el número y eventos
-                                Column {
-                                    anchors.fill: parent
-                                    anchors.margins: 5
-                                    spacing: 2
-                                    visible: diaNumero > 0
+                                // Componente de mes individual
+                                Rectangle {
+                                    width: (yearGrid.width - 16) / 3  // 3 columnas con spacing
+                                    height: 200
+                                    color: "white"
+                                    border.color: "#E0E0E0"
+                                    border.width: 1
+                                    radius: 4
                                     
-                                    // Número de día
-                                    Rectangle {
-                                        width: parent.width
-                                        height: 24
-                                        color: "transparent"
-                                        
-                                        Text {
-                                            anchors.left: parent.left
-                                            anchors.top: parent.top
-                                            text: parent.parent.parent.diaNumero
-                                            font.pixelSize: 16
-                                            font.bold: parent.parent.parent.esDiaActual
-                                            color: parent.parent.parent.esDiaActual ? "#9A6829" : "#333333"
-                                        }
-                                    }
+                                    property int monthIndex: index
+                                    property string monthName: obtenerNombreMes(index)
                                     
-                                    // Eventos para este día
-                                    ListView {
-                                        width: parent.width
-                                        height: parent.height - 26
-                                        clip: true
-                                        model: getEventsForDay(parent.parent.diaNumero, fechaActual.getMonth(), fechaActual.getFullYear())
+                                    ColumnLayout {
+                                        anchors.fill: parent
+                                        anchors.margins: 5
                                         spacing: 2
                                         
-                                        delegate: Rectangle {
-                                            width: parent.width
-                                            height: 22
-                                            radius: 3
-                                            color: modelData.color
+                                        // Cabecera del mes
+                                        Rectangle {
+                                            Layout.fillWidth: true
+                                            height: 25
+                                            color: "#9A6829"
+                                            radius: 2
                                             
                                             Text {
-                                                anchors.fill: parent
-                                                anchors.leftMargin: 5
-                                                anchors.rightMargin: 5
-                                                text: modelData.text
-                                                font.pixelSize: 10
+                                                anchors.centerIn: parent
+                                                text: parent.parent.parent.monthName
+                                                font.pixelSize: 12
+                                                font.bold: true
                                                 color: "white"
-                                                verticalAlignment: Text.AlignVCenter
-                                                elide: Text.ElideRight
                                             }
+                                        }
+                                        
+                                        // Días de la semana (pequeños)
+                                        Grid {
+                                            Layout.fillWidth: true
+                                            columns: 7
+                                            spacing: 1
                                             
-                                            MouseArea {
-                                                anchors.fill: parent
-                                                onClicked: {
-                                                    // Mostrar detalles del evento
-                                                    console.log("Evento seleccionado:", modelData.text)
+                                            Repeater {
+                                                model: ["L", "M", "X", "J", "V", "S", "D"]
+                                                
+                                                Rectangle {
+                                                    width: (parent.parent.parent.width - 18) / 7
+                                                    height: 15
+                                                    color: "#E8F5E9"
+                                                    
+                                                    Text {
+                                                        anchors.centerIn: parent
+                                                        text: modelData
+                                                        font.pixelSize: 8
+                                                        font.bold: true
+                                                        color: "#333"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        
+                                        // Días del mes
+                                        Grid {
+                                            Layout.fillWidth: true
+                                            Layout.fillHeight: true
+                                            columns: 7
+                                            spacing: 1
+                                            
+                                            Repeater {
+                                                id: daysRepeater
+                                                model: 42  // 6 semanas máximo
+                                                
+                                                Rectangle {
+                                                    width: (parent.parent.parent.width - 18) / 7
+                                                    height: 18
+                                                    border.width: 0.5
+                                                    border.color: "#E0E0E0"
+                                                    
+                                                    property int dayNumber: 0
+                                                    property bool isCurrentMonth: false
+                                                    property bool isToday: false
+                                                    property var dayEvents: []
+                                                    
+                                                    // Color de fondo basado en eventos y estado
+                                                    color: {
+                                                        if (dayNumber <= 0 || !isCurrentMonth) return "#F8F8F8";
+                                                        if (isToday) return "#FFF8E1";
+                                                        if (dayEvents.length > 0) {
+                                                            // Si hay eventos, usar el color del primer evento (prioridad)
+                                                            return dayEvents[0].color;
+                                                        }
+                                                        return "white";
+                                                    }
+                                                    
+                                                    Text {
+                                                        anchors.centerIn: parent
+                                                        text: parent.dayNumber > 0 && parent.isCurrentMonth ? parent.dayNumber : ""
+                                                        font.pixelSize: 10
+                                                        font.bold: parent.isToday
+                                                        color: {
+                                                            if (parent.dayNumber <= 0 || !parent.isCurrentMonth) return "#BDBDBD";
+                                                            if (parent.dayEvents.length > 0) return "white";
+                                                            if (parent.isToday) return "#9A6829";
+                                                            return "#333333";
+                                                        }
+                                                    }
+                                                    
+                                                    // Indicadores de múltiples eventos
+                                                    Row {
+                                                        anchors.bottom: parent.bottom
+                                                        anchors.right: parent.right
+                                                        anchors.margins: 1
+                                                        spacing: 1
+                                                        
+                                                        Repeater {
+                                                            model: Math.min(parent.parent.dayEvents.length, 3)
+                                                            
+                                                            Rectangle {
+                                                                width: 3
+                                                                height: 3
+                                                                radius: 1.5
+                                                                color: parent.parent.parent.dayEvents[index] ? parent.parent.parent.dayEvents[index].color : "transparent"
+                                                                visible: parent.parent.parent.dayEvents.length > 1
+                                                            }
+                                                        }
+                                                    }
+                                                    
+                                                    MouseArea {
+                                                        anchors.fill: parent
+                                                        hoverEnabled: true
+                                                        onClicked: {
+                                                            if (parent.dayNumber > 0 && parent.isCurrentMonth && parent.dayEvents.length > 0) {
+                                                                // Abrir diálogo con detalles de eventos
+                                                                mostrarDetallesEventos(parent.dayNumber, parent.parent.parent.parent.parent.monthIndex, fechaActual.getFullYear(), parent.dayEvents);
+                                                            }
+                                                        }
+                                                        onEntered: {
+                                                            if (parent.dayEvents.length > 0) {
+                                                                parent.border.width = 2;
+                                                                parent.border.color = "#9A6829";
+                                                            }
+                                                        }
+                                                        onExited: {
+                                                            parent.border.width = 0.5;
+                                                            parent.border.color = "#E0E0E0";
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
                                     }
-                                }
-                                
-                                // Área para detectar clics en el día
-                                MouseArea {
-                                    anchors.fill: parent
-                                    onClicked: {
-                                        if (parent.diaNumero > 0) {
-                                            console.log("Día seleccionado:", parent.diaNumero, obtenerNombreMes(fechaActual.getMonth()), fechaActual.getFullYear())
-                                        }
+                                    
+                                    Component.onCompleted: {
+                                        updateMonthCalendar(monthIndex);
                                     }
                                 }
                             }
@@ -2865,12 +3402,12 @@ Rectangle {
                                 ]
                                 
                                 Row {
-                                    spacing: 5
+                                    spacing: 4
                                     
                                     Rectangle {
-                                        width: 16
-                                        height: 16
-                                        radius: 8
+                                        width: 12
+                                        height: 12
+                                        radius: 6
                                         color: modelData.color
                                         anchors.verticalCenter: parent.verticalCenter
                                     }
@@ -2965,13 +3502,16 @@ Rectangle {
                             Layout.alignment: Qt.AlignRight
                         }
                         
-                        SpinBox {
-                            id: spinTiempoProduccion
+                        TextField {
+                            id: txtTiempoProduccion
                             Layout.fillWidth: true
-                            from: 0
-                            to: 500
-                            value: 0
-                            onValueChanged: nuevaVariedad.tiempo_produccion = value
+                            placeholderText: "Ej: 120"
+                            validator: IntValidator { bottom: 0; top: 500 }
+                            onTextChanged: {
+                                if (text.trim() !== "") {
+                                    nuevaVariedad.tiempo_produccion = parseInt(text)
+                                }
+                            }
                         }
                         
                         // Rendimiento
@@ -3178,11 +3718,12 @@ Rectangle {
             }
         }
         // DIÁLOGO DE CICLO DE PRODUCCIÓN
+        // DIÁLOGO DE CICLO DE PRODUCCIÓN MEJORADO
         Dialog {
             id: dialogCicloProduccion
             title: modo === "crear" ? "Nuevo Ciclo de Producción" : "Editar Ciclo de Producción"
             modal: true
-            width: 650
+            width: 700
             height: 650
             x: (parent.width - width) / 2
             y: (parent.height - height) / 2
@@ -3209,7 +3750,7 @@ Rectangle {
                 cmbParcelas.currentIndex = getParcelaIndex(cicloEncontrado.id_parcela);
                 cmbVariedades.currentIndex = getVariedadIndex(cicloEncontrado.id_variedad);
                 txtAreaSembrada.text = cicloEncontrado.area_sembrada.toString();
-                spinDensidad.value = cicloEncontrado.densidad_siembra || 0;
+                txtDensidad.text = cicloEncontrado.densidad_siembra || 0;
                 cmbEstado.currentIndex = getEstadoIndex(cicloEncontrado.estado);
                 ciclo_chkActivo.checked = cicloEncontrado.activo;
                 
@@ -3220,18 +3761,16 @@ Rectangle {
                 txtFechaFloracion.text = cicloEncontrado.fecha_floracion || "";
                 txtFechaPoda.text = cicloEncontrado.fecha_poda || "";
                 txtFechaLimpieza.text = cicloEncontrado.fecha_limpieza || "";
-                spinFrecuenciaLimpieza.value = cicloEncontrado.frecuencia_limpieza || 1;
+                txtFrecuenciaLimpieza.text = (cicloEncontrado.frecuencia_limpieza || 1).toString();
             }
-        
-            
-            
+
             // Contenido del diálogo
             contentItem: Rectangle {
                 color: "white"
                 
                 ScrollView {
                     anchors.fill: parent
-                    anchors.margins: 10
+                    anchors.margins: 15
                     clip: true
                     
                     ColumnLayout {
@@ -3250,26 +3789,34 @@ Rectangle {
                         // Formulario principal
                         GridLayout {
                             Layout.fillWidth: true
-                            columns: 4
-                            columnSpacing: 10
+                            columns: 2
+                            columnSpacing: 15
                             rowSpacing: 15
+                            
+                            // Sección 1: Información básica
+                            Text {
+                                text: "Información Básica"
+                                font.bold: true
+                                font.pixelSize: 14
+                                Layout.fillWidth: true
+                                Layout.columnSpan: 2
+                                topPadding: 10
+                                bottomPadding: 5
+                            }
                             
                             // Parcela
                             Text {
                                 text: "Parcela:"
-                                Layout.alignment: Qt.AlignRight
+                                Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                             }
                             
                             ComboBox {
                                 id: cmbParcelas
                                 Layout.fillWidth: true
-                                Layout.columnSpan: 3
                                 model: ListModel { id: parcelasModel }
                                 textRole: "text"
                                 valueRole: "value"
-                                Component.onCompleted: {
-                                    actualizarParcelasCombobox()
-                                }
+                                Component.onCompleted: actualizarParcelasCombobox()
                                 onCurrentIndexChanged: {
                                     if (dialogCicloProduccion.modo === "crear" && currentIndex >= 0) {
                                         nuevoCiclo.id_parcela = model.get(currentIndex).value
@@ -3280,19 +3827,16 @@ Rectangle {
                             // Variedad
                             Text {
                                 text: "Variedad:"
-                                Layout.alignment: Qt.AlignRight
+                                Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                             }
                             
                             ComboBox {
                                 id: cmbVariedades
                                 Layout.fillWidth: true
-                                Layout.columnSpan: 3
                                 model: ListModel { id: variedadesCicloModel }
                                 textRole: "text"
                                 valueRole: "value"
-                                Component.onCompleted: {
-                                    actualizarVariedadesCombobox()
-                                }
+                                Component.onCompleted: actualizarVariedadesCombobox()
                                 onCurrentIndexChanged: {
                                     if (dialogCicloProduccion.modo === "crear" && currentIndex >= 0) {
                                         nuevoCiclo.id_variedad = model.get(currentIndex).value
@@ -3303,7 +3847,7 @@ Rectangle {
                             // Estado
                             Text {
                                 text: "Estado:"
-                                Layout.alignment: Qt.AlignRight
+                                Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                             }
                             
                             ComboBox {
@@ -3321,7 +3865,7 @@ Rectangle {
                             // Activo
                             Text {
                                 text: "Activo:"
-                                Layout.alignment: Qt.AlignRight
+                                Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                             }
                             
                             CheckBox {
@@ -3337,7 +3881,7 @@ Rectangle {
                             // Área sembrada
                             Text {
                                 text: "Área sembrada (ha):"
-                                Layout.alignment: Qt.AlignRight
+                                Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                             }
                             
                             TextField {
@@ -3355,82 +3899,78 @@ Rectangle {
                             // Densidad de siembra
                             Text {
                                 text: "Densidad (plantas/ha):"
-                                Layout.alignment: Qt.AlignRight
+                                Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                             }
                             
-                            SpinBox {
-                                id: spinDensidad
+                            TextField {
+                                id: txtDensidad
                                 Layout.fillWidth: true
-                                from: 0
-                                to: 10000
-                                stepSize: 10
-                                onValueChanged: {
-                                    if (dialogCicloProduccion.modo === "crear") {
-                                        nuevoCiclo.densidad_siembra = value;
+                                placeholderText: "Ej: 1000"
+                                validator: IntValidator { bottom: 0; top: 10000 }
+                                onTextChanged: {
+                                    if (dialogCicloProduccion.modo === "crear" && text.trim() !== "") {
+                                        nuevoCiclo.densidad_siembra = parseInt(text);
                                     }
                                 }
                             }
                             
-                            // Separador de sección
+                            // Separador
                             Rectangle {
                                 Layout.fillWidth: true
-                                Layout.columnSpan: 4
+                                Layout.columnSpan: 2
                                 height: 1
                                 color: "#EEEEEE"
+                                Layout.topMargin: 10
+                                Layout.bottomMargin: 5
                             }
                             
-                            // Título de fechas
+                            // Sección 2: Fechas importantes
                             Text {
                                 text: "Fechas importantes"
                                 font.bold: true
                                 font.pixelSize: 14
                                 Layout.fillWidth: true
-                                Layout.columnSpan: 4
+                                Layout.columnSpan: 2
+                            }
+                            
+                            // Función para crear campos de fecha
+                            function createDateField(parent, fieldId, placeholder) {
+                                var component = Qt.createComponent("DateField.qml");
+                                if (component.status === Component.Ready) {
+                                    var field = component.createObject(parent, {
+                                        placeholderText: placeholder
+                                    });
+                                    return field;
+                                } else {
+                                    console.error("Error creando componente:", component.errorString());
+                                    return null;
+                                }
                             }
                             
                             // Fecha de siembra
                             Text {
                                 text: "Fecha de siembra:"
-                                Layout.alignment: Qt.AlignRight
+                                Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                             }
                             
-                            Button {
-                                id: btnFechaSiembra
-                                text: "Seleccionar fecha"
-                                property date selectedDate: new Date()
-                                onClicked: {
-                                    // Verificar que el selector de fechas exista
-                                    if (typeof fechaPicker !== "undefined" && fechaPicker) {
-                                        fechaPicker.open()
-                                    } else {
-                                        console.error("Error: fechaPicker no está disponible")
-                                        // Alternativa: usar un diálogo de texto para ingresar fecha
-                                        txtFechaSiembra.visible = true
-                                    }
-                                }
-                                Text {
-                                    text: Qt.formatDate(parent.selectedDate, "dd/MM/yyyy")
-                                    anchors.centerIn: parent
-                                }
-                            }
-
-                            DatePicker {
-                                id: fechaPicker
-                                onDateSelected: {
-                                    btnFechaSiembra.selectedDate = date
-                                    nuevoCiclo.fecha_siembra = Qt.formatDate(date, "dd/MM/yyyy")
-                                }
-                            }
-                            // Añadir campo de texto alternativo
-                            TextField {
-                                id: txtFechaSiembra
+                            RowLayout {
                                 Layout.fillWidth: true
-                                placeholderText: "DD/MM/AAAA"
-                                inputMask: "99/99/9999"
-                                visible: false // Inicialmente oculto
-                                onTextChanged: {
-                                    if (dialogCicloProduccion.modo === "crear") {
-                                        nuevoCiclo.fecha_siembra = text;
+                                
+                                TextField {
+                                    id: txtFechaSiembra
+                                    Layout.fillWidth: true
+                                    placeholderText: "DD/MM/AAAA"
+                                    inputMask: "99/99/9999"
+                                    selectByMouse: true
+                                }
+                                
+                                Button {
+                                    text: "Hoy"
+                                    onClicked: {
+                                        txtFechaSiembra.text = Qt.formatDate(new Date(), "dd/MM/yyyy");
+                                        if (dialogCicloProduccion.modo === "crear") {
+                                            nuevoCiclo.fecha_siembra = txtFechaSiembra.text;
+                                        }
                                     }
                                 }
                             }
@@ -3438,17 +3978,27 @@ Rectangle {
                             // Fecha de cosecha estimada
                             Text {
                                 text: "Cosecha estimada:"
-                                Layout.alignment: Qt.AlignRight
+                                Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                             }
                             
-                            TextField {
-                                id: txtFechaCosechaEst
+                            RowLayout {
                                 Layout.fillWidth: true
-                                placeholderText: "DD/MM/AAAA"
-                                inputMask: "99/99/9999"
-                                onTextChanged: {
-                                    if (dialogCicloProduccion.modo === "crear") {
-                                        nuevoCiclo.fecha_cosecha_estimada = text;
+                                
+                                TextField {
+                                    id: txtFechaCosechaEst
+                                    Layout.fillWidth: true
+                                    placeholderText: "DD/MM/AAAA"
+                                    inputMask: "99/99/9999"
+                                    selectByMouse: true
+                                }
+                                
+                                Button {
+                                    text: "Hoy"
+                                    onClicked: {
+                                        txtFechaCosechaEst.text = Qt.formatDate(new Date(), "dd/MM/yyyy");
+                                        if (dialogCicloProduccion.modo === "crear") {
+                                            nuevoCiclo.fecha_cosecha_estimada = txtFechaCosechaEst.text;
+                                        }
                                     }
                                 }
                             }
@@ -3456,17 +4006,27 @@ Rectangle {
                             // Fecha de cosecha real
                             Text {
                                 text: "Cosecha real:"
-                                Layout.alignment: Qt.AlignRight
+                                Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                             }
                             
-                            TextField {
-                                id: txtFechaCosechaReal
+                            RowLayout {
                                 Layout.fillWidth: true
-                                placeholderText: "DD/MM/AAAA"
-                                inputMask: "99/99/9999"
-                                onTextChanged: {
-                                    if (dialogCicloProduccion.modo === "crear") {
-                                        nuevoCiclo.fecha_cosecha_real = text;
+                                
+                                TextField {
+                                    id: txtFechaCosechaReal
+                                    Layout.fillWidth: true
+                                    placeholderText: "DD/MM/AAAA"
+                                    inputMask: "99/99/9999"
+                                    selectByMouse: true
+                                }
+                                
+                                Button {
+                                    text: "Hoy"
+                                    onClicked: {
+                                        txtFechaCosechaReal.text = Qt.formatDate(new Date(), "dd/MM/yyyy");
+                                        if (dialogCicloProduccion.modo === "crear") {
+                                            nuevoCiclo.fecha_cosecha_real = txtFechaCosechaReal.text;
+                                        }
                                     }
                                 }
                             }
@@ -3474,17 +4034,27 @@ Rectangle {
                             // Fecha de floración
                             Text {
                                 text: "Fecha de floración:"
-                                Layout.alignment: Qt.AlignRight
+                                Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                             }
                             
-                            TextField {
-                                id: txtFechaFloracion
+                            RowLayout {
                                 Layout.fillWidth: true
-                                placeholderText: "DD/MM/AAAA"
-                                inputMask: "99/99/9999"
-                                onTextChanged: {
-                                    if (dialogCicloProduccion.modo === "crear") {
-                                        nuevoCiclo.fecha_floracion = text;
+                                
+                                TextField {
+                                    id: txtFechaFloracion
+                                    Layout.fillWidth: true
+                                    placeholderText: "DD/MM/AAAA"
+                                    inputMask: "99/99/9999"
+                                    selectByMouse: true
+                                }
+                                
+                                Button {
+                                    text: "Hoy"
+                                    onClicked: {
+                                        txtFechaFloracion.text = Qt.formatDate(new Date(), "dd/MM/yyyy");
+                                        if (dialogCicloProduccion.modo === "crear") {
+                                            nuevoCiclo.fecha_floracion = txtFechaFloracion.text;
+                                        }
                                     }
                                 }
                             }
@@ -3492,17 +4062,27 @@ Rectangle {
                             // Fecha de poda
                             Text {
                                 text: "Fecha de poda:"
-                                Layout.alignment: Qt.AlignRight
+                                Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                             }
                             
-                            TextField {
-                                id: txtFechaPoda
+                            RowLayout {
                                 Layout.fillWidth: true
-                                placeholderText: "DD/MM/AAAA"
-                                inputMask: "99/99/9999"
-                                onTextChanged: {
-                                    if (dialogCicloProduccion.modo === "crear") {
-                                        nuevoCiclo.fecha_poda = text;
+                                
+                                TextField {
+                                    id: txtFechaPoda
+                                    Layout.fillWidth: true
+                                    placeholderText: "DD/MM/AAAA"
+                                    inputMask: "99/99/9999"
+                                    selectByMouse: true
+                                }
+                                
+                                Button {
+                                    text: "Hoy"
+                                    onClicked: {
+                                        txtFechaPoda.text = Qt.formatDate(new Date(), "dd/MM/yyyy");
+                                        if (dialogCicloProduccion.modo === "crear") {
+                                            nuevoCiclo.fecha_poda = txtFechaPoda.text;
+                                        }
                                     }
                                 }
                             }
@@ -3510,17 +4090,27 @@ Rectangle {
                             // Fecha última limpieza
                             Text {
                                 text: "Fecha limpieza:"
-                                Layout.alignment: Qt.AlignRight
+                                Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                             }
                             
-                            TextField {
-                                id: txtFechaLimpieza
+                            RowLayout {
                                 Layout.fillWidth: true
-                                placeholderText: "DD/MM/AAAA"
-                                inputMask: "99/99/9999"
-                                onTextChanged: {
-                                    if (dialogCicloProduccion.modo === "crear") {
-                                        nuevoCiclo.fecha_limpieza = text;
+                                
+                                TextField {
+                                    id: txtFechaLimpieza
+                                    Layout.fillWidth: true
+                                    placeholderText: "DD/MM/AAAA"
+                                    inputMask: "99/99/9999"
+                                    selectByMouse: true
+                                }
+                                
+                                Button {
+                                    text: "Hoy"
+                                    onClicked: {
+                                        txtFechaLimpieza.text = Qt.formatDate(new Date(), "dd/MM/yyyy");
+                                        if (dialogCicloProduccion.modo === "crear") {
+                                            nuevoCiclo.fecha_limpieza = txtFechaLimpieza.text;
+                                        }
                                     }
                                 }
                             }
@@ -3528,18 +4118,17 @@ Rectangle {
                             // Frecuencia de limpieza
                             Text {
                                 text: "Frecuencia limpieza (meses):"
-                                Layout.alignment: Qt.AlignRight
+                                Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                             }
                             
-                            SpinBox {
-                                id: spinFrecuenciaLimpieza
+                            TextField {
+                                id: txtFrecuenciaLimpieza
                                 Layout.fillWidth: true
-                                from: 1
-                                to: 12
-                                value: 1
-                                onValueChanged: {
-                                    if (dialogCicloProduccion.modo === "crear") {
-                                        nuevoCiclo.frecuencia_limpieza = value;
+                                placeholderText: "Ej: 3"
+                                validator: IntValidator { bottom: 1; top: 12 }
+                                onTextChanged: {
+                                    if (dialogCicloProduccion.modo === "crear" && text.trim() !== "") {
+                                        nuevoCiclo.frecuencia_limpieza = parseInt(text);
                                     }
                                 }
                             }
@@ -3548,7 +4137,7 @@ Rectangle {
                         // Espacio adicional
                         Item {
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 10
+                            Layout.preferredHeight: 20
                         }
                         
                         // Mensaje de validación
@@ -3559,6 +4148,7 @@ Rectangle {
                             color: "red"
                             visible: text !== ""
                             horizontalAlignment: Text.AlignHCenter
+                            font.pixelSize: 14
                         }
                     }
                 }
@@ -3612,7 +4202,7 @@ Rectangle {
                     cmbParcelas.currentIndex = 0;
                     cmbVariedades.currentIndex = 0;
                     txtAreaSembrada.text = "";
-                    spinDensidad.value = 0;
+                    txtDensidad.text = "0";
                     cmbEstado.currentIndex = 0;
                     ciclo_chkActivo.checked = true;
                     
@@ -3623,12 +4213,10 @@ Rectangle {
                     txtFechaFloracion.text = "";
                     txtFechaPoda.text = "";
                     txtFechaLimpieza.text = "";
-                    spinFrecuenciaLimpieza.value = 1;
+                    txtFrecuenciaLimpieza.text = "1";
                 }
             }
         }
-    
-
         // DIÁLOGO DE CONFIRMACIÓN PARA ELIMINAR CICLO
         Dialog {
             id: confirmDeleteCicloDialog
@@ -3763,5 +4351,617 @@ Rectangle {
                 eliminarTipoCultivo(tipoId);
             }
         } // Hata aquiiiiiiiiiiiiiii
+    }
+    // =================================================================
+    // PASO 4: SISTEMA DE DETALLES DE EVENTOS
+    // =================================================================
+
+    // DIÁLOGO PARA MOSTRAR DETALLES DE EVENTOS (AGREGAR EN LA SECCIÓN DE DIÁLOGOS)
+    Dialog {
+        id: dialogDetallesEventos
+        title: "Detalles de Eventos"
+        modal: true
+        width: 600
+        height: 500
+        x: (parent.width - width) / 2
+        y: (parent.height - height) / 2
+        
+        property string fechaSeleccionada: ""
+        property var eventosDelDia: []
+        
+        contentItem: Rectangle {
+            color: "white"
+            
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 20
+                spacing: 15
+                
+                // Título con fecha
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 50
+                    color: "#9A6829"
+                    radius: 5
+                    
+                    Text {
+                        anchors.centerIn: parent
+                        text: "Eventos del " + dialogDetallesEventos.fechaSeleccionada
+                        font.pixelSize: 18
+                        font.bold: true
+                        color: "white"
+                    }
+                }
+                
+                // Lista de eventos
+                ScrollView {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    clip: true
+                    
+                    ListView {
+                        id: listEventos
+                        model: ListModel { id: eventosDetallsModel }
+                        spacing: 10
+                        
+                        delegate: Rectangle {
+                            width: listEventos.width
+                            height: 120
+                            color: "#F8F9FA"
+                            radius: 8
+                            border.color: eventoColor
+                            border.width: 3
+                            
+                            ColumnLayout {
+                                anchors.fill: parent
+                                anchors.margins: 15
+                                spacing: 8
+                                
+                                // Cabecera del evento
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 10
+                                    
+                                    Rectangle {
+                                        width: 20
+                                        height: 20
+                                        radius: 10
+                                        color: eventoColor
+                                    }
+                                    
+                                    Text {
+                                        text: tipoEvento
+                                        font.pixelSize: 16
+                                        font.bold: true
+                                        color: "#2E7D32"
+                                        Layout.fillWidth: true
+                                    }
+                                    
+                                    Rectangle {
+                                        Layout.preferredWidth: 80
+                                        height: 25
+                                        radius: 12
+                                        color: getEstadoColor(estadoCiclo)
+                                        
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: estadoCiclo
+                                            font.pixelSize: 10
+                                            color: "white"
+                                            font.bold: true
+                                        }
+                                    }
+                                }
+                                
+                                // Detalles del evento
+                                GridLayout {
+                                    Layout.fillWidth: true
+                                    columns: 2
+                                    columnSpacing: 15
+                                    rowSpacing: 5
+                                    
+                                    Text {
+                                        text: "Variedad:"
+                                        font.pixelSize: 12
+                                        font.bold: true
+                                        color: "#555"
+                                    }
+                                    Text {
+                                        text: nombreVariedad
+                                        font.pixelSize: 12
+                                        Layout.fillWidth: true
+                                    }
+                                    
+                                    Text {
+                                        text: "Parcela:"
+                                        font.pixelSize: 12
+                                        font.bold: true
+                                        color: "#555"
+                                    }
+                                    Text {
+                                        text: nombreParcela
+                                        font.pixelSize: 12
+                                        Layout.fillWidth: true
+                                    }
+                                    
+                                    Text {
+                                        text: "Área:"
+                                        font.pixelSize: 12
+                                        font.bold: true
+                                        color: "#555"
+                                    }
+                                    Text {
+                                        text: areaSembrada + " ha"
+                                        font.pixelSize: 12
+                                        Layout.fillWidth: true
+                                    }
+                                    
+                                    Text {
+                                        text: "Tipo Cultivo:"
+                                        font.pixelSize: 12
+                                        font.bold: true
+                                        color: "#555"
+                                    }
+                                    Text {
+                                        text: tipoCultivo
+                                        font.pixelSize: 12
+                                        Layout.fillWidth: true
+                                    }
+                                }
+                            }
+                            
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    // Ir a la sección de ciclos y resaltar este ciclo
+                                    tabBar.currentIndex = 2; // Cambiar a pestaña Ciclos
+                                    resaltarCiclo(idCiclo);
+                                }
+                            }
+                        }
+                        
+                        // Mensaje cuando no hay eventos
+                        Text {
+                            anchors.centerIn: parent
+                            text: "No hay eventos para esta fecha"
+                            color: "#757575"
+                            font.pixelSize: 14
+                            visible: listEventos.count === 0
+                        }
+                    }
+                }
+                
+                // Estadísticas del día
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 60
+                    color: "#E8F5E9"
+                    radius: 5
+                    
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 20
+                        
+                        Column {
+                            spacing: 2
+                            Text {
+                                text: "Total Eventos"
+                                font.pixelSize: 12
+                                color: "#555"
+                            }
+                            Text {
+                                text: eventosDetallsModel.count.toString()
+                                font.pixelSize: 18
+                                font.bold: true
+                                color: "#2E7D32"
+                            }
+                        }
+                        
+                        Column {
+                            spacing: 2
+                            Text {
+                                text: "Área Total"
+                                font.pixelSize: 12
+                                color: "#555"
+                            }
+                            Text {
+                                id: txtAreaTotal
+                                text: "0 ha"
+                                font.pixelSize: 18
+                                font.bold: true
+                                color: "#2E7D32"
+                            }
+                        }
+                        
+                        Item { Layout.fillWidth: true }
+                    }
+                }
+            }
+        }
+        
+        footer: DialogButtonBox {
+            Button {
+                text: "Cerrar"
+                DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
+                onClicked: dialogDetallesEventos.close()
+            }
+            
+            Button {
+                text: "Ver en Ciclos"
+                DialogButtonBox.buttonRole: DialogButtonBox.ActionRole
+                background: Rectangle {
+                    color: "#4CAF50"
+                    radius: 5
+                }
+                contentItem: Text {
+                    text: parent.text
+                    color: "white"
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                onClicked: {
+                    tabBar.currentIndex = 2; // Cambiar a pestaña Ciclos
+                    dialogDetallesEventos.close();
+                }
+            }
+        }
     }   
+    function actualizarCalendarioAnual() {
+        try {
+            // Asegurarse de que fechaActual es una fecha válida
+            if (!(fechaActual instanceof Date) || isNaN(fechaActual.getTime())) {
+                fechaActual = new Date(); // Restablecer a fecha actual si es inválida
+            }
+            
+            // Actualizar eventos del calendario
+            cargarEventosCalendario();
+            
+            // Usar un pequeño delay para asegurar que los componentes están listos
+            Qt.callLater(function() {
+                // Actualizar cada mes en el grid
+                for (var month = 0; month < 12; month++) {
+                    updateMonthCalendar(month);
+                }
+                console.log("Calendario anual actualizado para el año:", fechaActual.getFullYear());
+            });
+        } catch (e) {
+            console.error("Error al actualizar calendario anual:", e);
+        }
+    }
+    // Función para actualizar un mes específico en el calendario anual
+    function updateMonthCalendar(monthIndex) {
+        try {
+            // Usar setTimeout para asegurar que los componentes estén completamente cargados
+            Qt.callLater(function() {
+                var monthComponent = monthsRepeater.itemAt(monthIndex);
+                if (!monthComponent) {
+                    console.log("No se pudo encontrar el componente del mes:", monthIndex);
+                    return;
+                }
+                
+                var year = fechaActual.getFullYear();
+                
+                // Calcular el primer día del mes
+                var primerDia = new Date(year, monthIndex, 1);
+                var diaSemana = primerDia.getDay();
+                if (diaSemana === 0) diaSemana = 7; // Domingo es 0, lo convertimos a 7
+                diaSemana--; // Ajustamos para que lunes sea 0
+                
+                // Calcular el número de días en el mes
+                var ultimoDia = new Date(year, monthIndex + 1, 0);
+                var diasEnMes = ultimoDia.getDate();
+                
+                // Obtener fecha actual real para comparar
+                var hoy = new Date();
+                var esAnoActual = year === hoy.getFullYear();
+                var esMesActual = monthIndex === hoy.getMonth() && esAnoActual;
+                
+                // Intentar encontrar el repeater de días de manera más directa
+                var daysRepeater = null;
+                try {
+                    // Navegar por la estructura del mes: Rectangle -> ColumnLayout -> Grid -> Repeater
+                    var columnLayout = monthComponent.children[0];
+                    if (columnLayout && columnLayout.children) {
+                        // El grid de días debería ser el último hijo (índice 2)
+                        var daysGrid = columnLayout.children[2];
+                        if (daysGrid && daysGrid.children) {
+                            daysRepeater = daysGrid.children[0]; // El Repeater dentro del Grid
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error navegando estructura del mes:", e);
+                    return;
+                }
+                
+                if (!daysRepeater || typeof daysRepeater.itemAt !== "function") {
+                    console.log("No se pudo encontrar el repeater de días para el mes:", monthIndex);
+                    return;
+                }
+                
+                // Actualizar cada día del mes
+                for (var i = 0; i < 42; i++) {
+                    try {
+                        var dayItem = daysRepeater.itemAt(i);
+                        if (dayItem) {
+                            var diaMes = i - diaSemana + 1;
+                            
+                            dayItem.dayNumber = diaMes > 0 && diaMes <= diasEnMes ? diaMes : 0;
+                            dayItem.isCurrentMonth = diaMes > 0 && diaMes <= diasEnMes;
+                            dayItem.isToday = esMesActual && diaMes === hoy.getDate();
+                            
+                            // Obtener eventos para este día
+                            if (dayItem.isCurrentMonth) {
+                                dayItem.dayEvents = getEventsForDay(diaMes, monthIndex, year);
+                            } else {
+                                dayItem.dayEvents = [];
+                            }
+                        }
+                    } catch (dayError) {
+                        console.error("Error actualizando día", i, "del mes", monthIndex, ":", dayError);
+                    }
+                }
+                
+                console.log("Mes", monthIndex, "actualizado correctamente");
+            });
+        } catch (e) {
+            console.error("Error al actualizar mes", monthIndex, ":", e);
+        }
+    }
+    // Función auxiliar para encontrar el repeater de días en un componente de mes
+    function findDaysRepeater(monthComponent) {
+        try {
+            // Navegar por la estructura para encontrar el repeater de días
+            var columnLayout = monthComponent.children[0]; // ColumnLayout principal
+            if (!columnLayout) return null;
+            
+            var daysGrid = null;
+            // Buscar el Grid que contiene los días (debería ser el último elemento)
+            for (var i = columnLayout.children.length - 1; i >= 0; i--) {
+                var child = columnLayout.children[i];
+                if (child && child.children && child.children.length > 0) {
+                    // Buscar el Repeater dentro del Grid
+                    for (var j = 0; j < child.children.length; j++) {
+                        if (child.children[j] && typeof child.children[j].itemAt === "function") {
+                            daysGrid = child.children[j];
+                            break;
+                        }
+                    }
+                    if (daysGrid) break;
+                }
+            }
+            
+            return daysGrid;
+        } catch (e) {
+            console.error("Error al buscar repeater de días:", e);
+            return null;
+        }
+    }
+    // Función para mostrar detalles de eventos de un día específico
+    function mostrarDetallesEventos(day, month, year, events) {
+        if (events.length === 0) return;
+        
+        // Establecer fecha seleccionada
+        dialogDetallesEventos.fechaSeleccionada = day + " de " + obtenerNombreMes(month) + " de " + year;
+        
+        // Limpiar modelo de eventos
+        eventosDetallsModel.clear();
+        
+        var areaTotal = 0;
+        
+        // Procesar cada evento para obtener detalles completos
+        for (let i = 0; i < events.length; i++) {
+            const evento = events[i];
+            const detallesEvento = obtenerDetallesEvento(evento, day, month, year);
+            
+            if (detallesEvento) {
+                eventosDetallsModel.append(detallesEvento);
+                areaTotal += parseFloat(detallesEvento.areaSembrada || 0);
+            }
+        }
+        
+        // Actualizar área total
+        txtAreaTotal.text = areaTotal.toFixed(2) + " ha";
+        
+        // Abrir diálogo
+        dialogDetallesEventos.open();
+    }
+    function obtenerDetallesEvento(evento, day, month, year) {
+        try {
+            // Buscar el ciclo correspondiente al evento
+            for (let i = 0; i < ciclosModel.count; i++) {
+                const ciclo = ciclosModel.get(i);
+                
+                // Verificar si este ciclo corresponde al evento
+                var fechaEvento = null;
+                var tipoEvento = "";
+                
+                if (evento.text.includes("Siembra")) {
+                    fechaEvento = parseDBDate(ciclo.fecha_siembra);
+                    tipoEvento = "Siembra";
+                } else if (evento.text.includes("Cosecha")) {
+                    fechaEvento = parseDBDate(ciclo.fecha_cosecha_estimada);
+                    tipoEvento = "Cosecha Estimada";
+                } else if (evento.text.includes("Poda")) {
+                    fechaEvento = parseDBDate(ciclo.fecha_poda);
+                    tipoEvento = "Poda";
+                } else if (evento.text.includes("Floración")) {
+                    fechaEvento = parseDBDate(ciclo.fecha_floracion);
+                    tipoEvento = "Floración";
+                } else if (evento.text.includes("Limpieza")) {
+                    fechaEvento = parseDBDate(ciclo.fecha_limpieza);
+                    tipoEvento = "Limpieza";
+                }
+                
+                if (fechaEvento && 
+                    fechaEvento.getDate() === day && 
+                    fechaEvento.getMonth() === month && 
+                    fechaEvento.getFullYear() === year) {
+                    
+                    return {
+                        idCiclo: ciclo.id_ciclo,
+                        tipoEvento: tipoEvento,
+                        nombreVariedad: ciclo.nombre_variedad,
+                        nombreParcela: ciclo.nombre_parcela,
+                        tipoCultivo: ciclo.nombre_tipo_cultivo,
+                        areaSembrada: ciclo.area_sembrada.toString(),
+                        estadoCiclo: ciclo.estado,
+                        eventoColor: evento.color
+                    };
+                }
+            }
+            return null;
+        } catch (e) {
+            console.error("Error obteniendo detalles del evento:", e);
+            return null;
+        }
+    }
+    function resaltarCiclo(idCiclo) {
+        // Buscar el índice del ciclo en el modelo
+        for (let i = 0; i < ciclosModel.count; i++) {
+            if (ciclosModel.get(i).id_ciclo === idCiclo) {
+                ciclosListView.currentIndex = i;
+                ciclosListView.positionViewAtIndex(i, ListView.Center);
+                break;
+            }
+        }
+    }
+
+    // Función para actualizar filtro de estados del calendario
+    function actualizarEstadosCalendario() {
+        // Limpiar modelo excepto el primer elemento
+        while (estadosCalendarioModel.count > 1) {
+            estadosCalendarioModel.remove(1);
+        }
+        
+        // Recopilar estados únicos de los ciclos
+        const estadosUsados = new Set();
+        for (let i = 0; i < ciclosModel.count; i++) {
+            const ciclo = ciclosModel.get(i);
+            if (ciclo.activo && ciclo.estado) {
+                estadosUsados.add(ciclo.estado);
+            }
+        }
+        
+        // Añadir estados al modelo
+        var estadosArray = Array.from(estadosUsados);
+        for (let i = 0; i < estadosArray.length; i++) {
+            estadosCalendarioModel.append({
+                text: estadosArray[i],
+                value: estadosArray[i]
+            });
+        }
+    }
+
+    // Función para actualizar filtro de parcelas del calendario
+    function actualizarParcelasCalendario() {
+        // Limpiar modelo excepto el primer elemento
+        while (parcelasCalendarioModel.count > 1) {
+            parcelasCalendarioModel.remove(1);
+        }
+        
+        // Recopilar parcelas únicas de los ciclos
+        const parcelasUsadas = new Set();
+        for (let i = 0; i < ciclosModel.count; i++) {
+            const ciclo = ciclosModel.get(i);
+            if (ciclo.activo && ciclo.nombre_parcela) {
+                parcelasUsadas.add(ciclo.nombre_parcela);
+            }
+        }
+        
+        // Añadir parcelas al modelo
+        var parcelasArray = Array.from(parcelasUsadas);
+        for (let i = 0; i < parcelasArray.length; i++) {
+            parcelasCalendarioModel.append({
+                text: parcelasArray[i],
+                value: parcelasArray[i]
+            });
+        }
+    }
+
+    // FUNCIÓN PRINCIPAL: Aplicar todos los filtros al calendario
+    function aplicarFiltrosCalendario() {
+        // Recargar eventos con filtros aplicados
+        cargarEventosCalendarioConFiltros();
+        
+        // Actualizar calendario anual
+        actualizarCalendarioAnual();
+    }
+    function cargarEventosCalendarioConFiltros() {
+        eventosPorFecha = {}
+        
+        // Obtener valores de filtros
+        const filtroCultivo = cmbFiltroCultivosCalendario.currentIndex > 0 ? 
+                            cmbFiltroCultivosCalendario.currentText : null;
+        const filtroEstado = cmbFiltroEstadosCalendario.currentIndex > 0 ? 
+                            cmbFiltroEstadosCalendario.currentText : null;
+        const filtroParcela = cmbFiltroParcelasCalendario.currentIndex > 0 ? 
+                            cmbFiltroParcelasCalendario.currentText : null;
+        const filtroTipoEvento = cmbFiltroTipoEvento.currentIndex > 0 ? 
+                                cmbFiltroTipoEvento.currentText : null;
+        
+        for (let i = 0; i < ciclosModel.count; i++) {
+            const ciclo = ciclosModel.get(i)
+            if (!ciclo.activo) continue
+            
+            // Aplicar filtros
+            if (filtroCultivo && filtroCultivo !== "Todos los cultivos" && 
+                ciclo.nombre_tipo_cultivo !== filtroCultivo) continue;
+                
+            if (filtroEstado && filtroEstado !== "Todos los estados" && 
+                ciclo.estado !== filtroEstado) continue;
+                
+            if (filtroParcela && filtroParcela !== "Todas las parcelas" && 
+                ciclo.nombre_parcela !== filtroParcela) continue;
+            
+            // Añadir eventos según filtro de tipo de evento
+            if (!filtroTipoEvento || filtroTipoEvento === "todos" || filtroTipoEvento === "siembra") {
+                agregarEventoSiEsValido(ciclo.fecha_siembra, "Siembra " + ciclo.nombre_variedad, "#2E7D32");
+            }
+            
+            if (!filtroTipoEvento || filtroTipoEvento === "todos" || filtroTipoEvento === "cosecha") {
+                agregarEventoSiEsValido(ciclo.fecha_cosecha_estimada, "Cosecha " + ciclo.nombre_variedad, "#FF9800");
+            }
+            
+            if (!filtroTipoEvento || filtroTipoEvento === "todos" || filtroTipoEvento === "poda") {
+                agregarEventoSiEsValido(ciclo.fecha_poda, "Poda " + ciclo.nombre_variedad, "#9C27B0");
+            }
+            
+            if (!filtroTipoEvento || filtroTipoEvento === "todos" || filtroTipoEvento === "floracion") {
+                agregarEventoSiEsValido(ciclo.fecha_floracion, "Floración " + ciclo.nombre_variedad, "#2196F3");
+            }
+            
+            if (!filtroTipoEvento || filtroTipoEvento === "todos" || filtroTipoEvento === "limpieza") {
+                agregarEventoSiEsValido(ciclo.fecha_limpieza, "Limpieza " + ciclo.nombre_variedad, "#795548");
+            }
+        }
+    }
+
+    // Función auxiliar para agregar evento si es válido
+    function agregarEventoSiEsValido(fecha, texto, color) {
+        if (fecha && fecha !== "") {
+            const fechaObj = parseDBDate(fecha);
+            if (fechaObj) {
+                const key = fechaObj.getFullYear() + "-" + (fechaObj.getMonth() + 1) + "-" + fechaObj.getDate();
+                if (!eventosPorFecha[key]) eventosPorFecha[key] = [];
+                eventosPorFecha[key].push({
+                    text: texto,
+                    color: color
+                });
+            }
+        }
+    }
+
+    // Función para limpiar todos los filtros
+    function limpiarFiltrosCalendario() {
+        cmbFiltroCultivosCalendario.currentIndex = 0;
+        cmbFiltroEstadosCalendario.currentIndex = 0;
+        cmbFiltroParcelasCalendario.currentIndex = 0;
+        cmbFiltroTipoEvento.currentIndex = 0;
+        
+        // Recargar eventos sin filtros
+        cargarEventosCalendario();
+        actualizarCalendarioAnual();
+    }
 }
