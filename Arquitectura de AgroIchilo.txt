@@ -1,193 +1,215 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                   ARQUITECTURA DEL SISTEMA AGROICHILO                      ║
+║              Sistema de Gestión Agrícola - Cítricos v1.0                   ║
+║                    Actualizado: Octubre 2025                               ║
+╚════════════════════════════════════════════════════════════════════════════╝
+================================================================================
+                            ESTRUCTURA DEL PROYECTO
+================================================================================
+
 AGROICHILO/
 │
-├── 📁 database/                          # Todo relacionado a BD
-│   ├── scripts/
-│   │   ├── 01_schema_creation.sql       # Crear estructura
-│   │   ├── 02_initial_data.sql          # Datos iniciales/catálogos
-│   │   ├── 03_test_data.sql             # Datos de prueba
-│   │   └── 04_stored_procedures.sql     # Procedimientos almacenados
-│   ├── backups/                         # Respaldos de BD
-│   └── documentation/
-│       ├── diagrama_er.png              # Diagrama entidad-relación
-│       └── diccionario_datos.md         # Documentación de tablas
-│
-├── 📁 backend/                           # Lógica de negocio (Python)
-│   ├── core/                            # Núcleo del sistema
+├── 📁 backend/                          # Backend Python
+│   ├── 📁 core/                         # Núcleo del sistema
 │   │   ├── __init__.py
-│   │   ├── database.py                  # Conexión principal a BD
-│   │   ├── config.py                    # Configuraciones generales
-│   │   ├── exceptions.py                # Excepciones personalizadas
+│   │   ├── config.py                    # ✅ Configuración general del sistema
+│   │   ├── database.py                  # ✅ Conexión a SQL Server (Singleton)
 │   │   ├── cache_system.py              # Sistema de caché
-│   │   └── security.py                  # Autenticación/seguridad
+│   │   ├── cache_config.py              # Configuración avanzada de caché
+│   │   ├── excepciones_bd.py            # Excepciones personalizadas
+│   │   ├── repositorio_base.py          # Repositorio base
+│   │   ├── db_installer.py              # ✅ NUEVO - Instalador de BD
+│   │   └── config_manager.py            # ✅ NUEVO - Gestor de .env
 │   │
-│   ├── repositories/                     # Capa de datos (CRUD)
+│   ├── 📁 models/                       # Modelos QObject para Qt/QML
 │   │   ├── __init__.py
-│   │   ├── base_repository.py           # Repositorio base
-│   │   ├── agricultores/
-│   │   │   ├── __init__.py
-│   │   │   ├── agricultor_repository.py
-│   │   │   ├── parcela_repository.py
-│   │   │   └── relacion_repository.py
-│   │   ├── cultivos/
-│   │   │   ├── __init__.py
-│   │   │   ├── tipo_cultivo_repository.py
-│   │   │   ├── variedad_repository.py
-│   │   │   └── ciclo_produccion_repository.py
-│   │   ├── agroquimicos/
-│   │   ├── ventas/
-│   │   ├── maquinaria/
-│   │   └── usuarios/
+│   │   ├── auth_model.py                # ✅ NUEVO - Autenticación
+│   │   ├── dashboard_model.py           # ✅ NUEVO - Dashboard KPIs
+│   │   ├── agricultores_parcelas_model.py
+│   │   ├── cultivos_model.py
+│   │   ├── agroquimicos_model.py
+│   │   ├── maquinaria_model.py
+│   │   ├── ventas_cliente_model.py
+│   │   ├── gastos_model.py              # ✅ NUEVO - Modelo de gastos
+│   │   ├── reportes_model.py            # ✅ NUEVO - Modelo de reportes
+│   │   └── usuario_model.py
 │   │
-│   ├── services/                         # Lógica de negocio
-│   │   ├── __init__.py
-│   │   ├── agricultores/
-│   │   │   ├── __init__.py
-│   │   │   ├── agricultor_service.py
-│   │   │   ├── parcela_service.py
-│   │   │   └── gestion_service.py
-│   │   ├── cultivos/
-│   │   │   ├── __init__.py
-│   │   │   ├── tipo_cultivo_service.py
-│   │   │   ├── variedad_service.py
-│   │   │   ├── ciclo_produccion_service.py
-│   │   │   └── gestion_cultivo_service.py
-│   │   ├── agroquimicos/
-│   │   ├── ventas/
-│   │   ├── reportes/                    # ⭐ NUEVO: Servicios de reportes
-│   │   │   ├── reporte_financiero_service.py
-│   │   │   ├── reporte_produccion_service.py
-│   │   │   └── reporte_costos_service.py
-│   │   ├── maquinaria/
-│   │   └── dashboard/                   # ⭐ NUEVO: Lógica del dashboard
-│   │       └── dashboard_service.py
-│   │
-│   └── models/                           # Modelos para Qt/QML
+│   └── 📁 repositories/                 # Capa de datos (CRUD)
 │       ├── __init__.py
-│       ├── base_model.py
-│       ├── agricultores_parcelas_model.py
-│       ├── cultivos_model.py
-│       ├── agroquimicos_model.py
-│       ├── ventas_cliente_model.py
-│       ├── maquinaria_model.py
-│       ├── usuario_roles_model.py
-│       └── dashboard_model.py           # ⭐ NUEVO
+│       ├── 📁 Agricultor_Parcelas_rep/
+│       │   ├── __init__.py
+│       │   ├── agricultor_repository.py
+│       │   ├── parcela_repository.py
+│       │   └── relacion_AgriPar_repository.py
+│       │
+│       ├── 📁 CultivosRepositorio/
+│       │   ├── __init__.py
+│       │   ├── tipo_cultivo_repository.py
+│       │   ├── variedad_cultivo_repository.py
+│       │   ├── ciclo_produccion_repository.py
+│       │   └── relacion_cultivo_repository.py
+│       │
+│       ├── 📁 ClientesVentasRep/
+│       │   ├── __init__.py
+│       │   ├── cliente_repository.py
+│       │   ├── venta_repository.py
+│       │   ├── detalle_venta_repository.py
+│       │   ├── estado_venta_repository.py
+│       │   └── relacion_cliente_venta_repository.py
+│       │
+│       ├── 📁 AgroquimicosRep/          # ✅ CREAR
+│       │   ├── __init__.py
+│       │   ├── categoria_agroquimico_repository.py
+│       │   ├── producto_agroquimico_repository.py
+│       │   ├── mezcla_repository.py
+│       │   └── detalle_mezcla_repository.py
+│       │
+│       ├── 📁 MaquinariaRep/            # ✅ CREAR
+│       │   ├── __init__.py
+│       │   ├── maquinaria_repository.py
+│       │   ├── mantenimiento_repository.py
+│       │   └── uso_maquinaria_repository.py
+│       │
+│       ├── 📁 GastosRep/                # ✅ NUEVO
+│       │   ├── __init__.py
+│       │   ├── categoria_costos_repository.py
+│       │   ├── costos_produccion_repository.py
+│       │   ├── compra_combustible_repository.py
+│       │   └── tratamiento_fitosanitario_repository.py
+│       │
+│       ├── 📁 ReportesRep/              # ✅ NUEVO
+│       │   ├── __init__.py
+│       │   ├── reporte_financiero_repository.py
+│       │   ├── reporte_produccion_repository.py
+│       │   └── reporte_costos_repository.py
+│       │
+│       └── 📁 UsuariosRep/
+│           ├── __init__.py
+│           ├── usuario_repository.py
+│           └── rol_repository.py
 │
-├── 📁 frontend/                          # Interfaz de usuario (QML)
-│   ├── main.qml                         # Ventana principal y navegación
-│   ├── styles/                          # ⭐ NUEVO: Estilos centralizados
-│   │   ├── Colors.qml                   # Paleta de colores
-│   │   ├── Fonts.qml                    # Tipografías
-│   │   └── Sizes.qml                    # Tamaños estándar
+├── 📁 database/                          # Todo relacionado a BD
+│   ├── 📁 scripts/
+│   │   ├── 01_schema_creation.sql       # ✅ Tu Produccion_Citricos.sql renombrado
+│   │   └── 02_initial_data.sql          # ✅ NUEVO - Datos iniciales
+│   │   
+│   └── 📁 backups/                      # Respaldos de BD
+│  # -----Interfaz de usuario (QML)
+│                        
+│   
+│── Dashboard.qml            # ✅ NUEVO - Vista con KPIs
+│
+│── AgricultoresParcela.qml  # Tu agricultores_parcela.qml
+│   
+│── Cultivos.qml             # Tu cultivos.qml
+│
+│── Agroquimicos.qml         # Tu agroquimico.qml
+│
+│── VentasCliente.qml        # Tu ventas_cliente.qml
+│
+│── Maquinaria.qml           # Tu maquinaria.qml
+│
+│── Gastos.qml               # Tu gastos.qml - MEJORADO
+│─
+│── ReportesAgricola.qml     # Tu reportesAgricola.qml
+│  
+│── UsuarioRoles.qml         # Tu usuario_roles.qml
+│   
+│── Configuracion.qml        # Tu configuracion.qml
 │   │
-│   ├── components/                      # ⭐ NUEVO: Componentes reutilizables
-│   │   ├── MenuButton.qml
-│   │   ├── CustomTextField.qml
-│   │   ├── CustomButton.qml
-│   │   ├── CustomComboBox.qml
-│   │   ├── DataCard.qml                 # Para métricas
-│   │   ├── ChartCard.qml                # Para gráficos
-│   │   └── NotificationPopup.qml
-│   │
-│   ├── views/                           # Vistas principales (módulos)
-│   │   ├── dashboard/
-│   │   │   ├── Dashboard.qml            # ⭐ Vista principal con KPIs
-│   │   │   ├── FinancialSummary.qml     # Resumen financiero
-│   │   │   └── ProductionSummary.qml    # Resumen producción
-│   │   ├── agricultores/
-│   │   │   └── AgricultoresParcela.qml
-│   │   ├── cultivos/
-│   │   │   └── Cultivos.qml
-│   │   ├── agroquimicos/
-│   │   │   └── Agroquimicos.qml
-│   │   ├── ventas/
-│   │   │   └── VentasCliente.qml
-│   │   ├── maquinaria/
-│   │   │   └── Maquinaria.qml
-│   │   ├── usuarios/
-│   │   │   └── UsuarioRoles.qml
-│   │   ├── reportes/
-│   │   │   └── ReportesAgricola.qml
-│   │   ├── gastos/
-│   │   │   └── Gastos.qml
-│   │   └── configuracion/
-│   │       └── Configuracion.qml
-│   │
-│   └── dialogs/                         # Diálogos y popups
-│       ├── DatePicker.qml
-│       └── ConfirmDialog.qml
+├── 📁 components/                   # ✅ NUEVO - Componentes reutilizables
+│    ├── MenuButton.qml               # Extraer de main.qml
+│    ├── DataCard.qml                 # Para métricas del dashboard
+│    ├── CustomButton.qml             # Botones estandarizados
+│    ├── CustomTextField.qml          # Inputs estandarizados
+│   └── NotificationPopup.qml        # Extraer de main.qml
+│   
+├── 📁 dialogs/
+│   ├── DatePicker.qml               # Tu DatePicker.qml
+│   └── ConfirmDialog.qml            # ✅ NUEVO
+│   
+├── 📁 styles/                       # ✅ NUEVO - Estilos centralizados
+│    ├── Colors.qml                   # Paleta de colores
+│    └── AppTheme.qml                 # Tema general
 │
 ├── 📁 resources/                         # Recursos estáticos
-│   ├── images/
-│   │   ├── icons/                       # Iconos de la interfaz
-│   │   ├── logos/                       # Logos de la aplicación
-│   │   └── backgrounds/                 # Fondos
-│   ├── maps/                            # Recursos para mapas
-│   │   ├── styles/
-│   │   │   └── map_style.json
-│   │   └── data/
-│   └── fonts/                           # Fuentes personalizadas (si las hay)
+│   ├── 📁 images/
+│   │   ├── 📁 icons/                    # Tu Image/Image_UI_interfaz/Inconos/
+│   │   ├── 📁 logos/                    # Logos de la aplicación
+│   │   └── 📁 backgrounds/              # Fondos (opcional)
+│   └── 📁 maps/                         # Recursos para mapas
+│       ├── 📁 styles/
+│       └── 📁 data/
 │
-├── 📁 services/                          # Servicios externos/integraciones
-│   ├── map_service.py                   # Servicio de mapas
-│   └── map_service_integrado.py         # Integración de mapas
+├── 📁 services/                          # Servicios externos
+│   ├── map_service.py                   # Tu mapa_service.py
+│   └── map_service_integrado.py         # Tu mapa_service_integrado.py
 │
 ├── 📁 utils/                             # Utilidades generales
 │   ├── __init__.py
-│   ├── validators.py                    # Validaciones
-│   ├── formatters.py                    # Formateo de datos
-│   ├── date_utils.py                    # Utilidades de fechas
-│   └── export_utils.py                  # Exportar a Excel/PDF
+│   ├── validators.py                    # ✅ NUEVO - Validaciones
+│   ├── formatters.py                    # ✅ NUEVO - Formateo de datos
+│   └── export_utils.py                  # ✅ NUEVO - Exportar Excel/PDF
 │
-├── 📁 tests/                             # ⭐ NUEVO: Pruebas
-│   ├── unit/
-│   ├── integration/
-│   └── test_data/
+├── 📁 reportes/                          # ✅ Reportes generados
+│   └── [PDFs generados automáticamente]
 │
-├── 📁 docs/                              # ⭐ NUEVO: Documentación
-│   ├── manual_usuario.md
-│   ├── manual_tecnico.md
-│   ├── api_documentation.md
-│   └── arquitectura.md
+├── 📁 logs/                              # Logs del sistema
+│   └── [archivos .log]
 │
-├── 📁 logs/                              # Logs de la aplicación
+├── 📁 temp/                              # Archivos temporales
+│   └── [archivos temporales]
 │
-├── main.py                              # Punto de entrada principal
-├── login.py                             # Módulo de login
-├── user_session.py                      # Sesión de usuario
-├── requirements.txt                     # Dependencias de Python
-├── .gitignore
-└── README.md
-```
+├── 📄 main.py                           # ✅ MODIFICAR - Punto de entrada único
+├── 📄 setup_handler.py                  # ✅ NUEVO - Handler del wizard
+├── 📄 generar_pdf.py                    # ✅ NUEVO - Generador de PDFs
+│
+├── 📄 main.qml                          # Ventana principal (tu actual)
+├── 📄 login.qml                         # ✅ MOVER a frontend/views/auth/
+├── 📄 setup_wizard.qml                  # ✅ NUEVO - Wizard de configuración
+│
+├── 📄 .env                              # ✅ Configuración local (NO subir a Git)
+├── 📄 .gitignore                        # ✅ Archivos ignorados
+├── 📄 requirements.txt                  # Dependencias Python
+├── 📄 agroichilo.spec                   # ✅ NUEVO - Config PyInstaller
+├── 📄 README.md                         # ✅ Documentación
+└── 📄 LEEME.txt                         # ✅ Instrucciones para usuarios
 
----
 
-## 📋 **MEJORAS ESPECÍFICAS RECOMENDADAS**
+═══════════════════════════════════════════════════════════════════════════
 
-### 1. **DASHBOARD/INICIO (Prioridad Alta)**
+🎯 TIPOS DE USUARIOS SUGERIDOS:
 
-Tu `inicio.qml` debe convertirse en un verdadero dashboard empresarial con:
-
-**KPIs principales a mostrar:**
-- 💰 **Ingresos vs Egresos** (mes actual, comparación con mes anterior)
-- 🌱 **Ciclos de producción activos** (en cada etapa)
-- 📦 **Inventario de agroquímicos** (alertas de stock bajo)
-- 🚜 **Estado de maquinaria** (operativa, en mantenimiento)
-- 📊 **Ventas del mes** (gráfico de tendencia)
-- ⚠️ **Alertas críticas** (cosechas próximas, tratamientos pendientes)
-- 🗺️ **Mapa de parcelas** (vista general con estados)
-
-**Estructura sugerida para Dashboard.qml:**
-```
-Dashboard
-├── Sección Superior (Row de Cards)
-│   ├── Card: Ingresos Totales
-│   ├── Card: Egresos Totales
-│   ├── Card: Utilidad Neta
-│   └── Card: Ciclos Activos
-├── Sección Media (Gráficos)
-│   ├── Gráfico de Barras: Ingresos/Egresos últimos 6 meses
-│   └── Gráfico de Línea: Producción por variedad
-├── Sección Inferior
-│   ├── Lista: Próximas cosechas (5 días)
-│   ├── Lista: Alertas de inventario
-│   └── Mapa: Vista general de parcelas
+┌──────────────┬─────────────────────────────────────────────────────┐
+│ ROL          │ PERMISOS                                             │
+├──────────────┼─────────────────────────────────────────────────────┤
+│              │ ✅ Acceso total al sistema                          │
+│ ADMINISTRADOR│ ✅ Gestión de usuarios                              │
+│              │ ✅ Configuración del sistema                        │
+│              │ ✅ Ver/editar/eliminar todo                         │
+│              │ ✅ Generar todos los reportes                       │
+├──────────────┼─────────────────────────────────────────────────────┤
+│              │ ✅ Dashboard (solo lectura)                         │
+│ SUPERVISOR   │ ✅ Agricultores/Parcelas (lectura/escritura)       │
+│              │ ✅ Cultivos (lectura/escritura)                     │
+│              │ ✅ Ventas (lectura/escritura)                       │
+│              │ ✅ Reportes (solo generación, no config)           │
+│              │ ❌ NO puede eliminar registros importantes         │
+│              │ ❌ NO puede gestionar usuarios                     │
+├──────────────┼─────────────────────────────────────────────────────┤
+│              │ ✅ Dashboard (solo lectura)                         │
+│ OPERADOR     │ ✅ Registro de tratamientos                        │
+│              │ ✅ Registro de costos operativos                   │
+│              │ ✅ Uso de maquinaria                               │
+│              │ ✅ Inventario agroquímicos (consulta)              │
+│              │ ❌ NO puede ver reportes financieros               │
+│              │ ❌ NO puede eliminar                               │
+├──────────────┼─────────────────────────────────────────────────────┤
+│              │ ✅ Dashboard (solo lectura)                         │
+│ CONTADOR     │ ✅ Ventas (lectura)                                │
+│              │ ✅ Gastos (lectura/escritura)                      │
+│              │ ✅ Reportes financieros completos                  │
+│              │ ✅ Exportar a Excel/PDF                            │
+│              │ ❌ NO acceso a agroquímicos                        │
+│              │ ❌ NO acceso a maquinaria                          │
+└──────────────┴─────────────────────────────────────────────────────┘

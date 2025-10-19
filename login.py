@@ -30,7 +30,7 @@ class Backend(QObject):
         try:
             # Configuración específica para tu servidor
             server = 'DESKTOP-HOE6AHT\\SQLEXPRESS'  # Servidor específico de la imagen
-            database = 'Produccion_Citricos'
+            database = 'Produccion_Agro'
             # Usamos autenticación de Windows para conectar
             conn_str = f'DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={server};DATABASE={database};Trusted_Connection=yes;'
             

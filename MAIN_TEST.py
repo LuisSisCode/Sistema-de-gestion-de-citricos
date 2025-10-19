@@ -17,7 +17,7 @@ from PySide6.QtQuick import QQuickWindow
 from PySide6.QtQuickControls2 import QQuickStyle
 
 # 3. Importar el servicio de mapas
-from mapa_service_integrado import inicializar_servicio_mapa, servicio_mapa
+from recursos.mapa.mapa_service_integrado import inicializar_servicio_mapa, servicio_mapa
 
 def main():
     print("🚀 Iniciando prueba específica para el mapa interactivo...")

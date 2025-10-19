@@ -5,7 +5,7 @@ import os
 os.environ["QTWEBENGINE_DISABLE_SANDBOX"] = "1"
 os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--disable-web-security --allow-running-insecure-content --disable-dev-shm-usage"
 os.environ["QT_LOGGING_RULES"] = "*.debug=false"
-from bd_conecciones.nucleo.cache_system import cache_manager, print_cache_stats, clear_cache
+from backend.core.cache_system import cache_manager, print_cache_stats, clear_cache
 from PySide6.QtCore import QObject, Slot, QUrl, Property, Signal
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
@@ -14,15 +14,15 @@ from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtWebEngineQuick import QtWebEngineQuick
 from PySide6.QtWebEngineCore import QWebEngineSettings
 
-from models.usuario_roles_model import UsuariosRolesModel
-from models.agricultores_parcelas_model import AgricultoresParcelasModels
-from models.cultivos_model import CultivosModel
-from models.agroquimicos_model import AgroquimicosModel
-from models.maquinaria_model import MaquinariaModel
-from models.ventas_cliente_model import ClientesVentaModel
+from backend.models.usuario_model import UsuariosRolesModel
+from backend.models.agricultores_parcelas_model import AgricultoresParcelasModels
+from backend.models.cultivos_model import CultivosModel
+from backend.models.agroquimicos_model import AgroquimicosModel
+from backend.models.maquinaria_model import MaquinariaModel
+from backend.models.ventas_cliente_model import ClientesVentaModel
 from datetime import datetime
 
-from mapa_service_integrado import inicializar_servicio_mapa, servicio_mapa, obtener_url_mapa
+from recursos.mapa.mapa_service_integrado import inicializar_servicio_mapa, servicio_mapa, obtener_url_mapa
 
 class ModuleManager(QObject):
     """Clase para manejar la navegación entre módulos de la aplicación"""
