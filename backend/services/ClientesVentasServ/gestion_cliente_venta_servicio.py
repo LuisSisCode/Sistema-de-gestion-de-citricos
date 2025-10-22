@@ -2,8 +2,8 @@
 
 import logging
 from datetime import datetime, timedelta
-from backend.servicios.ClientesVentasServ.cliente_servicio import ClienteServicio
-from backend.servicios.ClientesVentasServ.venta_servicio import VentaServicio
+from backend.services.ClientesVentasServ.cliente_servicio import ClienteServicio
+from backend.services.ClientesVentasServ.venta_servicio import VentaServicio
 from backend.repositories.ClientesVentasRep.relacion_cliente_venta_repositorio import RelacionClienteVentaRepositorio
 from backend.repositories.ClientesVentasRep.estado_venta_repositorio import EstadoVentaRepositorio
 from backend.core.cache_system import cacheable, cache_invalidator, get_ttl, cache_manager

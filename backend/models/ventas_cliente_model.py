@@ -1,5 +1,5 @@
 from PySide6.QtCore import QObject, Slot, Signal, Property, QDate
-from backend.servicios.ClientesVentasServ import GestionClienteVentaServicio
+from backend.services.ClientesVentasServ import GestionClienteVentaServicio
 from models.cultivos_model import CultivosModel
 from datetime import datetime, timedelta
 from user_session import get_current_user_id

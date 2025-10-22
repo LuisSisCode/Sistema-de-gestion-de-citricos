@@ -1,12 +1,12 @@
 from PySide6.QtCore import QObject, Slot, Signal, Property
-from backend.servicios import (
+from backend.services import (
     TipoCultivoServicio, 
     VariedadCultivoServicio,
     CicloProduccionServicio,
     GestionCultivoServicio
 )
-from backend.servicios.CultivosServ.lote_cosecha_servicio import LoteCosechaServicio
-from backend.servicios.CultivosServ.analisis_rentabilidad_servicio import AnalisisRentabilidadServicio
+from backend.services.CultivosServ.lote_cosecha_servicio import LoteCosechaServicio
+from backend.services.CultivosServ.analisis_rentabilidad_servicio import AnalisisRentabilidadServicio
 import json
 from datetime import datetime
 import logging

@@ -1,2 +1,33 @@
-# requirements.txt
-PySide6>=6.2.0
+# ============================================
+# DEPENDENCIAS - SISTEMA AGROICHILO
+# ============================================
+
+# Framework GUI
+PySide6==6.9.1
+
+# Base de datos
+pyodbc==5.2.0
+
+# Configuración
+python-dotenv==1.1.1
+
+# Reportes PDF
+reportlab==4.4.3
+
+# Procesamiento de imágenes
+pillow==11.3.0
+
+# Empaquetado
+pyinstaller==6.16.0
+
+# ============================================
+# DEPENDENCIAS ADICIONALES (si se necesitan)
+# ============================================
+# Manejo de fechas
+# python-dateutil==2.9.0
+
+# Exportar a Excel
+# openpyxl==3.1.2
+
+# Gráficos
+# matplotlib==3.8.2

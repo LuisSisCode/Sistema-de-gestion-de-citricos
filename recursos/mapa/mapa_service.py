@@ -8,9 +8,9 @@ from datetime import datetime
 import random
 
 # Importar servicios existentes de tu arquitectura
-from backend.servicios.AgricultorParcelaServ.gestion_servicio import GestionServicio
-from backend.servicios.AgricultorParcelaServ.parcela_servicio import ParcelaServicio
-from backend.servicios.AgricultorParcelaServ.agricultor_servicio import AgricultorServicio
+from backend.services.AgricultorParcelaServ.gestion_servicio import GestionServicio
+from backend.services.AgricultorParcelaServ.parcela_servicio import ParcelaServicio
+from backend.services.AgricultorParcelaServ.agricultor_servicio import AgricultorServicio
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
