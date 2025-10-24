@@ -100,6 +100,7 @@ Rectangle {
                         buttonText: "Inicio"
                         iconText: "🏠"
                         isActive: mainContainer.activeModule === 0
+                        onClicked: mainContainer.activeModule = 0
                     }
                     
                     // Separador de sección
@@ -113,6 +114,7 @@ Rectangle {
                         buttonText: "Usuarios"
                         iconText: "👥"
                         isActive: mainContainer.activeModule === 1
+                        onClicked: mainContainer.activeModule = 1
                     }
                     
                     // Botón Agricultores
@@ -123,6 +125,7 @@ Rectangle {
                         buttonText: "Agricultores"
                         iconText: "🧑‍🌾"
                         isActive: mainContainer.activeModule === 2
+                        onClicked: mainContainer.activeModule = 2
                     }
                     
                     // Separador de sección
@@ -136,6 +139,7 @@ Rectangle {
                         buttonText: "Cultivos"
                         iconText: "🌱"
                         isActive: mainContainer.activeModule === 3
+                        onClicked: mainContainer.activeModule = 3
                     }
                     
                     // Botón Agroquímicos
@@ -146,6 +150,7 @@ Rectangle {
                         buttonText: "Agroquímicos"
                         iconText: "🧪"
                         isActive: mainContainer.activeModule === 4
+                        onClicked: mainContainer.activeModule = 4
                     }
                     
                     // Separador de sección
@@ -159,6 +164,7 @@ Rectangle {
                         buttonText: "Ventas"
                         iconText: "💰"
                         isActive: mainContainer.activeModule === 5
+                        onClicked: mainContainer.activeModule = 5
                     }
                     
                     // Botón Gastos
@@ -169,6 +175,7 @@ Rectangle {
                         buttonText: "Gastos"
                         iconText: "💸"
                         isActive: mainContainer.activeModule === 9
+                        onClicked: mainContainer.activeModule = 9
                     }
                     
                     // Separador de sección
@@ -182,6 +189,7 @@ Rectangle {
                         buttonText: "Maquinaria"
                         iconText: "🚜"
                         isActive: mainContainer.activeModule === 6
+                        onClicked: mainContainer.activeModule = 6
                     }
                     
                     // Separador de sección
@@ -195,6 +203,7 @@ Rectangle {
                         buttonText: "Reportes"
                         iconText: "📊"
                         isActive: mainContainer.activeModule === 8
+                        onClicked: mainContainer.activeModule = 8
                     }
                     
                     // Separador de sección
@@ -208,6 +217,7 @@ Rectangle {
                         buttonText: "Configuración"
                         iconText: "⚙️"
                         isActive: mainContainer.activeModule === 7
+                        onClicked: mainContainer.activeModule = 7
                     }
                     
                     // Espaciador al final
@@ -334,6 +344,7 @@ Rectangle {
                         }
                         
                         Text {
+                            id: txtFecha
                             text: obtenerFechaHora()
                             font.pixelSize: 12
                             color: "#7F8C8D"
@@ -474,107 +485,8 @@ Rectangle {
         running: true
         repeat: true
         onTriggered: {
-            // Forzar actualización de fecha
-            txtModuloActual.text = obtenerNombreModulo(mainContainer.activeModule)
-        }
-    }
-}
-
-// ============================================
-// COMPONENTE: MenuButton
-// ============================================
-MenuButton {
-    id: menuButtonComponent
-    
-    Rectangle {
-        property string buttonText: "Botón"
-        property string iconText: "📄"
-        property bool isActive: false
-        
-        signal clicked()
-        
-        width: parent.width
-        height: 48
-        color: isActive ? "#34495E" : "transparent"
-        
-        // Borde izquierdo cuando está activo
-        Rectangle {
-            visible: isActive
-            width: 4
-            height: parent.height
-            color: "#4CAF50"
-            anchors.left: parent.left
-        }
-        
-        RowLayout {
-            anchors.fill: parent
-            anchors.leftMargin: 20
-            anchors.rightMargin: 20
-            spacing: 15
-            
-            // Icono
-            Text {
-                text: iconText
-                font.pixelSize: 20
-                color: isActive ? "white" : "#95A5A6"
-            }
-            
-            // Texto
-            Text {
-                Layout.fillWidth: true
-                text: buttonText
-                font.pixelSize: 14
-                font.bold: isActive
-                color: isActive ? "white" : "#BDC3C7"
-            }
-        }
-        
-        MouseArea {
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            
-            onEntered: {
-                if (!parent.isActive) {
-                    parent.color = "#2C3E50"
-                }
-            }
-            
-            onExited: {
-                if (!parent.isActive) {
-                    parent.color = "transparent"
-                }
-            }
-            
-            onClicked: {
-                parent.clicked()
-            }
-        }
-    }
-}
-
-// ============================================
-// COMPONENTE: MenuSeparator
-// ============================================
-MenuSeparator {
-    id: menuSeparatorComponent
-    
-    Rectangle {
-        property string sectionTitle: "SECCIÓN"
-        
-        Layout.fillWidth: true
-        Layout.preferredHeight: 40
-        color: "transparent"
-        
-        Text {
-            anchors.left: parent.left
-            anchors.leftMargin: 20
-            anchors.verticalCenter: parent.verticalCenter
-            text: sectionTitle
-            font.pixelSize: 11
-            font.bold: true
-            color: "#7F8C8D"
-            letterSpacing: 1
+            // Actualizar fecha
+            txtFecha.text = obtenerFechaHora()
         }
     }
 }
