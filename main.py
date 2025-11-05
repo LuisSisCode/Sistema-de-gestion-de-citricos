@@ -18,7 +18,7 @@ from PySide6.QtWebEngineCore import QWebEngineSettings
 
 # Importar AuthService y LoginController
 from backend.services.auth_service import auth_service
-from frontend.controllers.login_controller import LoginController
+from controllers.login_controller import LoginController
 
 # Modelos existentes
 from backend.models.usuario_model import UsuariosRolesModel
@@ -27,6 +27,12 @@ from backend.models.cultivos_model import CultivosModel
 from backend.models.agroquimicos_model import AgroquimicosModel
 from backend.models.maquinaria_model import MaquinariaModel
 from backend.models.ventas_cliente_model import ClientesVentaModel
+
+# Nuevos modelos a incluir
+from backend.models.auth_model import AutoModel  # ✅ CORREGIDO: Era AuthModel
+from backend.models.dashboard_model import *
+from backend.models.gastos_model import *
+from backend.models.reportes_model import *
 
 from recursos.mapa.mapa_service_integrado import inicializar_servicio_mapa, servicio_mapa
 
@@ -67,17 +73,40 @@ class AppManager(QObject):
     
     @Slot()
     def mostrarMain(self):
-        """Muestra la vista principal"""
+        """Muestra la vista principal y carga el dashboard"""
+        print("🔓 Mostrando vista principal...")
         self.vistaActual = "main"
+        
         if self.root:
             self.root.setProperty("currentView", "main")
-            # Inicializar el ModuleManager si aún no existe
-            if not self.module_manager:
-                self.module_manager = ModuleManager(self.engine)
-                # Buscar el objeto main dentro del contenedor
-                main_obj = self.root.findChild(QObject, "mainContainer")
-                if main_obj:
-                    self.module_manager.set_root_object(main_obj)
+            
+            # Esperar a que se cargue el QML principal
+            # Usamos un pequeño delay para asegurar que el Loader haya terminado de cargar
+            from PySide6.QtCore import QTimer
+            QTimer.singleShot(100, self.inicializarModuleManager)
+    
+    def inicializarModuleManager(self):
+        """Inicializa el ModuleManager después de que main.qml esté cargado"""
+        if not self.module_manager:
+            print("🔧 Inicializando ModuleManager...")
+            self.module_manager = ModuleManager(self.engine)
+            
+            # Buscar el Loader del app_container
+            if self.root:
+                # El root es app_container (Window)
+                # Buscar el Loader dentro de él
+                loader = self.root.findChild(QObject, "viewLoader")
+                if loader:
+                    # Obtener el item cargado (main.qml)
+                    main_item = loader.property("item")
+                    if main_item:
+                        print("✅ main.qml encontrado")
+                        # main_item es el Rectangle con objectName "mainContainer"
+                        self.module_manager.set_root_object(main_item)
+                    else:
+                        print("⚠️ No se pudo obtener el item del Loader")
+                else:
+                    print("⚠️ No se encontró el Loader viewLoader")
     
     @Slot()
     def cerrarSesion(self):
@@ -114,7 +143,7 @@ class ModuleManager(QObject):
         
         # Mapeo de índices de módulos a archivos QML
         self.module_files = {
-            0: "Dashboard.qml",
+            0: "dashboard.qml",  # ✅ CORREGIDO: en minúsculas
             1: "usuario_roles.qml",
             2: "agricultores_parcela.qml",
             3: "cultivos.qml",
@@ -127,58 +156,23 @@ class ModuleManager(QObject):
         }
     
     def set_root_object(self, root):
-        """Establece el objeto raíz de QML y conecta los botones"""
+        """Establece el objeto raíz de QML (main.qml Rectangle)"""
         self.root = root
-        self.connect_buttons()
-    
-    def connect_buttons(self):
-        """Conecta los botones del menú con las funciones para cambiar módulos"""
-        if not self.root:
-            print("Error: No se pudo acceder al objeto raíz QML")
-            return
+        print(f"✅ Root object establecido: {root}")
         
-        # Verificar si existe el contentContainer (Loader)
+        # Buscar el contentContainer (Loader)
         self.content_container = self.root.findChild(QObject, "contentContainer")
-        if not self.content_container:
-            print("Error: No se pudo encontrar el contentContainer en el QML")
-            return
-        
-        print("✅ Contenedor de contenido encontrado correctamente")
-        
-        # Conectar los botones
-        self.connect_button("btnInicio", 0)
-        self.connect_button("btnUsuarios", 1)
-        self.connect_button("btnAgricultores", 2)
-        self.connect_button("btnCultivos", 3)
-        self.connect_button("btnAgroquimicos", 4)
-        self.connect_button("btnVentas", 5)
-        self.connect_button("btnMaquinaria", 6)
-        self.connect_button("btnConfiguracion", 7)
-        self.connect_button("btnReportes", 8)
-        self.connect_button("btnGastos", 9)
-        
-        # Cargar el módulo inicial
-        self.change_module(0)
-    
-    def connect_button(self, button_id, module_index):
-        """Conecta un botón específico para cambiar al módulo correspondiente"""
-        button = self.root.findChild(QObject, button_id)
-        if button:
-            button.clicked.connect(lambda: self.change_module(module_index))
+        if self.content_container:
+            print("✅ contentContainer encontrado")
+            # ✅ CARGAR EL DASHBOARD POR DEFECTO
+            self.change_module(0)
         else:
-            print(f"⚠️ No se encontró el botón {button_id}")
+            print("❌ No se encontró contentContainer")
     
     @Slot(int)
     def change_module(self, module_index):
         """Cambia al módulo especificado"""
-        # TODO: Verificar permisos antes de cambiar
-        # if not auth_service.tiene_permiso(modulo, 'leer'):
-        #     return
-        
         print(f"📂 Cambiando al módulo: {module_index}")
-        
-        # Actualizar la propiedad activeModule del QML
-        self.root.setProperty("activeModule", module_index)
         
         # Obtener el archivo QML correspondiente
         qml_file = self.module_files.get(module_index)
@@ -191,9 +185,16 @@ class ModuleManager(QObject):
             print(f"❌ No existe el archivo {qml_file}")
             return
         
+        # Actualizar la propiedad activeModule en el QML
+        if self.root:
+            self.root.setProperty("activeModule", module_index)
+        
         # Cargar el archivo QML en el Loader
         if self.content_container:
+            print(f"✅ Cargando {qml_file}...")
             self.content_container.setProperty("source", qml_file)
+        else:
+            print("❌ contentContainer no disponible")
         
         self._current_module = module_index
         self.moduleChanged.emit(module_index)
@@ -295,31 +296,93 @@ def main():
     # Conectar señal de login exitoso
     login_controller.loginExitoso.connect(app_manager.mostrarMain)
     
-    # Registrar en contexto QML
+    # ============================================
+    # REGISTRO DE MODELOS EN CONTEXTO QML
+    # ============================================
+    
+    # Registrar servicios y controladores principales
     engine.rootContext().setContextProperty("appManager", app_manager)
     engine.rootContext().setContextProperty("loginController", login_controller)
     engine.rootContext().setContextProperty("authService", auth_service)
     
     # Crear y registrar modelos existentes
     print("📊 Registrando modelos de datos...")
-    usuario_roles_model = UsuariosRolesModel()
-    engine.rootContext().setContextProperty("usuariosRolesModel", usuario_roles_model)
     
-    agricultores_parcelas_model = AgricultoresParcelasModels()
-    engine.rootContext().setContextProperty("agricultoresparcelas", agricultores_parcelas_model)
-
-    cultivos_model = CultivosModel()
-    engine.rootContext().setContextProperty("cultivos", cultivos_model)
-
-    agroquimicos_model = AgroquimicosModel()
-    engine.rootContext().setContextProperty("agroquimicosModel", agroquimicos_model)
-
-    ventas_cliente_model = ClientesVentaModel()
-    engine.rootContext().setContextProperty("ventaModel", ventas_cliente_model) 
+    # Modelo de autenticación - ✅ CORREGIDO
+    try:
+        auth_model = AutoModel()  # ✅ CORREGIDO: Era AuthModel()
+        engine.rootContext().setContextProperty("authModel", auth_model)
+        print("✅ AutoModel registrado en QML")
+    except Exception as e:
+        print(f"⚠️ No se pudo registrar AutoModel: {e}")
     
-    maquinaria_model = MaquinariaModel()
-    engine.rootContext().setContextProperty("maquinariaModel", maquinaria_model)
-
+    # Modelo de dashboard
+    try:
+        dashboard_model = DashboardModel()
+        engine.rootContext().setContextProperty("dashboardModel", dashboard_model)
+        print("✅ DashboardModel registrado en QML")
+    except Exception as e:
+        print(f"⚠️ No se pudo registrar DashboardModel: {e}")
+    
+    # Modelo de gastos
+    try:
+        gastos_model = GastosModel()
+        engine.rootContext().setContextProperty("gastosModel", gastos_model)
+        print("✅ GastosModel registrado en QML")
+    except Exception as e:
+        print(f"⚠️ No se pudo registrar GastosModel: {e}")
+    
+    # Modelo de reportes
+    try:
+        reportes_model = ReportesModel()
+        engine.rootContext().setContextProperty("reportesModel", reportes_model)
+        print("✅ ReportesModel registrado en QML")
+    except Exception as e:
+        print(f"⚠️ No se pudo registrar ReportesModel: {e}")
+    
+    # Modelos existentes (mantener compatibilidad)
+    try:
+        usuario_roles_model = UsuariosRolesModel()
+        engine.rootContext().setContextProperty("usuariosRolesModel", usuario_roles_model)
+        print("✅ UsuariosRolesModel registrado en QML")
+    except Exception as e:
+        print(f"⚠️ No se pudo registrar UsuariosRolesModel: {e}")
+    
+    try:
+        agricultores_parcelas_model = AgricultoresParcelasModels()
+        engine.rootContext().setContextProperty("agricultoresparcelas", agricultores_parcelas_model)
+        print("✅ AgricultoresParcelasModels registrado en QML")
+    except Exception as e:
+        print(f"⚠️ No se pudo registrar AgricultoresParcelasModels: {e}")
+    
+    try:
+        cultivos_model = CultivosModel()
+        engine.rootContext().setContextProperty("cultivos", cultivos_model)
+        print("✅ CultivosModel registrado en QML")
+    except Exception as e:
+        print(f"⚠️ No se pudo registrar CultivosModel: {e}")
+    
+    try:
+        agroquimicos_model = AgroquimicosModel()
+        engine.rootContext().setContextProperty("agroquimicosModel", agroquimicos_model)
+        print("✅ AgroquimicosModel registrado en QML")
+    except Exception as e:
+        print(f"⚠️ No se pudo registrar AgroquimicosModel: {e}")
+    
+    try:
+        ventas_cliente_model = ClientesVentaModel()
+        engine.rootContext().setContextProperty("ventaModel", ventas_cliente_model)
+        print("✅ ClientesVentaModel registrado en QML")
+    except Exception as e:
+        print(f"⚠️ No se pudo registrar ClientesVentaModel: {e}")
+    
+    try:
+        maquinaria_model = MaquinariaModel()
+        engine.rootContext().setContextProperty("maquinariaModel", maquinaria_model)
+        print("✅ MaquinariaModel registrado en QML")
+    except Exception as e:
+        print(f"⚠️ No se pudo registrar MaquinariaModel: {e}")
+    
     # Verificar archivos
     print(f"📁 Directorio de trabajo: {os.getcwd()}")
     
@@ -344,6 +407,17 @@ def main():
     app_manager.set_root_object(root_object)
     
     print("🎉 Aplicación iniciada correctamente")
+    print("📦 Modelos registrados en QML:")
+    print("   - authModel (AutoModel)")
+    print("   - dashboardModel (DashboardModel)")
+    print("   - gastosModel (GastosModel)")
+    print("   - reportesModel (ReportesModel)")
+    print("   - usuariosRolesModel (UsuariosRolesModel)")
+    print("   - agricultoresparcelas (AgricultoresParcelasModels)")
+    print("   - cultivos (CultivosModel)")
+    print("   - agroquimicosModel (AgroquimicosModel)")
+    print("   - ventaModel (ClientesVentaModel)")
+    print("   - maquinariaModel (MaquinariaModel)")
     
     # Ejecutar la aplicación
     sys.exit(app.exec())

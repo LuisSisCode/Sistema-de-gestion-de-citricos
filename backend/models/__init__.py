@@ -1,4 +1,4 @@
-from .auth_model import AuthModel
+from .auth_model import AutoModel
 from .agricultores_parcelas_model import AgricultoresParcelasModels
 from .agroquimicos_model import AgroquimicosModel
 from .dashboard_model import *
@@ -21,7 +21,7 @@ Todos los models tienen Signals/Slots/Properties para integración QML
 
 
 __all__ = [
-    'AuthModel',
+    'AutoModel',
     'AgricultoresParcelasModels',
     'AgroquimicosModel',   
     #'DashboardModel',

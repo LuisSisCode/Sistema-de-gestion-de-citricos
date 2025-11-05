@@ -1,13 +1,22 @@
-// login.qml - Vista de Login para AgroIchilo
+// login.qml - Versión corregida
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
+import Qt.labs.settings 1.1
 
 Rectangle {
     id: loginRoot
-    width: 400
-    height: 550
+    anchors.fill: parent
     color: "#f5f5f5"
+    
+    // Settings para guardar credenciales
+    Settings {
+        id: appSettings
+        property string savedUsername: ""
+        property string savedPassword: ""
+        property bool rememberCredentials: false
+        property bool showPassword: false
+    }
     
     // Señal para notificar login exitoso
     signal loginSuccessful()
@@ -36,7 +45,7 @@ Rectangle {
         
         Text {
             Layout.alignment: Qt.AlignHCenter
-            text: loginController.obtenerNombreApp()
+            text: "AgroIchilo"
             font.pixelSize: 28
             font.bold: true
             color: "#2C3E50"
@@ -44,14 +53,14 @@ Rectangle {
         
         Text {
             Layout.alignment: Qt.AlignHCenter
-            text: loginController.obtenerNombreEmpresa()
+            text: "Sistema de Gestión Agrícola"
             font.pixelSize: 14
             color: "#7F8C8D"
         }
         
         Text {
             Layout.alignment: Qt.AlignHCenter
-            text: loginController.obtenerVersionApp()
+            text: "Versión 1.0"
             font.pixelSize: 12
             color: "#95A5A6"
         }
@@ -62,7 +71,7 @@ Rectangle {
         // Card de login
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: 280
+            Layout.preferredHeight: 350
             color: "white"
             radius: 8
             border.color: "#E0E0E0"
@@ -89,15 +98,15 @@ Rectangle {
                         Layout.fillWidth: true
                         placeholderText: "Ingrese su usuario"
                         font.pixelSize: 14
+                        text: appSettings.savedUsername
                         
                         background: Rectangle {
-                            color: txtUsuario.focus ? "#F0F8FF" : "#F9F9F9"
-                            border.color: txtUsuario.focus ? "#4CAF50" : "#D0D0D0"
+                            color: txtUsuario.activeFocus ? "#F0F8FF" : "#F9F9F9"
+                            border.color: txtUsuario.activeFocus ? "#4CAF50" : "#D0D0D0"
                             border.width: 1
                             radius: 4
                         }
                         
-                        // Enter para pasar al siguiente campo
                         Keys.onReturnPressed: txtPassword.forceActiveFocus()
                     }
                 }
@@ -117,18 +126,62 @@ Rectangle {
                         id: txtPassword
                         Layout.fillWidth: true
                         placeholderText: "Ingrese su contraseña"
-                        echoMode: TextInput.Password
+                        echoMode: appSettings.showPassword ? TextInput.Normal : TextInput.Password
                         font.pixelSize: 14
+                        text: appSettings.rememberCredentials ? appSettings.savedPassword : ""
                         
                         background: Rectangle {
-                            color: txtPassword.focus ? "#F0F8FF" : "#F9F9F9"
-                            border.color: txtPassword.focus ? "#4CAF50" : "#D0D0D0"
+                            color: txtPassword.activeFocus ? "#F0F8FF" : "#F9F9F9"
+                            border.color: txtPassword.activeFocus ? "#4CAF50" : "#D0D0D0"
                             border.width: 1
                             radius: 4
                         }
                         
-                        // Enter para hacer login
+                        // Icono para mostrar/ocultar contraseña
+                        Rectangle {
+                            anchors {
+                                right: parent.right
+                                rightMargin: 10
+                                verticalCenter: parent.verticalCenter
+                            }
+                            width: 30
+                            height: 30
+                            color: "transparent"
+                            
+                            Text {
+                                anchors.centerIn: parent
+                                text: appSettings.showPassword ? "👁️" : "👁️‍🗨️"
+                                font.pixelSize: 16
+                            }
+                            
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: appSettings.showPassword = !appSettings.showPassword
+                            }
+                        }
+                        
                         Keys.onReturnPressed: btnLogin.clicked()
+                    }
+                }
+                
+                // Opciones adicionales
+                RowLayout {
+                    Layout.fillWidth: true
+                    
+                    CheckBox {
+                        id: chkRemember
+                        text: "Recordar credenciales"
+                        checked: appSettings.rememberCredentials
+                        onCheckedChanged: appSettings.rememberCredentials = checked
+                    }
+                    
+                    Item { Layout.fillWidth: true }
+                    
+                    CheckBox {
+                        id: chkShowPassword
+                        text: "Mostrar contraseña"
+                        checked: appSettings.showPassword
+                        onCheckedChanged: appSettings.showPassword = checked
                     }
                 }
                 
@@ -150,11 +203,11 @@ Rectangle {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 45
                     text: loginController.cargando ? "Iniciando sesión..." : "Iniciar Sesión"
-                    enabled: !loginController.cargando
+                    enabled: !loginController.cargando && txtUsuario.text.length > 0 && txtPassword.text.length > 0
                     
                     background: Rectangle {
                         color: btnLogin.enabled ? 
-                               (btnLogin.pressed ? "#45A049" : "#4CAF50") : 
+                               (btnLogin.down ? "#45A049" : "#4CAF50") : 
                                "#A0A0A0"
                         radius: 4
                     }
@@ -172,18 +225,15 @@ Rectangle {
                         var usuario = txtUsuario.text.trim()
                         var password = txtPassword.text.trim()
                         
+                        if (appSettings.rememberCredentials) {
+                            appSettings.savedUsername = usuario
+                            appSettings.savedPassword = password
+                        }
+                        
                         loginController.intentarLogin(usuario, password)
                     }
                 }
             }
-        }
-        
-        // Info adicional
-        Text {
-            Layout.alignment: Qt.AlignHCenter
-            text: "Sistema de Gestión Agrícola"
-            font.pixelSize: 11
-            color: "#95A5A6"
         }
     }
     
@@ -200,23 +250,23 @@ Rectangle {
         }
     }
     
-    // Conexiones con el controlador
+    // Conexiones
     Connections {
         target: loginController
         
         function onLoginExitoso(datosUsuario) {
-            console.log("✅ Login exitoso en QML")
+            console.log("✅ Login exitoso desde login.qml")
             loginRoot.loginSuccessful()
-        }
-        
-        function onLoginFallido(mensaje) {
-            console.log("❌ Login fallido:", mensaje)
-            // El mensaje ya se muestra vía binding con mensajeError
         }
     }
     
     // Focus inicial
     Component.onCompleted: {
-        txtUsuario.forceActiveFocus()
+        console.log("✅ Login.qml cargado")
+        if (appSettings.savedUsername !== "") {
+            txtPassword.forceActiveFocus()
+        } else {
+            txtUsuario.forceActiveFocus()
+        }
     }
 }

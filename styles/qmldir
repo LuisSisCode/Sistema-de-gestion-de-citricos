@@ -1,0 +1,6 @@
+# qmldir - Registro de módulos singleton para AgroIchilo
+# Este archivo debe estar en la carpeta styles/
+
+# Singletons del sistema de diseño
+singleton Colors 1.0 Colors.qml
+singleton AppTheme 1.0 AppTheme.qml

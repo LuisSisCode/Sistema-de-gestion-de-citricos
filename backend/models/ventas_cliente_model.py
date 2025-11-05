@@ -1,8 +1,9 @@
 from PySide6.QtCore import QObject, Slot, Signal, Property, QDate
 from backend.services.ClientesVentasServ import GestionClienteVentaServicio
-from models.cultivos_model import CultivosModel
+from .cultivos_model import CultivosModel
 from datetime import datetime, timedelta
-from user_session import get_current_user_id
+# ✅ CORREGIDO: Usar auth_service en lugar de user_session
+from backend.services.auth_service import auth_service
 import json
 import logging
 
@@ -69,16 +70,21 @@ class ClientesVentaModel(QObject):
     @Property(int, notify=currentUserChanged)
     def current_user_id(self):
         """Retorna el ID del usuario actual para QML"""
-        return get_current_user_id()
+        try:
+            user_id = auth_service.obtener_id_usuario()
+            return user_id if user_id is not None else 0
+        except Exception as e:
+            logger.error(f"Error al obtener ID de usuario: {str(e)}")
+            return 0
     
     @Property(str, notify=currentUserChanged)
     def current_user_name(self):
         """Retorna el nombre del usuario actual para QML"""
+        # ✅ CORREGIDO: Usar auth_service en lugar de leer current_user.json
         try:
-            with open("current_user.json", "r") as f:
-                data = json.load(f)
-                return f"{data.get('nombre')} {data.get('apellido')}"
-        except:
+            return auth_service.obtener_nombre_completo()
+        except Exception as e:
+            logger.error(f"Error al obtener nombre de usuario: {str(e)}")
             return "Usuario Desconocido"
     
     @Property(list, notify=clientesChanged)
@@ -201,25 +207,16 @@ class ClientesVentaModel(QObject):
     
     @Slot()
     def cargar_cliente_top(self):
-        """Carga el cliente top del mes actual"""
+        """Carga el cliente top del mes desde la base de datos"""
         try:
-            self._cliente_top = self._gestor.obtener_cliente_top() or {}
+            self._cliente_top = self._gestor.obtener_cliente_top_del_mes() or {}
             self.clienteTopChanged.emit()
         except Exception as e:
             print(f"Error al cargar cliente top: {str(e)}")
     
     @Slot(int)
-    def cargar_venta_por_id(self, id_venta):
-        """Carga los detalles de una venta específica"""
-        try:
-            self._venta_seleccionada = self._gestor.obtener_venta_por_id(id_venta) or {}
-            self.ventaSeleccionadaChanged.emit()
-        except Exception as e:
-            print(f"Error al cargar venta por ID: {str(e)}")
-    
-    @Slot(int)
     def cargar_historial_cliente(self, id_cliente):
-        """Carga el historial de compras de un cliente"""
+        """Carga el historial de compras de un cliente específico"""
         try:
             self._cliente_historial = self._gestor.obtener_historial_compras_cliente(id_cliente) or {}
             self.clienteHistorialChanged.emit()
@@ -228,27 +225,23 @@ class ClientesVentaModel(QObject):
     
     @Slot()
     def cargar_clientes_clasificados(self):
-        """Carga los clientes clasificados por volumen de compras"""
+        """Carga los clientes clasificados por su nivel de compras"""
         try:
-            self._clientes_clasificados = self._gestor.clasificar_clientes_por_volumen()
+            self._clientes_clasificados = self._gestor.obtener_clientes_clasificados()
             self.clientesClasificadosChanged.emit()
         except Exception as e:
             print(f"Error al cargar clientes clasificados: {str(e)}")
     
-    # ==================== SLOTS PARA GESTIONAR CLIENTES ====================
+    # ==================== SLOTS PARA OPERACIONES CRUD ====================
     
     @Slot(str, result=bool)
     def agregar_cliente(self, cliente_data_json):
         """Agrega un nuevo cliente a la base de datos"""
         try:
-            # Convertir el string JSON a diccionario
             cliente_data = json.loads(cliente_data_json)
-            
-            # Asegurarse de que se incluya el ID del usuario que registra
-            if 'registrado_por' not in cliente_data:
-                # Aquí podría obtener el ID del usuario actual de algún sistema de autenticación
-                cliente_data['registrado_por'] = 1  # Valor por defecto
-            
+            user_id = auth_service.obtener_id_usuario()
+            if user_id:
+                cliente_data['id_usuario_creacion'] = user_id
             success, _ = self._gestor.agregar_cliente(cliente_data)
             if success:
                 self.cargar_clientes()
@@ -261,12 +254,13 @@ class ClientesVentaModel(QObject):
     def actualizar_cliente(self, id_cliente, cliente_data_json):
         """Actualiza un cliente existente"""
         try:
-            # Convertir el string JSON a diccionario
             cliente_data = json.loads(cliente_data_json)
+            user_id = auth_service.obtener_id_usuario()
+            if user_id:
+                cliente_data['id_usuario_modificacion'] = user_id
             success = self._gestor.actualizar_cliente(id_cliente, cliente_data)
             if success:
                 self.cargar_clientes()
-                self.cargar_clientes_clasificados()
             return success
         except Exception as e:
             print(f"Error al actualizar cliente: {str(e)}")
@@ -274,7 +268,7 @@ class ClientesVentaModel(QObject):
     
     @Slot(int, result=bool)
     def eliminar_cliente(self, id_cliente):
-        """Elimina un cliente existente (eliminación lógica)"""
+        """Elimina un cliente existente"""
         try:
             success = self._gestor.eliminar_cliente(id_cliente)
             if success:
@@ -284,262 +278,141 @@ class ClientesVentaModel(QObject):
             print(f"Error al eliminar cliente: {str(e)}")
             return False
     
-    @Slot(str, result=str)
-    def buscar_clientes(self, criterio):
-        """Busca clientes según un criterio de búsqueda"""
+    @Slot(str, result=bool)
+    def registrar_venta(self, venta_data_json):
+        """Registra una nueva venta en la base de datos"""
         try:
-            resultados = self._gestor.buscar_clientes(criterio)
-            return json.dumps(resultados)
-        except Exception as e:
-            print(f"Error al buscar clientes: {str(e)}")
-            return "[]"
-    
-    # ==================== SLOTS PARA GESTIONAR VENTAS ====================
-    
-    @Slot(result=list)
-    def obtener_variedades_disponibles(self):
-        # Obtiene las variedades disponibles para venta directamente del gestor
-        try:
-            return self._gestor.obtener_variedades_disponibles()
-        except Exception as e:
-            logger.error(f"Error al obtener variedades disponibles: {str(e)}")
-            return []
-    
-    @Slot(result=str)
-    def generar_codigo_venta(self):
-        """Genera un código único para una nueva venta"""
-        try:
-            return self._gestor.generar_codigo_venta()
-        except Exception as e:
-            print(f"Error al generar código de venta: {str(e)}")
-            return f"V-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-    
-    @Slot(str, str, result=bool)
-    def agregar_venta(self, venta_data_json, detalles_data_json):
-        """Agrega una nueva venta con sus detalles a la base de datos"""
-        try:
-            # Verificar si los parámetros son cadenas JSON o ya son diccionarios
-            if isinstance(venta_data_json, str):
-                venta_data = json.loads(venta_data_json)
-            else:
-                venta_data = venta_data_json  # Ya es un diccionario
-                
-            if isinstance(detalles_data_json, str):
-                detalles_data = json.loads(detalles_data_json)
-                logger.info(f"Detalles recibidos: {json.dumps(detalles_data, indent=2)}")
-            else:
-                detalles_data = detalles_data_json  # Ya es un diccionario
-                logger.info(f"Detalles recibidos (dict): {detalles_data}")
-            
-            # Obtener el ID del usuario que inició sesión
-            usuario_actual_id = get_current_user_id()
-            
-            # Asignar el ID del usuario actual al campo registrado_por
-            venta_data['registrado_por'] = usuario_actual_id
-            logger.info(f"Venta registrada por usuario ID: {usuario_actual_id}")
-            
-            # Ahora cada detalle debe tener un id_variedad en lugar de id_lote
-            for detalle in detalles_data:
-                if 'id_lote' in detalle and not 'id_variedad' in detalle:
-                    logger.warning(f"Se encontró id_lote en los detalles de venta: {detalle['id_lote']}")
-                    # Convertir id_lote a id_variedad si es necesario (o manejar según corresponda)
-                    # Este caso podría ocurrir si el frontend todavía envía id_lote
-                    logger.warning("Eliminando id_lote, ya que ahora se usa id_variedad")
-                    del detalle['id_lote']
-                
-                # Asegurarse de que exista id_variedad
-                if not 'id_variedad' in detalle:
-                    logger.error("Falta id_variedad en un detalle de venta")
-                    return False
-            
-            # Convertir los datos de vuelta a JSON para enviarlos al gestor
-            venta_data_json = json.dumps(venta_data)
-            detalles_data_json = json.dumps(detalles_data)
-            
-            # Llamar al método del gestor con los datos en formato JSON
-            success = self._gestor.agregar_venta(venta_data_json, detalles_data_json)
-            
+            venta_data = json.loads(venta_data_json)
+            user_id = auth_service.obtener_id_usuario()
+            venta_data['id_usuario'] = user_id if user_id is not None else 0
+            success, _ = self._gestor.registrar_venta(venta_data)
             if success:
-                # Recargar todas las listas afectadas
                 self.cargar_ventas()
-                self.cargar_variedades_disponibles()
                 self.cargar_resumen_ventas_mes()
-                self.cargar_pagos_pendientes()
-                self.cargar_cliente_top()
-                self.cargar_clientes_clasificados()
+                self.cargar_variedades_disponibles()
             return success
         except Exception as e:
-            logger.error(f"Error al agregar venta: {str(e)}")
+            print(f"Error al registrar venta: {str(e)}")
             return False
-            
+    
     @Slot(int, str, result=bool)
     def actualizar_venta(self, id_venta, venta_data_json):
         """Actualiza una venta existente"""
         try:
-            # Convertir el string JSON a diccionario
             venta_data = json.loads(venta_data_json)
+            user_id = auth_service.obtener_id_usuario()
+            if user_id:
+                venta_data['id_usuario_modificacion'] = user_id
             success = self._gestor.actualizar_venta(id_venta, venta_data)
             if success:
                 self.cargar_ventas()
-                if self._venta_seleccionada and self._venta_seleccionada.get('id_venta') == id_venta:
-                    self.cargar_venta_por_id(id_venta)
+                self.cargar_resumen_ventas_mes()
             return success
         except Exception as e:
             print(f"Error al actualizar venta: {str(e)}")
             return False
     
-    @Slot(int, str, result=bool)
-    def cancelar_venta(self, id_venta, motivo):
-        """Cancela una venta"""
+    @Slot(int, result=bool)
+    def cancelar_venta(self, id_venta):
+        """Cancela una venta existente"""
         try:
-            success = self._gestor.cancelar_venta(id_venta, motivo)
+            success = self._gestor.cancelar_venta(id_venta)
             if success:
                 self.cargar_ventas()
-                self.cargar_variedades_disponibles()
                 self.cargar_resumen_ventas_mes()
-                if self._venta_seleccionada and self._venta_seleccionada.get('id_venta') == id_venta:
-                    self.cargar_venta_por_id(id_venta)
+                self.cargar_variedades_disponibles()
             return success
         except Exception as e:
             print(f"Error al cancelar venta: {str(e)}")
             return False
     
-    @Slot(int, int, result=bool)
-    def cambiar_estado_venta(self, id_venta, nuevo_estado_id):
-        """Actualiza el estado de una venta"""
+    @Slot(str, result=bool)
+    def registrar_pago(self, pago_data_json):
+        """Registra un pago para una venta"""
         try:
-            success = self._gestor.cambiar_estado_venta(id_venta, nuevo_estado_id)
-            if success:
-                self.cargar_ventas()
-                if self._venta_seleccionada and self._venta_seleccionada.get('id_venta') == id_venta:
-                    self.cargar_venta_por_id(id_venta)
-                self.cargar_ventas_vencidas()
-            return success
-        except Exception as e:
-            print(f"Error al cambiar estado de venta: {str(e)}")
-            return False
-    
-    @Slot(int, str, result=bool)
-    def cambiar_estado_pago(self, id_venta, nuevo_estado_pago):
-        """Actualiza el estado de pago de una venta"""
-        try:
-            success = self._gestor.cambiar_estado_pago(id_venta, nuevo_estado_pago)
+            pago_data = json.loads(pago_data_json)
+            user_id = auth_service.obtener_id_usuario()
+            pago_data['id_usuario'] = user_id if user_id is not None else 0
+            success, _ = self._gestor.registrar_pago(pago_data)
             if success:
                 self.cargar_ventas()
                 self.cargar_pagos_pendientes()
-                if self._venta_seleccionada and self._venta_seleccionada.get('id_venta') == id_venta:
-                    self.cargar_venta_por_id(id_venta)
+                self.cargar_resumen_ventas_mes()
             return success
         except Exception as e:
-            print(f"Error al cambiar estado de pago: {str(e)}")
+            print(f"Error al registrar pago: {str(e)}")
             return False
     
-    @Slot(int, str, str, result=str)
-    def duplicar_venta(self, id_venta, nuevo_codigo, nueva_fecha):
-        """Duplica una venta existente"""
+    @Slot(int, str, result=bool)
+    def actualizar_estado_venta(self, id_venta, id_estado):
+        """Actualiza el estado de una venta"""
         try:
-            success, nueva_id = self._gestor.duplicar_venta(id_venta, nuevo_codigo, nueva_fecha)
+            success = self._gestor.actualizar_estado_venta(id_venta, int(id_estado))
             if success:
                 self.cargar_ventas()
-                self.cargar_variedades_disponibles()
-                return str(nueva_id)
-            return ""
-        except Exception as e:
-            print(f"Error al duplicar venta: {str(e)}")
-            return ""
-    
-    # ==================== SLOTS PARA GESTIONAR DETALLES DE VENTA ====================
-    
-    @Slot(int, str, result=bool)
-    def agregar_detalle_venta(self, id_venta, detalle_data_json):
-        """Agrega un nuevo detalle a una venta existente"""
-        try:
-            detalle_data = json.loads(detalle_data_json)
-            
-            # Asegurarse de que el detalle contiene id_variedad
-            if 'id_lote' in detalle_data and not 'id_variedad' in detalle_data:
-                logger.warning(f"Se encontró id_lote en detalle: {detalle_data['id_lote']}")
-                # Convertir id_lote a id_variedad si es necesario (o manejar según corresponda)
-                del detalle_data['id_lote']
-                
-            if not 'id_variedad' in detalle_data:
-                logger.error("Falta id_variedad en detalle de venta")
-                return False
-                
-            success = self._gestor.agregar_detalle_venta(id_venta, detalle_data)
-            if success:
-                self.cargar_variedades_disponibles()
-                if self._venta_seleccionada and self._venta_seleccionada.get('id_venta') == id_venta:
-                    self.cargar_venta_por_id(id_venta)
-                self.cargar_ventas()  # Para actualizar totales
+                self.cargar_resumen_ventas_mes()
             return success
         except Exception as e:
-            print(f"Error al agregar detalle de venta: {str(e)}")
+            print(f"Error al actualizar estado de venta: {str(e)}")
             return False
     
-    @Slot(int, result=bool)
-    def eliminar_detalle_venta(self, id_detalle_venta):
-        """Elimina un detalle de venta"""
+    @Slot(int)
+    def seleccionar_venta(self, id_venta):
+        """Selecciona una venta para ver sus detalles"""
         try:
-            # Necesitamos guardar el ID de la venta actual en caso de que necesitemos recargarla
-            id_venta = None
-            if self._venta_seleccionada:
-                id_venta = self._venta_seleccionada.get('id_venta')
-            
-            success = self._gestor.eliminar_detalle_venta(id_detalle_venta)
-            if success:
-                self.cargar_variedades_disponibles()
-                if id_venta:
-                    self.cargar_venta_por_id(id_venta)
-                self.cargar_ventas()  # Para actualizar totales
-            return success
+            venta = next((v for v in self._ventas if v['id'] == id_venta), None)
+            if venta:
+                self._venta_seleccionada = venta
+                self.ventaSeleccionadaChanged.emit()
         except Exception as e:
-            print(f"Error al eliminar detalle de venta: {str(e)}")
-            return False
+            print(f"Error al seleccionar venta: {str(e)}")
     
-    @Slot(int, str, result=bool)
-    def actualizar_detalle_venta(self, id_detalle_venta, detalle_data_json):
-        """Actualiza un detalle de venta existente"""
+    @Slot(int, result=str)
+    def obtener_pagos_venta(self, id_venta):
+        """Obtiene los pagos realizados para una venta específica"""
         try:
-            # Necesitamos guardar el ID de la venta actual en caso de que necesitemos recargarla
-            id_venta = None
-            if self._venta_seleccionada:
-                id_venta = self._venta_seleccionada.get('id_venta')
-            
-            detalle_data = json.loads(detalle_data_json)
-            
-            # Asegurarse de que el detalle contiene id_variedad si se está actualizando
-            if 'id_lote' in detalle_data and not 'id_variedad' in detalle_data:
-                logger.warning(f"Se encontró id_lote en detalle para actualizar: {detalle_data['id_lote']}")
-                # Convertir id_lote a id_variedad si es necesario (o manejar según corresponda)
-                del detalle_data['id_lote']
-                
-            success = self._gestor.actualizar_detalle_venta(id_detalle_venta, detalle_data)
-            if success:
-                self.cargar_variedades_disponibles()
-                if id_venta:
-                    self.cargar_venta_por_id(id_venta)
-                self.cargar_ventas()  # Para actualizar totales
-            return success
+            pagos = self._gestor.obtener_pagos_venta(id_venta)
+            return json.dumps(pagos)
         except Exception as e:
-            print(f"Error al actualizar detalle de venta: {str(e)}")
-            return False
+            print(f"Error al obtener pagos de la venta: {str(e)}")
+            return "[]"
     
-    # ==================== SLOTS PARA FILTROS Y BÚSQUEDAS ====================
+    # ==================== MÉTODOS DE BÚSQUEDA Y FILTRADO ====================
+    
+    @Slot(str, result=str)
+    def buscar_clientes(self, termino_busqueda):
+        """Busca clientes por nombre, documento o contacto"""
+        try:
+            if not termino_busqueda:
+                return json.dumps(self._clientes)
+            
+            termino = termino_busqueda.lower()
+            resultados = [
+                cliente for cliente in self._clientes
+                if termino in cliente['nombre_completo'].lower() or
+                   termino in cliente['documento'].lower() or
+                   termino in cliente.get('telefono', '').lower() or
+                   termino in cliente.get('email', '').lower()
+            ]
+            return json.dumps(resultados)
+        except Exception as e:
+            print(f"Error al buscar clientes: {str(e)}")
+            return "[]"
     
     @Slot(str, result=str)
     def buscar_ventas(self, termino_busqueda):
-        """Busca ventas que coincidan con el término de búsqueda"""
+        """Busca ventas por cliente, número de venta o producto"""
         try:
+            if not termino_busqueda:
+                return json.dumps(self._ventas)
+            
             termino = termino_busqueda.lower()
-            resultados = []
-            
-            for venta in self._ventas:
-                # Buscar coincidencias en código o cliente
-                if (termino in venta['codigo_venta'].lower() or
-                    termino in venta['cliente_nombre'].lower()):
-                    resultados.append(venta)
-            
+            resultados = [
+                venta for venta in self._ventas
+                if termino in venta['cliente'].lower() or
+                   termino in str(venta['id']).lower() or
+                   termino in venta.get('observaciones', '').lower()
+            ]
             return json.dumps(resultados)
         except Exception as e:
             print(f"Error al buscar ventas: {str(e)}")

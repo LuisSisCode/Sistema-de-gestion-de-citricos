@@ -5,6 +5,10 @@ Paquete de repositorios para el sistema agrícola.
 Contiene todos los repositorios organizados por módulos.
 """
 
+# Repositorios de Usuarios y Autentificación
+from .usuario_repositorio import UsuarioRepositorio
+from .auto_repositorio import AutoRepositorio
+
 # Repositorios de Agricultores y Parcelas
 from .Agriculor_Parcelas_rep.agricultor_repositorio import AgricultorRepositorio
 from .Agriculor_Parcelas_rep.parcela_repositorio import ParcelaRepositorio
@@ -25,6 +29,9 @@ from .ClientesVentasRep.estado_venta_repositorio import EstadoVentaRepositorio
 from .ClientesVentasRep.relacion_cliente_venta_repositorio import RelacionClienteVentaRepositorio
 
 __all__ = [
+    # Usuarios y autentificacion
+    'UsuarioRepositorio',
+    'AutoRepositorio',
     # Agricultores y Parcelas
     'AgricultorRepositorio',
     'ParcelaRepositorio', 
