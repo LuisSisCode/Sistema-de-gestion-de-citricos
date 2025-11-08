@@ -721,10 +721,8 @@ class GestionCultivoServicio:
         """Extrae métricas relevantes de variedades."""
         return {
             'total': estadisticas.get('total_variedades', 0),
-            'con_rendimiento': estadisticas.get('con_rendimiento_esperado', 0),
             'sin_uso': estadisticas.get('metricas_servicio', {}).get('variedades_sin_uso', 0),
-            'populares': estadisticas.get('metricas_servicio', {}).get('variedades_populares', 0),
-            'rendimiento_promedio': estadisticas.get('rendimiento_promedio', 0)
+            'populares': estadisticas.get('metricas_servicio', {}).get('variedades_populares', 0)
         }
     
     def _extraer_metricas_ciclos(self, estadisticas):

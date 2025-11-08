@@ -205,7 +205,6 @@ class RelacionCultivoRepositorio(RepositorioBase):
         SELECT TOP (?)
             v.id_variedad,
             v.nombre as nombre_variedad,
-            v.rendimiento_esperado,
             v.tiempo_produccion,
             t.nombre as nombre_tipo_cultivo,
             COUNT(c.id_ciclo) as total_ciclos,
@@ -214,9 +213,9 @@ class RelacionCultivoRepositorio(RepositorioBase):
         FROM VariedadesCultivo v
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
         LEFT JOIN CiclosProduccion c ON v.id_variedad = c.id_variedad AND c.activo = 1
-        WHERE v.activo = 1 AND t.activo = 1 AND v.rendimiento_esperado IS NOT NULL
-        GROUP BY v.id_variedad, v.nombre, v.rendimiento_esperado, v.tiempo_produccion, t.nombre
-        ORDER BY v.rendimiento_esperado DESC, total_ciclos DESC
+        WHERE v.activo = 1 AND t.activo = 1 IS NOT NULL
+        GROUP BY v.id_variedad, v.nombre,  v.tiempo_produccion, t.nombre
+        ORDER BY total_ciclos DESC
         """
         
         rows = self._ejecutar_consulta(query, (limite,))
@@ -229,7 +228,6 @@ class RelacionCultivoRepositorio(RepositorioBase):
                 'nombre_variedad': row.nombre_variedad,
                 'nombre_tipo_cultivo': row.nombre_tipo_cultivo,
                 'nombre_completo': f"{row.nombre_tipo_cultivo} - {row.nombre_variedad}",
-                'rendimiento_esperado': float(row.rendimiento_esperado),
                 'tiempo_produccion': row.tiempo_produccion,
                 'total_ciclos': row.total_ciclos,
                 'area_total': float(row.area_total),
@@ -251,22 +249,21 @@ class RelacionCultivoRepositorio(RepositorioBase):
         """
         query = """
         SELECT 
-            a.id_agricultor,
+            a.id_productor,
             a.nombre + ' ' + a.apellido as nombre_propietario,
             COUNT(DISTINCT c.id_ciclo) as total_ciclos,
             COUNT(DISTINCT c.id_variedad) as variedades_utilizadas,
             COUNT(DISTINCT t.id_tipo_cultivo) as tipos_cultivados,
             COALESCE(SUM(c.area_sembrada), 0) as area_total_sembrada,
             COUNT(CASE WHEN c.estado = 'Finalizado' THEN 1 END) as ciclos_completados,
-            COUNT(CASE WHEN c.estado IN ('Planificado', 'En Preparación', 'Sembrado', 'En Desarrollo', 'En Cosecha') THEN 1 END) as ciclos_activos,
-            AVG(v.rendimiento_esperado) as rendimiento_promedio_esperado
-        FROM Agricultores a
-        JOIN Parcelas p ON a.id_agricultor = p.id_agricultor
+            COUNT(CASE WHEN c.estado IN ('Planificado', 'En Preparación', 'Sembrado', 'En Desarrollo', 'En Cosecha') THEN 1 END) as ciclos_activos
+        FROM Productoresa
+        JOIN Parcelas p ON a.id_productor = p.id_productor
         JOIN CiclosProduccion c ON p.id_parcela = c.id_parcela
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
         WHERE a.activo = 1 AND p.activo = 1 AND c.activo = 1 AND v.activo = 1 AND t.activo = 1
-        GROUP BY a.id_agricultor, a.nombre, a.apellido
+        GROUP BY a.id_productor, a.nombre, a.apellido
         ORDER BY area_total_sembrada DESC, total_ciclos DESC
         """
         
@@ -275,7 +272,7 @@ class RelacionCultivoRepositorio(RepositorioBase):
         
         for row in rows:
             propietario = {
-                'id_agricultor': row.id_agricultor,
+                'id_productor': row.id_productor,
                 'nombre_propietario': row.nombre_propietario,
                 'total_ciclos': row.total_ciclos,
                 'variedades_utilizadas': row.variedades_utilizadas,
@@ -512,8 +509,7 @@ class RelacionCultivoRepositorio(RepositorioBase):
         # Buscar en variedades
         variedades_query = """
         SELECT 'variedad' as entidad, v.id_variedad as id, v.nombre,
-               t.nombre as descripcion, 
-               CONCAT('Rendimiento: ', ISNULL(CAST(v.rendimiento_esperado AS VARCHAR), 'N/A'), ' ton/ha') as info_adicional
+               t.nombre as descripcion
         FROM VariedadesCultivo v
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
         WHERE v.activo = 1 AND t.activo = 1 

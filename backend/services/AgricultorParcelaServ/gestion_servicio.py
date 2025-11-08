@@ -1,9 +1,9 @@
 # bd_conecciones/servicios/gestion_servicio.py
 
 import logging
-from .agricultor_servicio import AgricultorServicio
+from .productor_servicio import ProductorServicio
 from .parcela_servicio import ParcelaServicio
-from ...repositories.Agriculor_Parcelas_rep.relacion_AgriPar_repositorio import RelacionRepositorio
+from ...repositories.Productor_Parcelas_rep.relacion_AgriPar_repositorio import RelacionRepositorio
 from ...core.cache_system import cacheable, cache_invalidator, get_ttl
 
 logger = logging.getLogger(__name__)
@@ -12,7 +12,7 @@ class GestionServicio:
     """Servicio principal para operaciones complejas que involucran múltiples entidades con caché optimizado."""
     
     def __init__(self):
-        self.agricultor_servicio = AgricultorServicio()
+        self.productor_servicio = ProductorServicio()
         self.parcela_servicio = ParcelaServicio()
         self.relacion_repo = RelacionRepositorio()
     
@@ -40,8 +40,7 @@ class GestionServicio:
             
             dashboard = {
                 'resumen': {
-                    'total_agricultores': estadisticas_generales['agricultores']['total'],
-                    'total_propietarios': estadisticas_generales['agricultores']['propietarios'],
+                    'total_productores': estadisticas_generales['productores']['total'],
                     'total_parcelas': estadisticas_generales['parcelas']['total'],
                     'area_total': estadisticas_generales['parcelas']['area_total'],
                     'area_promedio': estadisticas_generales['parcelas']['area_promedio']
@@ -81,7 +80,7 @@ class GestionServicio:
     @cache_invalidator('analisis_propietarios')           # Invalidar análisis
     def procesar_operacion_agricultor(self, operacion, datos):
         """
-        Procesa operaciones de agricultores con manejo unificado.
+        Procesa operaciones de productores con manejo unificado.
         OPTIMIZADO: Invalidación automática del dashboard tras operaciones.
         
         Args:
@@ -95,16 +94,16 @@ class GestionServicio:
             resultado = None
             
             if operacion == 'crear':
-                resultado = self.agricultor_servicio.crear_agricultor(datos['agricultor'])
+                resultado = self.productor_servicio.crear_agricultor(datos['agricultor'])
             
             elif operacion == 'actualizar':
-                resultado = self.agricultor_servicio.actualizar_agricultor(
-                    datos['id_agricultor'], 
+                resultado = self.productor_servicio.actualizar_agricultor(
+                    datos['id_productor'], 
                     datos['agricultor']
                 )
             
             elif operacion == 'eliminar':
-                resultado = self.agricultor_servicio.eliminar_agricultor(datos['id_agricultor'])
+                resultado = self.productor_servicio.eliminar_agricultor(datos['id_productor'])
             
             else:
                 resultado = {'exito': False, 'mensaje': f"Operación '{operacion}' no reconocida"}
@@ -151,12 +150,6 @@ class GestionServicio:
             elif operacion == 'eliminar':
                 resultado = self.parcela_servicio.eliminar_parcela(datos['id_parcela'])
             
-            elif operacion == 'transferir':
-                resultado = self.parcela_servicio.transferir_parcela(
-                    datos['id_parcela'], 
-                    datos['nuevo_propietario_id']
-                )
-            
             else:
                 resultado = {'exito': False, 'mensaje': f"Operación '{operacion}' no reconocida"}
             
@@ -179,7 +172,7 @@ class GestionServicio:
         ⭐ OPTIMIZADO: Resultado de coordinación cacheado a nivel de gestión
         
         Args:
-            entidad (str): Tipo de entidad (agricultores, parcelas).
+            entidad (str): Tipo de entidad (productores, parcelas).
             pagina (int): Número de página.
             por_pagina (int): Registros por página.
             filtros (dict, optional): Filtros a aplicar.
@@ -190,8 +183,8 @@ class GestionServicio:
         try:
             resultado = None
             
-            if entidad == 'agricultores':
-                resultado = self.agricultor_servicio.obtener_agricultores_paginado(pagina, 8)
+            if entidad == 'productores':
+                resultado = self.productor_servicio.obtener_productores_paginado(pagina, 8)
             
             elif entidad == 'parcelas':
                 propietario_id = filtros.get('propietario_id') if filtros else None
@@ -234,7 +227,7 @@ class GestionServicio:
         ⭐ OPTIMIZADO: Búsquedas coordinadas cacheadas
         
         Args:
-            entidad (str): Tipo de entidad (agricultores, parcelas).
+            entidad (str): Tipo de entidad (productores, parcelas).
             texto_busqueda (str): Texto a buscar.
             
         Returns:
@@ -243,8 +236,8 @@ class GestionServicio:
         try:
             resultados = []
             
-            if entidad == 'agricultores':
-                resultados = self.agricultor_servicio.buscar_agricultores(texto_busqueda)
+            if entidad == 'productores':
+                resultados = self.productor_servicio.buscar_productores(texto_busqueda)
             
             elif entidad == 'parcelas':
                 resultados = self.parcela_servicio.buscar_parcelas(texto_busqueda)
@@ -280,7 +273,7 @@ class GestionServicio:
         """
         try:
             # Obtener estado del agricultor (ya cacheado en servicio)
-            estado_agricultor = self.agricultor_servicio.verificar_estado_agricultor(id_propietario)
+            estado_agricultor = self.productor_servicioverificar_estado_agricultor(id_propietario)
             
             if not estado_agricultor:
                 return {'error': 'Propietario no encontrado'}
@@ -302,7 +295,6 @@ class GestionServicio:
                     'porcentaje_coordenadas': (parcelas_con_coords / len(parcelas) * 100) if parcelas else 0
                 },
                 'parcelas': parcelas,
-                'recomendaciones': self._generar_recomendaciones_propietario_cached(estado_agricultor, parcelas),
                 
                 # Nuevas métricas de análisis
                 'metricas_avanzadas': {
@@ -340,8 +332,7 @@ class GestionServicio:
             reporte = {
                 'fecha_generacion': self._obtener_fecha_actual(),
                 'resumen_ejecutivo': {
-                    'total_agricultores': estadisticas['agricultores']['total'],
-                    'total_propietarios': estadisticas['agricultores']['propietarios'],
+                    'total_productores': estadisticas['productores']['total'],
                     'total_parcelas': estadisticas['parcelas']['total'],
                     'area_total_sistema': estadisticas['parcelas']['area_total'],
                     'area_promedio': estadisticas['parcelas']['area_promedio']
@@ -359,7 +350,7 @@ class GestionServicio:
                 # Nuevas métricas de reporte
                 'metricas_avanzadas': {
                     'indice_gini_tierras': self._calcular_indice_gini(distribucion),
-                    'densidad_parcelas': estadisticas['parcelas']['total'] / estadisticas['agricultores']['propietarios'] if estadisticas['agricultores']['propietarios'] > 0 else 0,
+                    'densidad_parcelas': estadisticas['parcelas']['total'] / estadisticas['productores']['propietarios'] if estadisticas['productores']['propietarios'] > 0 else 0,
                     'eficiencia_sistema': self._calcular_eficiencia_sistema(estadisticas, parcelas_sin_coords),
                     'tendencias': self._analizar_tendencias_sistema(estadisticas)
                 }
@@ -371,49 +362,6 @@ class GestionServicio:
         except Exception as e:
             logger.error(f"Error en generar_reporte_completo: {str(e)}")
             return {'error': 'Error al generar reporte'}
-
-    @cacheable('validaciones_gestion', key_func=lambda: 'integridad_sistema', ttl=1800)  # 30 min
-    def validar_integridad_sistema(self):
-        """
-        Valida la integridad completa del sistema.
-        ⭐ OPTIMIZADO: Validaciones completas cacheadas
-        
-        Returns:
-            dict: Resultados de la validación.
-        """
-        try:
-            validaciones = {
-                'agricultores_sin_parcelas': self._validar_agricultores_sin_parcelas_cached(),
-                'parcelas_sin_coordenadas': self._validar_parcelas_sin_coordenadas_cached(),
-                'datos_inconsistentes': self._validar_datos_inconsistentes_cached(),
-                'referencias_rotas': self._validar_referencias_rotas_cached()
-            }
-            
-            # Calcular puntuación general
-            total_problemas = sum(len(v) for v in validaciones.values() if isinstance(v, list))
-            puntuacion = max(0, 100 - (total_problemas * 5))  # -5 puntos por problema
-            
-            resultado = {
-                'puntuacion_integridad': puntuacion,
-                'estado': 'Excelente' if puntuacion >= 90 else 'Bueno' if puntuacion >= 70 else 'Necesita atención',
-                'validaciones': validaciones,
-                'resumen_problemas': total_problemas,
-                'timestamp_validacion': self._get_timestamp(),
-                
-                # Nuevas métricas de validación
-                'metricas_validacion': {
-                    'porcentaje_datos_completos': self._calcular_porcentaje_datos_completos(validaciones),
-                    'criticidad_problemas': self._evaluar_criticidad_problemas(validaciones),
-                    'recomendaciones_correccion': self._generar_recomendaciones_correccion(validaciones)
-                }
-            }
-            
-            logger.info(f"Validación de integridad completada - Puntuación: {puntuacion}")
-            return resultado
-            
-        except Exception as e:
-            logger.error(f"Error en validar_integridad_sistema: {str(e)}")
-            return {'error': 'Error al validar integridad'}
 
     # === MÉTODOS AUXILIARES OPTIMIZADOS ===
 
@@ -449,39 +397,13 @@ class GestionServicio:
                 alertas.append("Alta concentración de tierras en un solo propietario")
         
         # Nuevas alertas
-        if estadisticas['agricultores']['propietarios'] == 0:
+        if estadisticas['productores']['propietarios'] == 0:
             alertas.append("No hay propietarios registrados en el sistema")
         
         if estadisticas['parcelas']['total'] == 0:
             alertas.append("No hay parcelas registradas en el sistema")
         
         return alertas
-
-    @cacheable('recomendaciones_gestion', key_func=lambda estado, parcelas: f"prop_{hash(str(estado))}_{len(parcelas)}", ttl=1800)  # 30 min
-    def _generar_recomendaciones_propietario_cached(self, estado_agricultor, parcelas):
-        """Genera recomendaciones específicas para un propietario (versión cacheada)."""
-        recomendaciones = []
-        
-        # Recomendación por parcelas sin coordenadas
-        sin_coords = [p for p in parcelas if not p['tiene_coordenadas']]
-        if sin_coords:
-            recomendaciones.append(f"Agregar coordenadas GPS a {len(sin_coords)} parcelas")
-        
-        # Recomendación por área promedio
-        if parcelas:
-            area_promedio = sum(p['area'] for p in parcelas) / len(parcelas)
-            if area_promedio < 1:
-                recomendaciones.append("Considerar consolidar parcelas pequeñas")
-            elif area_promedio > 100:
-                recomendaciones.append("Considerar subdividir parcelas muy grandes")
-        
-        # Nuevas recomendaciones
-        if len(parcelas) == 1:
-            recomendaciones.append("Considerar diversificar propiedades")
-        elif len(parcelas) > 10:
-            recomendaciones.append("Evaluar estrategia de gestión para múltiples parcelas")
-        
-        return recomendaciones
 
     @cacheable('recomendaciones_gestion', key_func=lambda stats, parcelas: f"sistema_{hash(str(stats))}_{len(parcelas)}", ttl=1800)  # 30 min
     def _generar_recomendaciones_sistema_cached(self, estadisticas, parcelas_sin_coords):
@@ -497,70 +419,13 @@ class GestionServicio:
             else:
                 recomendaciones.append("Completar registro de coordenadas GPS faltantes")
         
-        if estadisticas['agricultores']['propietarios'] < estadisticas['agricultores']['total'] * 0.3:
+        if estadisticas['productores']['propietarios'] < estadisticas['productores']['total'] * 0.3:
             recomendaciones.append("Revisar clasificación de propietarios vs trabajadores")
         
         if estadisticas['parcelas']['area_promedio'] < 1:
             recomendaciones.append("Evaluar estrategias de consolidación de parcelas pequeñas")
         
         return recomendaciones
-
-    # === MÉTODOS AUXILIARES DE VALIDACIÓN CACHEADOS ===
-
-    @cacheable('validaciones_gestion', key_func=lambda: 'agricultores_sin_parcelas', ttl=1800)  # 30 min
-    def _validar_agricultores_sin_parcelas_cached(self):
-        """Valida agricultores propietarios sin parcelas (versión cacheada)."""
-        try:
-            propietarios = self.agricultor_servicio.obtener_propietarios_activos()
-            sin_parcelas = []
-            
-            for propietario in propietarios:
-                parcelas = self.parcela_servicio.obtener_parcelas_por_propietario(propietario['id'])
-                if not parcelas:
-                    sin_parcelas.append(propietario)
-            
-            return sin_parcelas
-        except Exception:
-            return []
-
-    @cacheable('validaciones_gestion', key_func=lambda: 'parcelas_sin_coordenadas_val', ttl=1800)  # 30 min
-    def _validar_parcelas_sin_coordenadas_cached(self):
-        """Valida parcelas sin coordenadas (versión cacheada)."""
-        try:
-            return self.relacion_repo.obtener_parcelas_sin_coordenadas()
-        except Exception:
-            return []
-
-    @cacheable('validaciones_gestion', key_func=lambda: 'datos_inconsistentes', ttl=1800)  # 30 min
-    def _validar_datos_inconsistentes_cached(self):
-        """Valida datos que podrían ser inconsistentes (versión cacheada)."""
-        inconsistencias = []
-        
-        try:
-            # Validar áreas negativas o cero
-            # Validar coordenadas fuera de rango
-            # Validar nombres duplicados
-            # etc.
-            pass
-        except Exception:
-            pass
-        
-        return inconsistencias
-
-    @cacheable('validaciones_gestion', key_func=lambda: 'referencias_rotas', ttl=1800)  # 30 min
-    def _validar_referencias_rotas_cached(self):
-        """Valida referencias rotas entre entidades (versión cacheada)."""
-        referencias_rotas = []
-        
-        try:
-            # Validar integridad referencial
-            # Parcelas sin propietario válido
-            # etc.
-            pass
-        except Exception:
-            pass
-        
-        return referencias_rotas
 
     # === MÉTODOS AUXILIARES NUEVOS ===
 
@@ -581,8 +446,8 @@ class GestionServicio:
 
     def _calcular_balance_propietarios(self, estadisticas):
         """Calcula el balance entre propietarios y trabajadores."""
-        total = estadisticas['agricultores']['total']
-        propietarios = estadisticas['agricultores']['propietarios']
+        total = estadisticas['productores']['total']
+        propietarios = estadisticas['productores']['propietarios']
         return round((propietarios / total * 100), 1) if total > 0 else 0
 
     def _categorizar_propietario_por_area(self, area_total):
@@ -640,7 +505,7 @@ class GestionServicio:
             scores.append(score_coords)
         
         # Score completitud básica
-        if estadisticas['agricultores']['total'] > 0 and estadisticas['parcelas']['total'] > 0:
+        if estadisticas['productores']['total'] > 0 and estadisticas['parcelas']['total'] > 0:
             scores.append(100)  # Datos básicos completos
         
         return round(sum(scores) / len(scores), 1) if scores else 0
@@ -675,8 +540,8 @@ class GestionServicio:
             factores.append(factor_coords)
         
         # Factor utilización
-        if estadisticas['agricultores']['propietarios'] > 0:
-            factor_utilizacion = (estadisticas['parcelas']['total'] / estadisticas['agricultores']['propietarios']) * 10  # Factor de escala
+        if estadisticas['productores']['propietarios'] > 0:
+            factor_utilizacion = (estadisticas['parcelas']['total'] / estadisticas['productores']['propietarios']) * 10  # Factor de escala
             factores.append(min(100, factor_utilizacion))
         
         return round(sum(factores) / len(factores), 1) if factores else 0
@@ -702,7 +567,7 @@ class GestionServicio:
             criticidad = 'alta'
         elif validaciones.get('datos_inconsistentes'):
             criticidad = 'media'
-        elif validaciones.get('agricultores_sin_parcelas'):
+        elif validaciones.get('productores_sin_parcelas'):
             criticidad = 'media'
         
         return criticidad
@@ -711,7 +576,7 @@ class GestionServicio:
         """Genera recomendaciones para corregir problemas."""
         recomendaciones = []
         
-        if validaciones.get('agricultores_sin_parcelas'):
+        if validaciones.get('productores_sin_parcelas'):
             recomendaciones.append("Asignar parcelas a propietarios sin tierras o reclasificar como trabajadores")
         
         if validaciones.get('parcelas_sin_coordenadas'):

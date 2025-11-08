@@ -641,20 +641,6 @@ class CultivosModel(QObject):
 
     # ==================== VALIDACIÓN Y INTEGRIDAD ====================
 
-    @Slot()
-    def validar_integridad_sistema(self):
-        """Valida la integridad completa del ecosistema de cultivos."""
-        try:
-            validacion = self._gestion_servicio.validar_integridad_ecosistema()
-            self._validacion_integridad = validacion
-            self.validacionIntegridadChanged.emit()
-            
-            score = validacion.get('score_salud_general', 0)
-            print(f"Validación completada. Score de salud: {score}")
-            
-        except Exception as e:
-            print(f"Error en validación de integridad: {str(e)}")
-
     @Slot(int, result=dict)
     def verificar_estado_tipo_cultivo(self, id_tipo_cultivo):
         """Verifica el estado completo de un tipo de cultivo."""
@@ -934,7 +920,7 @@ class CultivosModel(QObject):
                 'validaciones': {'nombre': {'required': True, 'min_length': 3}}
             },
             'variedad': {
-                'campos': ['id_tipo_cultivo', 'nombre', 'tiempo_produccion', 'rendimiento_esperado', 'resistencia_zona'],
+                'campos': ['id_tipo_cultivo', 'nombre', 'tiempo_produccion', 'resistencia_zona'],
                 'validaciones': {'nombre': {'required': True}, 'id_tipo_cultivo': {'required': True}}
             },
             'ciclo': {
@@ -1135,24 +1121,6 @@ class CultivosModel(QObject):
             return {'lotes': [], 'total_registros': 0}
     
     # ==================== MÉTODOS DE ANÁLISIS Y ESTADÍSTICAS ====================
-    
-    @Slot(int, result=dict)
-    def analizar_rendimiento_ciclo(self, id_ciclo):
-        """
-        Analiza el rendimiento completo de un ciclo de producción.
-        
-        Args:
-            id_ciclo (int): ID del ciclo
-            
-        Returns:
-            dict: Análisis completo del rendimiento
-        """
-        try:
-            analisis = self._lote_servicio.analizar_rendimiento_ciclo(id_ciclo)
-            return analisis
-        except Exception as e:
-            print(f"Error al analizar rendimiento del ciclo: {str(e)}")
-            return {'error': str(e)}
     
     @Slot(result=dict)
     def obtener_estadisticas_lotes_cosecha(self):

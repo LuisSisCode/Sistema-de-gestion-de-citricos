@@ -85,7 +85,7 @@ class GestorCultivos:
                 if id_tipo_cultivo:
                     query = """
                     SELECT v.id_variedad, v.id_tipo_cultivo, v.nombre, v.tiempo_produccion, 
-                           v.rendimiento_esperado, v.resistencia_zona, v.activo,
+                           v.resistencia_zona, v.activo,
                            t.nombre AS nombre_tipo_cultivo
                     FROM VariedadesCultivo v
                     JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
@@ -96,7 +96,7 @@ class GestorCultivos:
                 else:
                     query = """
                     SELECT v.id_variedad, v.id_tipo_cultivo, v.nombre, v.tiempo_produccion, 
-                           v.rendimiento_esperado, v.resistencia_zona, v.activo,
+                           v.resistencia_zona, v.activo,
                            t.nombre AS nombre_tipo_cultivo
                     FROM VariedadesCultivo v
                     JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
@@ -112,7 +112,6 @@ class GestorCultivos:
                         'id_tipo_cultivo': row.id_tipo_cultivo,
                         'nombre': row.nombre,
                         'tiempo_produccion': row.tiempo_produccion,
-                        'rendimiento_esperado': float(row.rendimiento_esperado) if row.rendimiento_esperado else None,
                         'resistencia_zona': row.resistencia_zona,
                         'activo': bool(row.activo),
                         'nombre_tipo_cultivo': row.nombre_tipo_cultivo
@@ -391,7 +390,7 @@ class GestorCultivos:
                 
                 query = """
                 INSERT INTO VariedadesCultivo (id_tipo_cultivo, nombre, tiempo_produccion, 
-                                            rendimiento_esperado, resistencia_zona, activo)
+                                            resistencia_zona, activo)
                 VALUES (?, ?, ?, ?, ?, ?)
                 """
                 
@@ -399,7 +398,6 @@ class GestorCultivos:
                     variedad_data['id_tipo_cultivo'],
                     variedad_data['nombre'],
                     variedad_data.get('tiempo_produccion'),
-                    variedad_data.get('rendimiento_esperado'),
                     variedad_data.get('resistencia_zona'),
                     1 if variedad_data.get('activo', True) else 0
                 )
@@ -447,10 +445,6 @@ class GestorCultivos:
                 if 'tiempo_produccion' in variedad_data:
                     campos_actualizar.append("tiempo_produccion = ?")
                     valores.append(variedad_data['tiempo_produccion'])
-                    
-                if 'rendimiento_esperado' in variedad_data:
-                    campos_actualizar.append("rendimiento_esperado = ?")
-                    valores.append(variedad_data['rendimiento_esperado'])
                     
                 if 'resistencia_zona' in variedad_data:
                     campos_actualizar.append("resistencia_zona = ?")

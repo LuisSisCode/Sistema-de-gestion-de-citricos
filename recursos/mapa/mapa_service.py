@@ -10,7 +10,7 @@ import random
 # Importar servicios existentes de tu arquitectura
 from backend.services.AgricultorParcelaServ.gestion_servicio import GestionServicio
 from backend.services.AgricultorParcelaServ.parcela_servicio import ParcelaServicio
-from backend.services.AgricultorParcelaServ.agricultor_servicio import AgricultorServicio
+from backend.services.AgricultorParcelaServ.productor_servicio import ProductorServicio
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -23,7 +23,7 @@ CORS(app)  # Permitir CORS para todas las rutas
 # Inicializar servicios
 gestion_servicio = GestionServicio()
 parcela_servicio = ParcelaServicio()
-agricultor_servicio = AgricultorServicio()
+productor_servicio = ProductorServicio()
 
 class MapaGeoJSONConverter:
     """Clase para convertir datos de parcelas a formato GeoJSON"""
@@ -108,7 +108,7 @@ class MapaGeoJSONConverter:
                 
                 # Propietario con datos reales
                 "propietario": nombre_propietario,
-                "propietarioId": parcela.get('id_agricultor') or parcela.get('propietarioId'),
+                "propietarioId": parcela.get('id_productor') or parcela.get('propietarioId'),
                 
                 "ubicacion": parcela.get('ubicacion', ''),
                 "area": area_total,
@@ -458,34 +458,6 @@ def get_estadisticas():
         
     except Exception as e:
         logger.error(f"Error en get_estadisticas: {str(e)}")
-        return jsonify({
-            "error": "Error interno del servidor",
-            "mensaje": str(e)
-        }), 500
-
-@app.route('/api/propietarios')
-def get_propietarios():
-    """Devuelve lista de propietarios para filtros"""
-    try:
-        propietarios = agricultor_servicio.obtener_propietarios_activos()
-        
-        # Formatear para el frontend
-        propietarios_formateados = []
-        for prop in propietarios:
-            propietarios_formateados.append({
-                "id": prop.get('id'),
-                "nombre": prop.get('nombre', ''),
-                "apellido": prop.get('apellido', ''),
-                "nombre_completo": f"{prop.get('nombre', '')} {prop.get('apellido', '')}".strip()
-            })
-        
-        return jsonify({
-            "propietarios": propietarios_formateados,
-            "total": len(propietarios_formateados)
-        })
-        
-    except Exception as e:
-        logger.error(f"Error en get_propietarios: {str(e)}")
         return jsonify({
             "error": "Error interno del servidor",
             "mensaje": str(e)

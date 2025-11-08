@@ -25,7 +25,7 @@ from .core.excepciones_bd import (
 
 # Importaciones de repositorios
 from .repositories import (
-    AgricultorRepositorio,
+    ProductorRepositorio,
     ParcelaRepositorio,
     RelacionRepositorio,
     RelacionCultivoRepositorio,
@@ -42,7 +42,7 @@ from .repositories import (
 
 # Importaciones de servicios
 from .services import (
-    AgricultorServicio,
+    ProductorServicio,
     ParcelaServicio,
     GestionServicio,
     GestionCultivoServicio,
@@ -68,7 +68,7 @@ __all__ = [
     'RegistroTieneDependencias',
     
     # Repositorios
-    'AgricultorRepositorio',
+    'ProductorRepositorio',
     'ParcelaRepositorio',
     'RelacionRepositorio',
     'RelacionCultivoRepositorio',
@@ -82,7 +82,7 @@ __all__ = [
     'GestionClienteVentaServicio',
     
     # Servicios
-    'AgricultorServicio',
+    'ProductorServicio',
     'ParcelaServicio', 
     'GestionServicio',
     'GestionCultivoServicio',

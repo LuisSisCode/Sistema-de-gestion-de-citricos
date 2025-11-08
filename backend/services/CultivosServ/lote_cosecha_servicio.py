@@ -62,7 +62,6 @@ class LoteCosechaServicio:
                 lote_enriquecido['disponibilidad'] = self._calcular_disponibilidad_cached(lote['id_lote'])
                 
                 # Información de rendimiento vs esperado
-                lote_enriquecido['analisis_rendimiento'] = self._analizar_rendimiento_vs_esperado(lote)
                 lote_enriquecido['categoria_rentabilidad'] = self._categorizar_rentabilidad(lote)
                 
                 lotes_enriquecidos.append(lote_enriquecido)
@@ -128,9 +127,6 @@ class LoteCosechaServicio:
                 # Obtener información del lote creado
                 lote_creado = self.lote_repo.obtener_por_id(id_lote)
                 
-                # Analizar rendimiento
-                analisis_rendimiento = self._analizar_rendimiento_vs_esperado(lote_creado)
-                
                 resultado = {
                     'exito': True,
                     'id_lote': id_lote,
@@ -138,8 +134,6 @@ class LoteCosechaServicio:
                     'mensaje': f"Cosecha registrada exitosamente. Lote: {lote_creado['codigo_lote']}",
                     'lote_creado': lote_creado,
                     'ciclo_finalizado': True,
-                    'analisis_rendimiento': analisis_rendimiento,
-                    'recomendaciones': self._generar_recomendaciones_post_cosecha(lote_creado, analisis_rendimiento),
                     'requiere_actualizacion_listas': True
                 }
                 
@@ -276,64 +270,6 @@ class LoteCosechaServicio:
         except Exception as e:
             logger.error(f"Error en servicio obtener_estadisticas_lotes: {str(e)}")
             return {}
-
-    @cacheable('analisis_lotes', key_func=lambda id_ciclo: f"rendimiento_ciclo_{id_ciclo}", ttl=1800)  # 30 min
-    def analizar_rendimiento_ciclo(self, id_ciclo):
-        """
-        Analiza el rendimiento de todos los lotes de un ciclo.
-        
-        Args:
-            id_ciclo (int): ID del ciclo de producción.
-            
-        Returns:
-            dict: Análisis completo del rendimiento del ciclo.
-        """
-        try:
-            lotes_ciclo = self.lote_repo.obtener_por_ciclo(id_ciclo)
-            ciclo = self.ciclo_repo.obtener_por_id(id_ciclo)
-            
-            if not lotes_ciclo:
-                return {'error': 'No hay lotes registrados para este ciclo'}
-            
-            # Calcular métricas del ciclo
-            cantidad_total = sum(l['cantidad_cosechada'] for l in lotes_ciclo)
-            valor_total = sum(l['valor_total_estimado'] for l in lotes_ciclo)
-            rendimiento_real = cantidad_total / ciclo['area_sembrada'] if ciclo['area_sembrada'] > 0 else 0
-            
-            # Obtener rendimiento esperado
-            variedad = self.variedad_repo.obtener_por_id(ciclo['id_variedad'])
-            rendimiento_esperado = variedad.get('rendimiento_esperado', 0)
-            
-            # Calcular eficiencia
-            eficiencia = (rendimiento_real / rendimiento_esperado * 100) if rendimiento_esperado > 0 else 0
-            
-            analisis = {
-                'ciclo_info': {
-                    'id_ciclo': id_ciclo,
-                    'area_sembrada': ciclo['area_sembrada'],
-                    'nombre_cultivo': ciclo['cultivo_completo']
-                },
-                'rendimiento': {
-                    'real': round(rendimiento_real, 2),
-                    'esperado': rendimiento_esperado,
-                    'eficiencia': round(eficiencia, 1),
-                    'categoria': self._categorizar_eficiencia_rendimiento(eficiencia)
-                },
-                'produccion': {
-                    'cantidad_total': cantidad_total,
-                    'valor_total': valor_total,
-                    'lotes_generados': len(lotes_ciclo),
-                    'promedio_por_lote': round(cantidad_total / len(lotes_ciclo), 2)
-                },
-                'calidad': self._analizar_calidad_lotes(lotes_ciclo),
-                'recomendaciones': self._generar_recomendaciones_ciclo(eficiencia, lotes_ciclo)
-            }
-            
-            return analisis
-            
-        except Exception as e:
-            logger.error(f"Error analizando rendimiento del ciclo {id_ciclo}: {str(e)}")
-            return {'error': str(e)}
 
     # ==================== MÉTODOS AUXILIARES OPTIMIZADOS ====================
 
@@ -503,44 +439,6 @@ class LoteCosechaServicio:
         
         return alertas
     
-    def _analizar_rendimiento_vs_esperado(self, lote):
-        """Analiza el rendimiento real vs esperado."""
-        try:
-            # Obtener información del ciclo y variedad
-            ciclo = self.ciclo_repo.obtener_por_id(lote['id_ciclo'])
-            variedad = self.variedad_repo.obtener_por_id(ciclo['id_variedad'])
-            
-            rendimiento_real = lote['rendimiento_por_hectarea']
-            rendimiento_esperado = variedad.get('rendimiento_esperado', 0)
-            
-            if rendimiento_esperado > 0:
-                eficiencia = (rendimiento_real / rendimiento_esperado) * 100
-                
-                if eficiencia >= 110:
-                    categoria = 'excelente'
-                elif eficiencia >= 90:
-                    categoria = 'bueno'
-                elif eficiencia >= 70:
-                    categoria = 'aceptable'
-                else:
-                    categoria = 'bajo'
-                
-                return {
-                    'rendimiento_real': rendimiento_real,
-                    'rendimiento_esperado': rendimiento_esperado,
-                    'eficiencia': round(eficiencia, 1),
-                    'categoria': categoria,
-                    'diferencia': round(rendimiento_real - rendimiento_esperado, 2)
-                }
-            else:
-                return {
-                    'rendimiento_real': rendimiento_real,
-                    'rendimiento_esperado': 0,
-                    'categoria': 'sin_referencia'
-                }
-        except Exception:
-            return {'categoria': 'error', 'rendimiento_real': lote['rendimiento_por_hectarea']}
-    
     def _categorizar_rentabilidad(self, lote):
         """Categoriza la rentabilidad del lote."""
         margen = lote.get('margen_estimado', 0)
@@ -651,16 +549,4 @@ class LoteCosechaServicio:
             recomendaciones.append("Revisar prácticas de cultivo para mejorar rendimiento")
         if len(lotes) > 5:
             recomendaciones.append("Considerar optimizar tamaño de lotes")
-        return recomendaciones
-    
-    def _generar_recomendaciones_post_cosecha(self, lote, analisis):
-        recomendaciones = []
-        if analisis.get('categoria') == 'excelente':
-            recomendaciones.append("Excelente rendimiento - replicar prácticas")
-        elif analisis.get('categoria') == 'bajo':
-            recomendaciones.append("Analizar causas del bajo rendimiento")
-        
-        if lote['precio_unitario_sugerido'] > 0:
-            recomendaciones.append("Precio sugerido calculado automáticamente")
-        
         return recomendaciones

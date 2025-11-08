@@ -1,18 +1,18 @@
 # bd_conecciones/servicios/AgricultorParcelasServ/__init__.py
 
 """
-Servicios para gestión de agricultores y parcelas.
+Servicios para gestión de productores y parcelas.
 
 Este módulo contiene los servicios que manejan la lógica de negocio
-para agricultores, parcelas y la gestión general del sistema.
+para productores, parcelas y la gestión general del sistema.
 """
 
-from .agricultor_servicio import AgricultorServicio
+from .productor_servicio import ProductorServicio
 from .parcela_servicio import ParcelaServicio
 from .gestion_servicio import GestionServicio
 
 __all__ = [
-    'AgricultorServicio',
+    'ProductorServicio',
     'ParcelaServicio',
     'GestionServicio'
 ]

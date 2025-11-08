@@ -347,7 +347,7 @@ Rectangle {
 
                                     Button {
                                         width: 32; height: 32
-                                        icon.source: "Image/Image_UI_interfaz/Inconos/editar.svg"
+                                        icon.source: "recursos/image/icons/editar.svg"
                                         flat: true
                                         ToolTip.visible: hovered
                                         ToolTip.text: "Editar"
@@ -356,7 +356,7 @@ Rectangle {
 
                                     Button {
                                         width: 32; height: 32
-                                        icon.source: "Image/Image_UI_interfaz/Inconos/basura.svg"
+                                        icon.source: "recursos/image/icons/basura.svg"
                                         flat: true
                                         ToolTip.visible: hovered
                                         ToolTip.text: "Eliminar"
@@ -530,7 +530,7 @@ Rectangle {
 
                                     Button {
                                         width: 32; height: 32
-                                        icon.source: "Image/Image_UI_interfaz/Inconos/editar.svg"
+                                        icon.source: "recursos/image/icons/editar.svg"
                                         flat: true
                                         ToolTip.visible: hovered
                                         ToolTip.text: "Editar"
@@ -539,7 +539,7 @@ Rectangle {
 
                                     Button {
                                         width: 32; height: 32
-                                        icon.source: "Image/Image_UI_interfaz/Inconos/basura.svg"
+                                        icon.source: "recursos/image/icons/basura.svg"
                                         flat: true
                                         ToolTip.visible: hovered
                                         ToolTip.text: "Eliminar"
@@ -719,7 +719,7 @@ Rectangle {
 
                                             Button {
                                                 width: 32; height: 32
-                                                icon.source: "Image/Image_UI_interfaz/Inconos/editar.svg"
+                                                icon.source: "recursos/image/icons/editar.svg"
                                                 flat: true
                                                 ToolTip.visible: hovered
                                                 ToolTip.text: "Editar"
@@ -728,7 +728,7 @@ Rectangle {
 
                                             Button {
                                                 width: 32; height: 32
-                                                icon.source: "Image/Image_UI_interfaz/Inconos/basura.svg"
+                                                icon.source: "recursos/image/icons/basura.svg"
                                                 flat: true
                                                 ToolTip.visible: hovered
                                                 ToolTip.text: "Eliminar"
@@ -833,7 +833,7 @@ Rectangle {
 
                                             Button {
                                                 width: 32; height: 32
-                                                icon.source: "Image/Image_UI_interfaz/Inconos/editar.svg"
+                                                icon.source: "recursos/image/icons/editar.svg"
                                                 flat: true
                                                 ToolTip.visible: hovered
                                                 ToolTip.text: "Editar"
@@ -842,7 +842,7 @@ Rectangle {
 
                                             Button {
                                                 width: 32; height: 32
-                                                icon.source: "Image/Image_UI_interfaz/Inconos/basura.svg"
+                                                icon.source: "recursos/image/icons/basura.svg"
                                                 flat: true
                                                 ToolTip.visible: hovered
                                                 ToolTip.text: "Eliminar"
@@ -967,7 +967,7 @@ Rectangle {
 
                                             Button {
                                                 width: 32; height: 32
-                                                icon.source: "Image/Image_UI_interfaz/Inconos/editar.svg"
+                                                icon.source: "recursos/image/icons/editar.svg"
                                                 flat: true
                                                 ToolTip.visible: hovered
                                                 ToolTip.text: "Editar"
@@ -976,7 +976,7 @@ Rectangle {
 
                                             Button {
                                                 width: 32; height: 32
-                                                icon.source: "Image/Image_UI_interfaz/Inconos/basura.svg"
+                                                icon.source: "recursos/image/icons/basura.svg"
                                                 flat: true
                                                 ToolTip.visible: hovered
                                                 ToolTip.text: "Eliminar"
@@ -1248,7 +1248,7 @@ Rectangle {
 
                                         Button {
                                             width: 32; height: 32
-                                            icon.source: "Image/Image_UI_interfaz/Inconos/editar.svg"
+                                            icon.source: "recursos/image/icons/editar.svg"
                                             flat: true
                                             ToolTip.visible: hovered
                                             ToolTip.text: "Editar"

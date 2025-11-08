@@ -52,7 +52,7 @@ class GestorUsuariosRoles:
                 cursor = conn.cursor()
                 
                 query = """
-                SELECT u.id_usuario, u.nombre, u.apellido, u.usuario, u.correo, 
+                SELECT u.id_usuario, u.nombre, u.apellido, u.usuario, u.email, 
                        u.telefono, u.direccion, r.nombre_rol AS rol, u.fecha_creacion, 
                        u.ultimo_acceso, u.activo
                 FROM Usuarios u
@@ -74,7 +74,7 @@ class GestorUsuariosRoles:
                         'apellido': row.apellido,
                         'nombre_completo': f"{row.nombre} {row.apellido}",
                         'usuario': row.usuario,
-                        'correo': row.correo,
+                        'email': row.email,
                         'telefono': row.telefono,
                         'direccion': row.direccion,
                         'rol': row.rol,
@@ -154,7 +154,7 @@ class GestorUsuariosRoles:
                 'permitido': True if id_rol in [1, 2] else False  # Admin y Empleado
             },
             {
-                'seccion': 'Agricultores',
+                'seccion': 'Productores',
                 'descripcion': 'Gestión de agricultores',
                 'permitido': True if id_rol in [1, 2] else False
             },
@@ -196,7 +196,7 @@ class GestorUsuariosRoles:
                 cursor = conn.cursor()
                 
                 query = """
-                INSERT INTO Usuarios (id_rol, nombre, apellido, correo, telefono, direccion, 
+                INSERT INTO Usuarios (id_rol, nombre, apellido, email, telefono, direccion, 
                                     usuario, contrasena, fecha_creacion, activo)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """
@@ -207,7 +207,7 @@ class GestorUsuariosRoles:
                     usuario_data['id_rol'],
                     usuario_data['nombre'],
                     usuario_data['apellido'],
-                    usuario_data['correo'],
+                    usuario_data['email'],
                     usuario_data.get('telefono'),
                     usuario_data.get('direccion'),
                     usuario_data['usuario'],
@@ -261,9 +261,9 @@ class GestorUsuariosRoles:
                     campos_actualizar.append("apellido = ?")
                     valores.append(usuario_data['apellido'])
                     
-                if 'correo' in usuario_data:
-                    campos_actualizar.append("correo = ?")
-                    valores.append(usuario_data['correo'])
+                if 'email' in usuario_data:
+                    campos_actualizar.append("email = ?")
+                    valores.append(usuario_data['email'])
                     
                 if 'telefono' in usuario_data:
                     campos_actualizar.append("telefono = ?")

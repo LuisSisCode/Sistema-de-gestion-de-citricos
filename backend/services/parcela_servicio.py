@@ -3,7 +3,7 @@
 import logging
 from ..repositories.parcela_repositorio import ParcelaRepositorio
 from ..repositories.relacion_repositorio import RelacionRepositorio
-from ..repositories.agricultor_repositorio import AgricultorRepositorio
+from ..repositories.productor_repositorio import ProductorRepositorio
 from ..core.excepciones_bd import (
     ErrorValidacion, 
     RegistroNoEncontrado, 
@@ -18,7 +18,7 @@ class ParcelaServicio:
     def __init__(self):
         self.parcela_repo = ParcelaRepositorio()
         self.relacion_repo = RelacionRepositorio()
-        self.agricultor_repo = AgricultorRepositorio()
+        self.productor_repo = ProductorRepositorio()
     
     def obtener_parcelas_paginado(self, pagina, por_pagina = 5, propietario_id=None):
         """
@@ -129,15 +129,10 @@ class ParcelaServicio:
             
             if exito:
                 # Verificar cambios importantes
-                cambio_propietario = self._verificar_cambio_propietario(parcela_actual, datos_normalizados)
-                cambio_coordenadas = self._verificar_cambio_coordenadas(parcela_actual, datos_normalizados)
                 
                 resultado = {
                     'exito': True,
-                    'mensaje': f"Parcela '{parcela_actual['nombre']}' actualizada exitosamente",
-                    'cambio_propietario': cambio_propietario,
-                    'cambio_coordenadas': cambio_coordenadas,
-                    'requiere_actualizacion_mapa': cambio_coordenadas
+                    'mensaje': f"Parcela '{parcela_actual['nombre']}' actualizada exitosamente"
                 }
                 
                 logger.info(f"Servicio: parcela {id_parcela} actualizada")
@@ -193,51 +188,6 @@ class ParcelaServicio:
             return {'exito': False, 'mensaje': str(e)}
         except Exception as e:
             logger.error(f"Error en servicio eliminar_parcela: {str(e)}")
-            return {'exito': False, 'mensaje': 'Error interno del sistema'}
-    
-    def transferir_parcela(self, id_parcela, nuevo_propietario_id):
-        """
-        Transfiere una parcela a un nuevo propietario.
-        
-        Args:
-            id_parcela (int): ID de la parcela.
-            nuevo_propietario_id (int): ID del nuevo propietario.
-            
-        Returns:
-            dict: Resultado de la transferencia.
-        """
-        try:
-            # Validar transferencia usando RelacionRepositorio
-            validacion = self.relacion_repo.validar_transferencia_parcela(id_parcela, nuevo_propietario_id)
-            
-            if not validacion['puede_transferir']:
-                return {
-                    'exito': False,
-                    'mensaje': 'No se puede transferir la parcela al mismo propietario',
-                    'validacion': validacion
-                }
-            
-            # Ejecutar transferencia
-            exito = self.relacion_repo.ejecutar_transferencia_parcela(id_parcela, nuevo_propietario_id)
-            
-            if exito:
-                resultado = {
-                    'exito': True,
-                    'mensaje': f"Parcela '{validacion['parcela_nombre']}' transferida exitosamente",
-                    'propietario_anterior': validacion['propietario_actual'],
-                    'propietario_nuevo': validacion['nuevo_propietario']
-                }
-                
-                logger.info(f"Servicio: parcela {id_parcela} transferida")
-                return resultado
-            else:
-                return {'exito': False, 'mensaje': 'Error al ejecutar la transferencia'}
-                
-        except (RegistroNoEncontrado, ErrorValidacion) as e:
-            logger.error(f"Error en transferir_parcela: {str(e)}")
-            return {'exito': False, 'mensaje': str(e)}
-        except Exception as e:
-            logger.error(f"Error en servicio transferir_parcela: {str(e)}")
             return {'exito': False, 'mensaje': 'Error interno del sistema'}
     
     def buscar_parcelas(self, texto_busqueda):
@@ -349,7 +299,7 @@ class ParcelaServicio:
     def _validar_propietario(self, propietario_id):
         """Valida que el propietario existe y es válido."""
         try:
-            agricultor = self.agricultor_repo.obtener_por_id(propietario_id)
+            agricultor = self.productor_repo.obtener_por_id(propietario_id)
             if not agricultor['esPropietario']:
                 raise ErrorValidacion("El agricultor seleccionado no está marcado como propietario")
         except RegistroNoEncontrado:

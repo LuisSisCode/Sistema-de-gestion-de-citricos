@@ -38,7 +38,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         JOIN Parcelas p ON c.id_parcela = p.id_parcela
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
-        JOIN Agricultores a ON p.id_agricultor = a.id_agricultor
+        JOIN Productores a ON p.id_productor = a.id_productor
         WHERE c.activo = 1 AND p.activo = 1 AND v.activo = 1 AND t.activo = 1 AND a.activo = 1
         ORDER BY c.fecha_siembra DESC
         """
@@ -80,7 +80,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         JOIN Parcelas p ON c.id_parcela = p.id_parcela
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
-        JOIN Agricultores a ON p.id_agricultor = a.id_agricultor
+        JOIN Productores a ON p.id_productor = a.id_productor
         WHERE c.id_ciclo = ? AND c.activo = 1 AND p.activo = 1 AND v.activo = 1 AND t.activo = 1
         """
         
@@ -115,7 +115,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         JOIN Parcelas p ON c.id_parcela = p.id_parcela
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
-        JOIN Agricultores a ON p.id_agricultor = a.id_agricultor
+        JOIN Productores a ON p.id_productor = a.id_productor
         WHERE c.id_parcela = ? AND c.activo = 1 AND p.activo = 1 AND v.activo = 1 AND t.activo = 1
         ORDER BY c.fecha_siembra DESC
         """
@@ -157,7 +157,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         JOIN Parcelas p ON c.id_parcela = p.id_parcela
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
-        JOIN Agricultores a ON p.id_agricultor = a.id_agricultor
+        JOIN Productores a ON p.id_productor = a.id_productor
         WHERE c.estado = ? AND c.activo = 1 AND p.activo = 1 AND v.activo = 1 AND t.activo = 1
         ORDER BY c.fecha_siembra DESC
         """
@@ -232,7 +232,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         JOIN Parcelas p ON c.id_parcela = p.id_parcela
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
-        JOIN Agricultores a ON p.id_agricultor = a.id_agricultor
+        JOIN Productores a ON p.id_productor = a.id_productor
         WHERE {where_clause}
         ORDER BY c.fecha_siembra DESC
         OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
@@ -283,7 +283,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         JOIN Parcelas p ON c.id_parcela = p.id_parcela
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
-        JOIN Agricultores a ON p.id_agricultor = a.id_agricultor
+        JOIN Productoresa ON p.id_productor = a.id_productor
         WHERE c.estado IN ({placeholders}) AND c.activo = 1 AND p.activo = 1 AND v.activo = 1 AND t.activo = 1
         ORDER BY c.fecha_siembra DESC
         """

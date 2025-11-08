@@ -18,7 +18,6 @@ Rectangle {
         if (agricultoresparcelas) {
             agricultoresparcelas.cargar_agricultores()
             agricultoresparcelas.cargar_parcelas()
-            agricultoresparcelas.cargar_propietarios()
             modelReady = true
         }
     }
@@ -79,7 +78,6 @@ Rectangle {
             // Cargar explícitamente los datos
             agricultoresparcelas.cargar_agricultores_pagina(1)
             agricultoresparcelas.cargar_parcelas_pagina(1)
-            agricultoresparcelas.cargar_propietarios()
         }
     }
     
@@ -224,7 +222,7 @@ Rectangle {
 
                     Button {
                         text: "Nuevo Agricultor"
-                        icon.source: "Image/Image_UI_interfaz/Inconos/agregar-usuario.svg"
+                        icon.source: "recursos/image/icons/agregar-usuario.svg"
                         implicitHeight: 36
                         background: Rectangle {
                             color: parent.hovered ? "#E65A00" : "#f5922f"
@@ -508,7 +506,7 @@ Rectangle {
                                     Button {
                                         width: 36
                                         height: 36
-                                        icon.source: "Image/Image_UI_interfaz/Inconos/editar.svg"
+                                        icon.source: "recursos/image/icons/editar.svg"
                                         flat: true
                                         ToolTip.visible: hovered
                                         ToolTip.text: "Editar"
@@ -543,7 +541,7 @@ Rectangle {
                                     Button {
                                         width: 36
                                         height: 36
-                                        icon.source: "Image/Image_UI_interfaz/Inconos/basura.svg"
+                                        icon.source: "recursos/image/icons/basura.svg"
                                         flat: true
                                         ToolTip.visible: hovered
                                         ToolTip.text: "Eliminar"

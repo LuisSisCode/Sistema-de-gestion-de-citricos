@@ -33,7 +33,7 @@ class TipoCultivoServicio:
                 cursor = conn.cursor()
                 
                 query = """
-                SELECT id_tipo_cultivo, nombre, nombre_cientifico, descripcion, 
+                SELECT id_tipo_cultivo, nombre, descripcion, 
                        tiempo_cosecha_min, tiempo_cosecha_max, activo
                 FROM TiposCultivo
                 ORDER BY nombre
@@ -46,7 +46,6 @@ class TipoCultivoServicio:
                     tipo = {
                         'id_tipo_cultivo': row.id_tipo_cultivo,
                         'nombre': row.nombre,
-                        'nombre_cientifico': row.nombre_cientifico,
                         'descripcion': row.descripcion,
                         'tiempo_cosecha_min': row.tiempo_cosecha_min,
                         'tiempo_cosecha_max': row.tiempo_cosecha_max,
@@ -720,14 +719,10 @@ class TipoCultivoServicio:
         datos_normalizados = datos.copy()
         
         # Limpiar espacios en strings
-        for campo in ['nombre', 'nombre_cientifico', 'descripcion']:
+        for campo in ['nombre', 'descripcion']:
             if campo in datos_normalizados and datos_normalizados[campo]:
                 datos_normalizados[campo] = datos_normalizados[campo].strip()
-        
-        # Normalizar nombre científico
-        if datos_normalizados.get('nombre_cientifico'):
-            # Capitalizar correctamente (Primera letra mayúscula, resto minúscula)
-            datos_normalizados['nombre_cientifico'] = datos_normalizados['nombre_cientifico'].title()
+
         
         # Validar y normalizar tiempos
         for campo in ['tiempo_cosecha_min', 'tiempo_cosecha_max']:
@@ -783,8 +778,6 @@ class TipoCultivoServicio:
         total_puntos = 5
         
         if tipo.get('nombre'):
-            puntos += 1
-        if tipo.get('nombre_cientifico'):
             puntos += 1
         if tipo.get('descripcion'):
             puntos += 1
@@ -873,10 +866,7 @@ class TipoCultivoServicio:
         # Coincidencia exacta en nombre (mayor peso)
         if termino in tipo['nombre'].lower():
             relevancia += 10
-        
-        # Coincidencia en nombre científico
-        if tipo.get('nombre_cientifico') and termino in tipo['nombre_cientifico'].lower():
-            relevancia += 8
+    
         
         # Coincidencia en descripción
         if tipo.get('descripcion') and termino in tipo['descripcion'].lower():
@@ -954,9 +944,7 @@ class TipoCultivoServicio:
         
         if not tipo.get('descripcion'):
             recomendaciones.append("Completar la descripción del tipo de cultivo")
-        
-        if not tipo.get('nombre_cientifico'):
-            recomendaciones.append("Agregar el nombre científico")
+    
         
         if not tipo.get('tiempo_cosecha_min'):
             recomendaciones.append("Especificar tiempos de cosecha para mejor planificación")

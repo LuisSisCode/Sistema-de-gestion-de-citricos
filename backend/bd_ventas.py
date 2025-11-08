@@ -2036,7 +2036,7 @@ class GestorVentas:
                     c.id_cliente,
                     c.nombre,
                     c.telefono,
-                    c.correo,
+                    c.email,
                     COUNT(v.id_venta) as total_ventas,
                     SUM(v.total) as monto_total,
                     AVG(v.total) as promedio_compra,
@@ -2045,7 +2045,7 @@ class GestorVentas:
                 FROM Clientes c
                 JOIN Ventas v ON c.id_cliente = v.id_cliente
                 WHERE c.activo = 1 AND YEAR(v.fecha_venta) = YEAR(GETDATE())
-                GROUP BY c.id_cliente, c.nombre, c.telefono, c.correo
+                GROUP BY c.id_cliente, c.nombre, c.telefono, c.email
                 ORDER BY monto_total DESC, total_ventas DESC
                 """
                 
@@ -2067,7 +2067,7 @@ class GestorVentas:
                         'id_cliente': row.id_cliente,
                         'nombre': row.nombre,
                         'telefono': row.telefono or '',
-                        'correo': row.correo or '',
+                        'email': row.email or '',
                         'total_ventas': row.total_ventas,
                         'monto_total': float(row.monto_total) if row.monto_total else 0.0,
                         'promedio_compra': float(row.promedio_compra) if row.promedio_compra else 0.0,

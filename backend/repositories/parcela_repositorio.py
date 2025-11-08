@@ -21,9 +21,9 @@ class ParcelaRepositorio(RepositorioBase):
         SELECT p.id_parcela, p.nombre, p.ubicacion, p.area_total,
             p.coordenadas_gps, p.tipo_suelo, p.fuente_agua,
             p.fecha_adquisicion, p.activo, 
-            a.id_agricultor, a.nombre + ' ' + a.apellido AS nombre_propietario
+            a.id_productor, a.nombre + ' ' + a.apellido AS nombre_propietario
         FROM Parcelas p
-        JOIN Agricultores a ON p.id_agricultor = a.id_agricultor
+        JOIN Productores a ON p.id_productor = a.id_productor
         WHERE p.activo = 1 AND a.activo = 1
         ORDER BY p.id_parcela
         """
@@ -55,9 +55,9 @@ class ParcelaRepositorio(RepositorioBase):
         SELECT p.id_parcela, p.nombre, p.ubicacion, p.area_total,
             p.coordenadas_gps, p.tipo_suelo, p.fuente_agua,
             p.fecha_adquisicion, p.activo, 
-            a.id_agricultor, a.nombre + ' ' + a.apellido AS nombre_propietario
+            a.id_productor, a.nombre + ' ' + a.apellido AS nombre_propietario
         FROM Parcelas p
-        JOIN Agricultores a ON p.id_agricultor = a.id_agricultor
+        JOIN Productores a ON p.id_productor = a.id_productor
         WHERE p.id_parcela = ? AND p.activo = 1 AND a.activo = 1
         """
         
@@ -82,10 +82,10 @@ class ParcelaRepositorio(RepositorioBase):
         SELECT p.id_parcela, p.nombre, p.ubicacion, p.area_total,
             p.coordenadas_gps, p.tipo_suelo, p.fuente_agua,
             p.fecha_adquisicion, p.activo, 
-            a.id_agricultor, a.nombre + ' ' + a.apellido AS nombre_propietario
+            a.id_productor a.nombre + ' ' + a.apellido AS nombre_propietario
         FROM Parcelas p
-        JOIN Agricultores a ON p.id_agricultor = a.id_agricultor
-        WHERE p.id_agricultor = ? AND p.activo = 1 AND a.activo = 1
+        JOIN Productores a ON p.id_productor = a.id_productor
+        WHERE p.id_productor = ? AND p.activo = 1 AND a.activo = 1
         ORDER BY p.nombre
         """
         
@@ -119,7 +119,7 @@ class ParcelaRepositorio(RepositorioBase):
         params_data = []
         
         if propietario_id and propietario_id != 0:
-            where_clause += " AND p.id_agricultor = ?"
+            where_clause += " AND p.id_productor = ?"
             params_count.append(propietario_id)
             params_data.append(propietario_id)
         
@@ -127,7 +127,7 @@ class ParcelaRepositorio(RepositorioBase):
         count_query = f"""
         SELECT COUNT(*)
         FROM Parcelas p
-        JOIN Agricultores a ON p.id_agricultor = a.id_agricultor
+        JOIN Productores a ON p.id_productor = a.id_productor
         WHERE {where_clause}
         """
         total_registros = self._ejecutar_consulta_escalar(count_query, params_count)
@@ -137,9 +137,9 @@ class ParcelaRepositorio(RepositorioBase):
         SELECT p.id_parcela, p.nombre, p.ubicacion, p.area_total,
             p.coordenadas_gps, p.tipo_suelo, p.fuente_agua,
             p.fecha_adquisicion, p.activo, 
-            a.id_agricultor, a.nombre + ' ' + a.apellido AS nombre_propietario
+            a.id_productor a.nombre + ' ' + a.apellido AS nombre_propietario
         FROM Parcelas p
-        JOIN Agricultores a ON p.id_agricultor = a.id_agricultor
+        JOIN Productores a ON p.id_productor = a.id_productor
         WHERE {where_clause}
         ORDER BY p.id_parcela
         OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
@@ -181,7 +181,7 @@ class ParcelaRepositorio(RepositorioBase):
         self._validar_datos_parcela(datos_parcela)
         
         query = """
-        INSERT INTO Parcelas (id_agricultor, nombre, ubicacion, area_total,
+        INSERT INTO Parcelas (id_productor, nombre, ubicacion, area_total,
                             coordenadas_gps, tipo_suelo, fuente_agua,
                             fecha_adquisicion, activo)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -240,7 +240,7 @@ class ParcelaRepositorio(RepositorioBase):
             valores.append(datos_parcela['nombre'])
             
         if 'propietarioId' in datos_parcela:
-            campos_actualizar.append("id_agricultor = ?")
+            campos_actualizar.append("id_productor = ?")
             valores.append(datos_parcela['propietarioId'])
             
         if 'ubicacion' in datos_parcela:
@@ -316,9 +316,9 @@ class ParcelaRepositorio(RepositorioBase):
         SELECT p.id_parcela, p.nombre, p.ubicacion, p.area_total,
             p.coordenadas_gps, p.tipo_suelo, p.fuente_agua,
             p.fecha_adquisicion, p.activo, 
-            a.id_agricultor, a.nombre + ' ' + a.apellido AS nombre_propietario
+            a.id_productor a.nombre + ' ' + a.apellido AS nombre_propietario
         FROM Parcelas p
-        JOIN Agricultores a ON p.id_agricultor = a.id_agricultor
+        JOIN Productores a ON p.id_productor = a.id_productor
         WHERE p.activo = 1 AND a.activo = 1 
         AND (p.nombre LIKE ? OR p.ubicacion LIKE ?)
         ORDER BY p.nombre
@@ -347,7 +347,7 @@ class ParcelaRepositorio(RepositorioBase):
             COUNT(*) as total_parcelas,
             COALESCE(SUM(area_total), 0) as area_total,
             COALESCE(AVG(area_total), 0) as area_promedio,
-            COUNT(DISTINCT id_agricultor) as propietarios_distintos
+            COUNT(DISTINCT id_productor) as propietarios_distintos
         FROM Parcelas 
         WHERE activo = 1
         """
@@ -394,7 +394,7 @@ class ParcelaRepositorio(RepositorioBase):
             'parcelaId': row.id_parcela,
             'nombre': row.nombre,
             'propietario': row.nombre_propietario,
-            'propietarioId': row.id_agricultor,
+            'propietarioId': row.id_productor,
             'ubicacion': row.ubicacion,
             'area': float(row.area_total),
             'coordenadasGPS': row.coordenadas_gps,

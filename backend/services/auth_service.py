@@ -92,7 +92,7 @@ class AuthService:
         Verifica si el usuario actual tiene permiso para una acción en un módulo
         
         Args:
-            modulo: Nombre del módulo (ej: 'agricultores', 'parcelas')
+            modulo: Nombre del módulo (ej: 'productores', 'parcelas')
             accion: Acción a verificar ('leer', 'crear', 'editar', 'eliminar')
             
         Returns:

@@ -1,10 +1,10 @@
 from PySide6.QtCore import QObject, Slot, Signal, Property
-#from bd_conecciones.bd_agricultores_parcelas import GestorAgricultoresParcelas
+#from bd_conecciones.bd_productores_parcelas import GestorAgricultoresParcelas
 from backend import GestionServicio
 import json
 
-class AgricultoresParcelasModels(QObject):
-    agricultoresChanged = Signal()
+class ProductoresParcelasModels(QObject):
+    productoresChanged = Signal()
     parcelasChanged = Signal()
     propietariosChanged = Signal()
     operacionCompleta = Signal(str, bool, str)
@@ -12,26 +12,21 @@ class AgricultoresParcelasModels(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.gestion = GestionServicio()
-        #self._gestor = GestorAgricultoresParcelas()
+
         #Datos
-        self._agricultores = []
+        self._productores = []
         self._parcelas = []
         self._propietarios = []
-        
-        # Cargar datos iniciales
-        #self.cargar_agricultores()
-        #self.cargar_parcelas()
-        #self.cargar_propietarios()
 
         # Estado de paginación
-        self._pagina_actual_agricultores = 1
-        self._total_paginas_agricultores = 1
+        self._pagina_actual_productores = 1
+        self._total_paginas_productores = 1
         self._pagina_actual_parcelas = 1
         self._total_paginas_parcelas = 1
     
-    @Property(list, notify=agricultoresChanged)
-    def agricultores(self):
-        return self._agricultores
+    @Property(list, notify=productoresChanged)
+    def productores(self):
+        return self._productores
     
     @Property(list, notify=parcelasChanged)
     def parcelas(self):
@@ -41,13 +36,13 @@ class AgricultoresParcelasModels(QObject):
     def propietarios(self):
         return self._propietarios
     
-    @Property(int, notify=agricultoresChanged)
+    @Property(int, notify=productoresChanged)
     def paginaActualAgricultores(self):
-        return self._pagina_actual_agricultores
+        return self._pagina_actual_productores
     
-    @Property(int, notify=agricultoresChanged)
+    @Property(int, notify=productoresChanged)
     def totalPaginasAgricultores(self):
-        return self._total_paginas_agricultores
+        return self._total_paginas_productores
     
     @Property(int, notify=parcelasChanged)
     def paginaActualParcelas(self):
@@ -58,22 +53,22 @@ class AgricultoresParcelasModels(QObject):
         return self._total_paginas_parcelas
     
     @Slot(int)
-    def cargar_agricultores_pagina(self, pagina):
-        """Carga agricultores con paginación usando servicios."""
+    def cargar_productores_pagina(self, pagina):
+        """Carga productores con paginación usando servicios."""
         try:
-            resultado = self.gestion.obtener_datos_paginados('agricultores', pagina, 10)
+            resultado = self.gestion.obtener_datos_paginados('productores', pagina, 10)
             
-            self._agricultores = resultado.get('agricultores', [])
-            self._pagina_actual_agricultores = resultado.get('pagina_actual', 1)
-            self._total_paginas_agricultores = resultado.get('total_paginas', 1)
+            self._productores = resultado.get('productores', [])
+            self._pagina_actual_productores = resultado.get('pagina_actual', 1)
+            self._total_paginas_productores = resultado.get('total_paginas', 1)
             
-            self.agricultoresChanged.emit()
-            print(f"Página {pagina} de agricultores cargada exitosamente")
+            self.productoresChanged.emit()
+            print(f"Página {pagina} de productores cargada exitosamente")
             
         except Exception as e:
-            print(f"Error al cargar agricultores página {pagina}: {str(e)}")
-            self._agricultores = []
-            self.agricultoresChanged.emit()
+            print(f"Error al cargar productorespágina {pagina}: {str(e)}")
+            self._productores = []
+            self.productoresChanged.emit()
     
     def cargar_parcelas_pagina(self, pagina, propietario_id=0):
         """Carga parcelas con paginación usando servicios."""
@@ -102,11 +97,7 @@ class AgricultoresParcelasModels(QObject):
             
             if resultado['exito']:
                 # Recargar página actual
-                self.cargar_agricultores_pagina(self._pagina_actual_agricultores)
-                
-                # Actualizar propietarios si es necesario
-                if resultado.get('es_propietario', False):
-                    self.cargar_propietarios()
+                self.cargar_productores_pagina(self._pagina_actual_productores)
                 
                 self.operacionCompleta.emit('crear_agricultor', True, resultado['mensaje'])
                 return True
@@ -120,20 +111,17 @@ class AgricultoresParcelasModels(QObject):
             return False
     
     @Slot(int, str, result=bool)
-    def actualizar_agricultor(self, id_agricultor, agricultor_json):
+    def actualizar_agricultor(self, id_productor, agricultor_json):
         """Actualiza un agricultor usando servicios."""
         try:
             datos_agricultor = json.loads(agricultor_json)
             resultado = self.gestion.procesar_operacion_agricultor('actualizar', {
-                'id_agricultor': id_agricultor,
+                'id_productor': id_productor,
                 'agricultor': datos_agricultor
             })
             
             if resultado['exito']:
-                self.cargar_agricultores_pagina(self._pagina_actual_agricultores)
-                
-                if resultado.get('requiere_actualizacion_propietarios', False):
-                    self.cargar_propietarios()
+                self.cargar_productores_pagina(self._pagina_actual_productores)
                 
                 self.operacionCompleta.emit('actualizar_agricultor', True, resultado['mensaje'])
                 return True
@@ -147,16 +135,13 @@ class AgricultoresParcelasModels(QObject):
             return False
     
     @Slot(int, result='QVariant')
-    def eliminar_agricultor(self, id_agricultor):
+    def eliminar_agricultor(self, id_productor):
         """Elimina un agricultor usando servicios - retorna resultado detallado."""
         try:
-            resultado = self.gestion.procesar_operacion_agricultor('eliminar', {'id_agricultor': id_agricultor})
+            resultado = self.gestion.procesar_operacion_agricultor('eliminar', {'id_productor': id_productor})
             
             if resultado['exito']:
-                self.cargar_agricultores_pagina(self._pagina_actual_agricultores)
-                
-                if resultado.get('requiere_actualizacion_propietarios', False):
-                    self.cargar_propietarios()
+                self.cargar_productores_pagina(self._pagina_actual_productores)
                 
                 self.operacionCompleta.emit('eliminar_agricultor', True, resultado['mensaje'])
             else:
@@ -175,13 +160,12 @@ class AgricultoresParcelasModels(QObject):
             return resultado_error
     
     @Slot(int, result=bool)
-    def desactivar_agricultor(self, id_agricultor):
+    def desactivar_agricultor(self, id_productor):
         """Desactiva un agricultor en lugar de eliminarlo físicamente"""
         try:
-            success = self._gestor.desactivar_agricultor(id_agricultor)
+            success = self._gestor.desactivar_agricultor(id_productor)
             if success:
-                self.cargar_agricultores()
-                self.cargar_propietarios()  # Actualizar la lista de propietarios
+                self.cargar_productores()
             return success
         except Exception as e:
             print(f"Error al desactivar agricultor: {str(e)}")
@@ -249,37 +233,17 @@ class AgricultoresParcelasModels(QObject):
             print(f"Error al eliminar parcela: {str(e)}")
             self.operacionCompleta.emit('eliminar_parcela', False, 'Error interno del sistema')
             return False
-    @Slot(int, int, result=bool)
-    def transferir_parcela(self, id_parcela, nuevo_propietario_id):
-        """Transfiere una parcela a otro propietario."""
-        try:
-            resultado = self.gestion.procesar_operacion_parcela('transferir', {
-                'id_parcela': id_parcela,
-                'nuevo_propietario_id': nuevo_propietario_id
-            })
-            
-            if resultado['exito']:
-                self.cargar_parcelas_pagina(self._pagina_actual_parcelas)
-                self.operacionCompleta.emit('transferir_parcela', True, resultado['mensaje'])
-                return True
-            else:
-                self.operacionCompleta.emit('transferir_parcela', False, resultado['mensaje'])
-                return False
-                
-        except Exception as e:
-            print(f"Error al transferir parcela: {str(e)}")
-            self.operacionCompleta.emit('transferir_parcela', False, 'Error interno del sistema')
-            return False
+    
     # ----------METODOS DE BUSQUEDA --------------------
     # Métodos adicionales para filtrado que pueden ser útiles desde QML
     
     @Slot(str, result=list)
-    def filtrar_agricultores_por_nombre(self, texto):
-        """Busca agricultores usando servicios."""
+    def filtrar_productores_por_nombre(self, texto):
+        """Busca productores usando servicios."""
         try:
-            return self.gestion.buscar_datos('agricultores', texto)
+            return self.gestion.buscar_datos('productores', texto)
         except Exception as e:
-            print(f"Error en búsqueda de agricultores: {str(e)}")
+            print(f"Error en búsqueda de productores: {str(e)}")
             return []
     
     @Slot(str, result=list)
@@ -301,36 +265,26 @@ class AgricultoresParcelasModels(QObject):
             return []
     # -------------- METODOS DE CARGA INICIAL --------------
     @Slot()
-    def cargar_agricultores(self):
-        """Carga primera página de agricultores."""
-        self.cargar_agricultores_pagina(1)
+    def cargar_productores(self):
+        """Carga primera página de productores."""
+        self.cargar_productores_pagina(1)
 
     @Slot()
     def cargar_parcelas(self):
         """Carga primera página de parcelas."""
         self.cargar_parcelas_pagina(1)
     
-    @Slot()
-    def cargar_propietarios(self):
-        """Carga lista de propietarios."""
-        try:
-            self._propietarios = self.gestion.agricultor_servicio.obtener_propietarios_activos()
-            self.propietariosChanged.emit()
-            print(f"Propietarios cargados: {len(self._propietarios)}")
-        except Exception as e:
-            print(f"Error al cargar propietarios: {str(e)}")
-            self._propietarios = []
-            self.propietariosChanged.emit()
+
     # --------------- NAVEGACION DE PAGINAS ------------------
     @Slot()
-    def pagina_anterior_agricultores(self):
-        if self._pagina_actual_agricultores > 1:
-            self.cargar_agricultores_pagina(self._pagina_actual_agricultores - 1)
+    def pagina_anterior_productores(self):
+        if self._pagina_actual_productores > 1:
+            self.cargar_productores_pagina(self._pagina_actual_productores - 1)
 
     @Slot()
-    def pagina_siguiente_agricultores(self):
-        if self._pagina_actual_agricultores < self._total_paginas_agricultores:
-            self.cargar_agricultores_pagina(self._pagina_actual_agricultores + 1)
+    def pagina_siguiente_productores(self):
+        if self._pagina_actual_productores< self._total_paginas_productores:
+            self.cargar_productores_pagina(self._pagina_actual_productores + 1)
         
     @Slot()
     def pagina_anterior_parcelas(self):
@@ -368,15 +322,6 @@ class AgricultoresParcelasModels(QObject):
             return self.gestion.generar_reporte_completo()
         except Exception as e:
             print(f"Error al generar reporte: {str(e)}")
-            return {}
-        
-    @Slot(result='QVariant')
-    def validar_integridad_sistema(self):
-        """Valida integridad completa del sistema."""
-        try:
-            return self.gestion.validar_integridad_sistema()
-        except Exception as e:
-            print(f"Error al validar integridad: {str(e)}")
             return {}
     
     # Para que 

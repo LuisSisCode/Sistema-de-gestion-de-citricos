@@ -22,17 +22,17 @@ from controllers.login_controller import LoginController
 
 # Modelos existentes
 from backend.models.usuario_model import UsuariosRolesModel
-from backend.models.agricultores_parcelas_model import AgricultoresParcelasModels
+from backend.models.productores_parcelas_model import ProductoresParcelasModels
 from backend.models.cultivos_model import CultivosModel
 from backend.models.agroquimicos_model import AgroquimicosModel
 from backend.models.maquinaria_model import MaquinariaModel
 from backend.models.ventas_cliente_model import ClientesVentaModel
 
 # Nuevos modelos a incluir
-from backend.models.auth_model import AutoModel  # ✅ CORREGIDO: Era AuthModel
-from backend.models.dashboard_model import *
-from backend.models.gastos_model import *
+from backend.models.auth_model import AutoModel 
+from backend.models.gastos_model import GastosModel
 from backend.models.reportes_model import *
+from backend.models.dashboard_model import DashboardModel
 
 from recursos.mapa.mapa_service_integrado import inicializar_servicio_mapa, servicio_mapa
 
@@ -349,11 +349,11 @@ def main():
         print(f"⚠️ No se pudo registrar UsuariosRolesModel: {e}")
     
     try:
-        agricultores_parcelas_model = AgricultoresParcelasModels()
+        agricultores_parcelas_model = ProductoresParcelasModels()
         engine.rootContext().setContextProperty("agricultoresparcelas", agricultores_parcelas_model)
-        print("✅ AgricultoresParcelasModels registrado en QML")
+        print("✅ ProductoresParcelasModels registrado en QML")
     except Exception as e:
-        print(f"⚠️ No se pudo registrar AgricultoresParcelasModels: {e}")
+        print(f"⚠️ No se pudo registrar ProductoresParcelasModels: {e}")
     
     try:
         cultivos_model = CultivosModel()
@@ -413,7 +413,7 @@ def main():
     print("   - gastosModel (GastosModel)")
     print("   - reportesModel (ReportesModel)")
     print("   - usuariosRolesModel (UsuariosRolesModel)")
-    print("   - agricultoresparcelas (AgricultoresParcelasModels)")
+    print("   - agricultoresparcelas (ProductoresParcelasModels)")
     print("   - cultivos (CultivosModel)")
     print("   - agroquimicosModel (AgroquimicosModel)")
     print("   - ventaModel (ClientesVentaModel)")

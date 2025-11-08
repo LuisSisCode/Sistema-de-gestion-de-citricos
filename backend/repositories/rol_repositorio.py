@@ -144,7 +144,7 @@ class RolRepositorio(RepositorioBase):
         
         Args:
             id_rol: ID del rol a verificar
-            modulo: Nombre del módulo (ej: 'agricultores', 'parcelas')
+            modulo: Nombre del módulo (ej: 'productores', 'parcelas')
             accion: Acción a verificar ('leer', 'crear', 'editar', 'eliminar')
             
         Returns:

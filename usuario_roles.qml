@@ -8,7 +8,7 @@ Rectangle {
     color: "#F8F9FA"
     
     // Propiedades para la edición de usuarios
-    property var nuevoUsuario: { "id_rol": 5, "nombre": "", "apellido": "", "usuario": "", "correo": "", "contrasena": "" }
+    property var nuevoUsuario: { "id_rol": 5, "nombre": "", "apellido": "", "usuario": "", "email": "", "contrasena": "" }
     property bool hayCambiosPendientes: false
     property var usuarioEditando: null
     
@@ -53,7 +53,7 @@ Rectangle {
 
                 Button {
                     text: "Nuevo Usuario"
-                    icon.source: "Image/Image_UI_interfaz/Inconos/agregar-usuario.svg"
+                    icon.source: "recursos/image/icons/agregar-usuario.svg"
                     implicitHeight: 36
                     background: Rectangle {
                         color: parent.hovered ? "#E65A00" : "#f5922f"
@@ -66,7 +66,7 @@ Rectangle {
                             "nombre": "", 
                             "apellido": "", 
                             "usuario": "", 
-                            "correo": "", 
+                            "email": "", 
                             "contrasena": "" 
                         }
                         
@@ -95,7 +95,7 @@ Rectangle {
                                 leftMargin: 10
                                 verticalCenter: parent.verticalCenter
                             }
-                            source: "Image/Image_UI_interfaz/Inconos/lupa.png" // Cambia por tu ruta
+                            source: "recursos/image/icons/lupa.png" // Cambia por tu ruta
                             width: 16
                             height: 16
                         }
@@ -261,7 +261,7 @@ Rectangle {
                                 anchors.verticalCenter: parent.verticalCenter
                                 anchors.left: parent.left
                                 anchors.leftMargin: 10
-                                text: modelData.correo
+                                text: modelData.email
                                 elide: Text.ElideRight
                                 width: parent.width - 20
                             }
@@ -297,7 +297,7 @@ Rectangle {
                                 Button {
                                     width: 36
                                     height: 36
-                                    icon.source: "Image/Image_UI_interfaz/Inconos/editar.svg"
+                                    icon.source: "recursos/image/icons/editar.svg"
                                     flat: true
                                     ToolTip.visible: hovered
                                     ToolTip.text: "Editar"
@@ -310,7 +310,7 @@ Rectangle {
                                 Button {
                                     width: 36
                                     height: 36
-                                    icon.source: "Image/Image_UI_interfaz/Inconos/basura.svg"
+                                    icon.source: "recursos/image/icons/basura.svg"
                                     flat: true
                                     ToolTip.visible: hovered
                                     ToolTip.text: "Eliminar"
@@ -457,20 +457,20 @@ Rectangle {
                             onTextChanged: nuevoUsuario.direccion = text
                         }
 
-                        // Correo electrónico
+                        // EMAIL
                         Text {
-                            text: "Correo electrónico:"
+                            text: "Email:"
                             font.pixelSize: 14
                             Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
                         }
 
                         TextField {
                             id: txtCorreo
-                            placeholderText: "Ingrese correo electrónico"
+                            placeholderText: "Ingrese su email"
                             Layout.fillWidth: true
                             height: 36
                             inputMethodHints: Qt.ImhEmailCharactersOnly
-                            onTextChanged: nuevoUsuario.correo = text
+                            onTextChanged: nuevoUsuario.email = text
                         }
 
                         // Rol
@@ -616,7 +616,7 @@ Rectangle {
 
                     var emailRegex = /\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*/;
                     if (!emailRegex.test(txtCorreo.text)) {
-                        mensajeValidacion.text = "El formato del correo electrónico no es válido";
+                        mensajeValidacion.text = "El formato del email no es válido";
                         return;
                     }
 
@@ -641,7 +641,7 @@ Rectangle {
                         "nombre": txtNombre.text,
                         "apellido": txtApellido.text,
                         "usuario": txtUsuario.text,
-                        "correo": txtCorreo.text,
+                        "email": txtCorreo.text,
                         "contrasena": txtPassword.text,
                         "telefono": txtTelefono.text,
                         "direccion": txtDireccion.text,
@@ -656,7 +656,7 @@ Rectangle {
                         nuevoUsuarioDialog.close();
                         showMessage("Usuario guardado correctamente");
                     } else {
-                        mensajeValidacion.text = "Error al guardar el usuario en la base de datos. Verifique que el nombre de usuario y correo sean únicos.";
+                        mensajeValidacion.text = "Error al guardar el usuario en la base de datos. Verifique que el nombre de usuario y email sean únicos.";
                     }
                 }
             }
@@ -680,7 +680,7 @@ Rectangle {
                 "nombre": "",
                 "apellido": "",
                 "usuario": "",
-                "correo": "",
+                "email": "",
                 "contrasena": "",
                 "telefono": "",
                 "direccion": ""
@@ -782,7 +782,7 @@ Rectangle {
                 "nombre": usuario.nombre || "",
                 "apellido": usuario.apellido || "",
                 "usuario": usuario.usuario || "",
-                "correo": usuario.correo || "",
+                "email": usuario.email || "",
                 "telefono": usuario.telefono || "",
                 "direccion": usuario.direccion || "",
                 "id_rol": usuario.id_rol || 1,
@@ -793,7 +793,7 @@ Rectangle {
             txtEditNombre.text = usuarioEditando.nombre;
             txtEditApellido.text = usuarioEditando.apellido;
             txtEditUsuario.text = usuarioEditando.usuario;
-            txtEditCorreo.text = usuarioEditando.correo;
+            txtEditCorreo.text = usuarioEditando.email;
             txtEditTelefono.text = usuarioEditando.telefono;  // Ahora este campo existe
             txtEditDireccion.text = usuarioEditando.direccion;  // Y este también
             chkEditActivo.checked = usuarioEditando.activo;
@@ -944,16 +944,16 @@ Rectangle {
                             }
                         }
                         
-                        // Correo electrónico
+                        // Email
                         Text {
-                            text: "Correo electrónico:"
+                            text: "Email:"
                             font.pixelSize: 14
                             Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
                         }
                         
                         TextField {
                             id: txtEditCorreo
-                            placeholderText: "Ingrese correo electrónico"
+                            placeholderText: "Ingrese su email"
                             Layout.fillWidth: true
                             height: 36
                             inputMethodHints: Qt.ImhEmailCharactersOnly
@@ -1072,7 +1072,7 @@ Rectangle {
                         "nombre": txtEditNombre.text,
                         "apellido": txtEditApellido.text,
                         "usuario": txtEditUsuario.text,
-                        "correo": txtEditCorreo.text,
+                        "email": txtEditCorreo.text,
                         "telefono": txtEditTelefono.text,
                         "direccion": txtEditDireccion.text,
                         "id_rol": cmbEditRol.model[cmbEditRol.currentIndex].id_rol,

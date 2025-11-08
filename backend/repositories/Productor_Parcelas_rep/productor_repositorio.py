@@ -2,36 +2,38 @@
 
 import logging
 from datetime import datetime
-from ..core.repositorio_base import RepositorioBase
-from ..core.excepciones_bd import RegistroNoEncontrado, RegistroYaExiste, ErrorValidacion
+from ...core.repositorio_base import RepositorioBase
+from ...core.excepciones_bd import RegistroNoEncontrado, RegistroYaExiste, ErrorValidacion
+from ...core.cache_system import cacheable, cache_invalidator, get_ttl
 
 logger = logging.getLogger(__name__)
 
-class AgricultorRepositorio(RepositorioBase):
-    """Repositorio para operaciones CRUD de agricultores."""
-    
+class ProductorRepositorio(RepositorioBase):
+    """Repositorio para operaciones CRUD de productores con caché optimizado."""
+
+    @cacheable('productores', key_func=lambda: 'todos_activos', ttl=1800)  # 30 min
     def obtener_todos(self):
         """
-        Obtiene todos los agricultores activos.
+        Obtiene todos los productores activos.
         
         Returns:
-            list: Lista de diccionarios con información de agricultores.
+            list: Lista de diccionarios con información de productores.
         """
         query = """
-        SELECT id_agricultor, nombre, apellido, identificacion, 
+        SELECT id_productor, nombre, apellido, identificacion, 
                telefono, correo, direccion, fecha_registro, 
-               es_propietario, activo
-        FROM Agricultores
+               activo
+        FROM Productores
         WHERE activo = 1
-        ORDER BY id_agricultor
+        ORDER BY id_productor
         """
         
         rows = self._ejecutar_consulta(query)
-        agricultores = []
+        productores = []
         
         for row in rows:
             agricultor = {
-                'id_agricultor': row.id_agricultor,
+                'id_productor': row.id_productor,
                 'nombre': row.nombre,
                 'apellido': row.apellido,
                 'identificacion': row.identificacion,
@@ -39,20 +41,20 @@ class AgricultorRepositorio(RepositorioBase):
                 'correo': row.correo,
                 'direccion': row.direccion,
                 'fecha_registro': self._formatear_fecha(row.fecha_registro),
-                'esPropietario': bool(row.es_propietario),
                 'activo': bool(row.activo)
             }
-            agricultores.append(agricultor)
+            productores.append(agricultor)
         
-        logger.info(f"Se obtuvieron {len(agricultores)} agricultores")
-        return agricultores
-    
-    def obtener_por_id(self, id_agricultor):
+        logger.info(f"Se obtuvieron {len(productores)} productores")
+        return productores
+
+    @cacheable('productores', key_func=lambda id_agr: f"id_{id_agr}", ttl=3600)  # 1 hora - datos específicos
+    def obtener_por_id(self, id_productor):
         """
         Obtiene un agricultor por su ID.
         
         Args:
-            id_agricultor (int): ID del agricultor.
+            id_productor(int): ID del agricultor.
             
         Returns:
             dict: Información del agricultor.
@@ -61,21 +63,21 @@ class AgricultorRepositorio(RepositorioBase):
             RegistroNoEncontrado: Si el agricultor no existe.
         """
         query = """
-        SELECT id_agricultor, nombre, apellido, identificacion, 
+        SELECT id_productor nombre, apellido, identificacion, 
                telefono, correo, direccion, fecha_registro, 
-               es_propietario, activo
-        FROM Agricultores
-        WHERE id_agricultor = ? AND activo = 1
+               activo
+        FROM Productores
+        WHERE id_productor = ? AND activo = 1
         """
         
-        rows = self._ejecutar_consulta(query, (id_agricultor,))
+        rows = self._ejecutar_consulta(query, (id_productor))
         
         if not rows:
-            raise RegistroNoEncontrado(f"Agricultor con ID {id_agricultor} no encontrado")
+            raise RegistroNoEncontrado(f"Agricultor con ID {id_productor} no encontrado")
         
         row = rows[0]
         return {
-            'id_agricultor': row.id_agricultor,
+            'id_productor': row.id_productor,
             'nombre': row.nombre,
             'apellido': row.apellido,
             'identificacion': row.identificacion,
@@ -83,43 +85,43 @@ class AgricultorRepositorio(RepositorioBase):
             'correo': row.correo,
             'direccion': row.direccion,
             'fecha_registro': self._formatear_fecha(row.fecha_registro),
-            'esPropietario': bool(row.es_propietario),
             'activo': bool(row.activo)
         }
-    
+
+    @cacheable('productores', key_func=lambda pagina, por_pagina=10: f"pagina_{pagina}_{por_pagina}", ttl=1200)  # 20 min
     def obtener_paginado(self, pagina, por_pagina=10):
         """
-        Obtiene agricultores con paginación.
+        Obtiene productores con paginación.
         
         Args:
             pagina (int): Número de página.
             por_pagina (int): Registros por página.
             
         Returns:
-            dict: Agricultores, total_registros, total_paginas, pagina_actual.
+            dict: Productores, total_registros, total_paginas, pagina_actual.
         """
         pagina, por_pagina, offset = self._validar_parametros_paginacion(pagina, por_pagina)
         
         # Contar total de registros activos
-        total_registros = self._contar_registros("Agricultores", "activo = 1")
+        total_registros = self._contar_registros_cached()
         
         # Obtener registros paginados
         query = """
-        SELECT id_agricultor, nombre, apellido, identificacion, 
+        SELECT id_productor, nombre, apellido, identificacion, 
                telefono, correo, direccion, fecha_registro, 
-               es_propietario, activo
-        FROM Agricultores
+               activo
+        FROM Productores
         WHERE activo = 1
-        ORDER BY id_agricultor
+        ORDER BY id_productor
         OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
         """
         
         rows = self._ejecutar_consulta(query, (offset, por_pagina))
-        agricultores = []
+        productores = []
         
         for row in rows:
             agricultor = {
-                'id_agricultor': row.id_agricultor,
+                'id_productor': row.id_productor,
                 'nombre': row.nombre,
                 'apellido': row.apellido,
                 'identificacion': row.identificacion,
@@ -127,32 +129,90 @@ class AgricultorRepositorio(RepositorioBase):
                 'correo': row.correo,
                 'direccion': row.direccion,
                 'fecha_registro': self._formatear_fecha(row.fecha_registro),
-                'esPropietario': bool(row.es_propietario),
                 'activo': bool(row.activo)
             }
-            agricultores.append(agricultor)
+            productores.append(agricultor)
         
         total_paginas = self._calcular_total_paginas(total_registros, por_pagina)
         
         resultado = {
-            'agricultores': agricultores,
+            'productores': productores,
             'total_registros': total_registros,
             'total_paginas': total_paginas,
             'pagina_actual': pagina
         }
         
-        logger.info(f"Página {pagina}: {len(agricultores)} agricultores de {total_registros} totales")
+        logger.info(f"Página {pagina}: {len(productores)} productores de {total_registros} totales")
         return resultado
-    
+
+    @cacheable('productores', key_func=lambda texto: f"buscar_{texto.lower().replace(' ', '_')}", ttl=900)  # 15 min
+    def buscar_por_nombre(self, texto_busqueda):
+        """
+        Busca productores por nombre o apellido.
+        
+        Args:
+            texto_busqueda (str): Texto a buscar.
+            
+        Returns:
+            list: Lista de productores que coinciden.
+        """
+        query = """
+        SELECT id_productor, nombre, apellido, identificacion, 
+               telefono, correo, direccion, fecha_registro, 
+               activo
+        FROM Productores
+        WHERE activo = 1 
+        AND (nombre LIKE ? OR apellido LIKE ? OR CONCAT(nombre, ' ', apellido) LIKE ?)
+        ORDER BY nombre, apellido
+        """
+        
+        patron = f"%{texto_busqueda}%"
+        rows = self._ejecutar_consulta(query, (patron, patron, patron))
+        
+        productores = []
+        for row in rows:
+            agricultor = {
+                'id_productor': row.id_productor,
+                'nombre': row.nombre,
+                'apellido': row.apellido,
+                'identificacion': row.identificacion,
+                'telefono': row.telefono,
+                'correo': row.correo,
+                'direccion': row.direccion,
+                'fecha_registro': self._formatear_fecha(row.fecha_registro),
+                'activo': bool(row.activo)
+            }
+            productores.append(agricultor)
+        
+        logger.info(f"Búsqueda '{texto_busqueda}': {len(productores)} resultados")
+        return productores
+
+    @cacheable('estadisticas', key_func=lambda: 'conteo_total_productores', ttl=1800)  # 30 min
+    def _contar_registros_cached(self):
+        """
+        Cuenta total de productores activos (versión cacheada).
+        
+        Returns:
+            int: Número total de productores activos.
+        """
+        return self._contar_registros("Productores", "activo = 1")
+
+    # ==================== MÉTODOS DE ESCRITURA CON INVALIDACIÓN OPTIMIZADA ====================
+
+    @cache_invalidator('productores', key='todos_activos')  # Invalidar lista completa
+    @cache_invalidator('productores', pattern='pagina_')    # Invalidar paginación
+    @cache_invalidator('propietarios', key='lista_completa') # Invalidar propietarios si aplica
+    @cache_invalidator('estadisticas')                       # Invalidar estadísticas
     def crear(self, datos_agricultor):
         """
         Crea un nuevo agricultor.
+        OPTIMIZADO: Invalidación granular por tipos de caché.
         
         Args:
             datos_agricultor (dict): Datos del agricultor.
             
         Returns:
-            tuple: (True, id_agricultor) si fue exitoso.
+            tuple: (True, id_productor) si fue exitoso.
             
         Raises:
             ErrorValidacion: Si los datos no son válidos.
@@ -165,9 +225,9 @@ class AgricultorRepositorio(RepositorioBase):
             raise RegistroYaExiste(f"Ya existe un agricultor con identificación {datos_agricultor['identificacion']}")
         
         query = """
-        INSERT INTO Agricultores (nombre, apellido, identificacion, telefono, 
-                              correo, direccion, fecha_registro, es_propietario, activo)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO Productores (nombre, apellido, identificacion, telefono, 
+                              correo, direccion, fecha_registro, activo)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """
         
         fecha_actual = datetime.now().date().strftime('%Y-%m-%d')
@@ -184,17 +244,23 @@ class AgricultorRepositorio(RepositorioBase):
         )
         
         self._ejecutar_consulta(query, valores, obtener_resultado=False)
-        id_agricultor = self._obtener_ultimo_id()
+        id_productor = self._obtener_ultimo_id()
         
-        logger.info(f"Agricultor creado con ID: {id_agricultor}")
-        return True, id_agricultor
-    
-    def actualizar(self, id_agricultor, datos_agricultor):
+        logger.info(f"Agricultor creado con ID: {id_productor}")
+        return True, id_productor
+
+    @cache_invalidator('productores', pattern='id_')        # Invalidar caché específico
+    @cache_invalidator('productores', key='todos_activos')  # Invalidar lista completa
+    @cache_invalidator('productores', pattern='pagina_')    # Invalidar paginación
+    @cache_invalidator('propietarios', key='lista_completa') # Invalidar propietarios si cambió
+    @cache_invalidator('estadisticas')                       # Invalidar estadísticas
+    def actualizar(self, id_productor, datos_agricultor):
         """
         Actualiza un agricultor existente.
+        OPTIMIZADO: Invalidación específica del agricultor y listas generales.
         
         Args:
-            id_agricultor (int): ID del agricultor.
+            id_productor (int): ID del agricultor.
             datos_agricultor (dict): Datos actualizados.
             
         Returns:
@@ -205,7 +271,7 @@ class AgricultorRepositorio(RepositorioBase):
             ErrorValidacion: Si los datos no son válidos.
         """
         # Verificar que el agricultor existe
-        self.obtener_por_id(id_agricultor)
+        agricultor_actual = self.obtener_por_id(id_productor)
         
         # Construir consulta dinámicamente
         campos_actualizar = []
@@ -221,7 +287,7 @@ class AgricultorRepositorio(RepositorioBase):
             
         if 'identificacion' in datos_agricultor:
             # Verificar que la nueva identificación no exista (excluyendo el registro actual)
-            if self._existe_identificacion_excepto(datos_agricultor['identificacion'], id_agricultor):
+            if self._existe_identificacion_excepto(datos_agricultor['identificacion'], id_productor):
                 raise RegistroYaExiste(f"Ya existe otro agricultor con identificación {datos_agricultor['identificacion']}")
             campos_actualizar.append("identificacion = ?")
             valores.append(datos_agricultor['identificacion'])
@@ -237,29 +303,30 @@ class AgricultorRepositorio(RepositorioBase):
         if 'direccion' in datos_agricultor:
             campos_actualizar.append("direccion = ?")
             valores.append(datos_agricultor['direccion'])
-            
-        if 'esPropietario' in datos_agricultor:
-            campos_actualizar.append("es_propietario = ?")
-            valores.append(1 if datos_agricultor['esPropietario'] else 0)
         
         if not campos_actualizar:
             logger.warning("No hay campos para actualizar")
             return False
         
-        query = f"UPDATE Agricultores SET {', '.join(campos_actualizar)} WHERE id_agricultor = ?"
-        valores.append(id_agricultor)
+        query = f"UPDATE Productores SET {', '.join(campos_actualizar)} WHERE id_productor = ?"
+        valores.append(id_productor)
         
         filas_afectadas = self._ejecutar_consulta(query, valores, obtener_resultado=False)
-        
-        logger.info(f"Agricultor {id_agricultor} actualizado. Filas afectadas: {filas_afectadas}")
+
         return filas_afectadas > 0
-    
-    def desactivar(self, id_agricultor):
+
+    @cache_invalidator('productores', pattern='id_')        # Invalidar caché específico
+    @cache_invalidator('productores', key='todos_activos')  # Invalidar lista completa
+    @cache_invalidator('productores', pattern='pagina_')    # Invalidar paginación
+    @cache_invalidator('propietarios', key='lista_completa') # Invalidar propietarios
+    @cache_invalidator('estadisticas')                       # Invalidar estadísticas
+    def desactivar(self, id_productor):
         """
         Desactiva un agricultor (eliminación lógica).
+        OPTIMIZADO: Invalidación completa ya que afecta todas las listas.
         
         Args:
-            id_agricultor (int): ID del agricultor.
+            id_productor (int): ID del agricultor.
             
         Returns:
             bool: True si se desactivó correctamente.
@@ -268,82 +335,15 @@ class AgricultorRepositorio(RepositorioBase):
             RegistroNoEncontrado: Si el agricultor no existe.
         """
         # Verificar que el agricultor existe
-        self.obtener_por_id(id_agricultor)
+        self.obtener_por_id(id_productor)
         
-        query = "UPDATE Agricultores SET activo = 0 WHERE id_agricultor = ?"
-        filas_afectadas = self._ejecutar_consulta(query, (id_agricultor,), obtener_resultado=False)
+        query = "UPDATE Productores SET activo = 0 WHERE id_productor = ?"
+        filas_afectadas = self._ejecutar_consulta(query, (id_productor,), obtener_resultado=False)
         
-        logger.info(f"Agricultor {id_agricultor} desactivado. Filas afectadas: {filas_afectadas}")
+        logger.info(f"Agricultor {id_productor} desactivado. Filas afectadas: {filas_afectadas}")
         return filas_afectadas > 0
-    
-    def buscar_por_nombre(self, texto_busqueda):
-        """
-        Busca agricultores por nombre o apellido.
-        
-        Args:
-            texto_busqueda (str): Texto a buscar.
-            
-        Returns:
-            list: Lista de agricultores que coinciden.
-        """
-        query = """
-        SELECT id_agricultor, nombre, apellido, identificacion, 
-               telefono, correo, direccion, fecha_registro, 
-               es_propietario, activo
-        FROM Agricultores
-        WHERE activo = 1 
-        AND (nombre LIKE ? OR apellido LIKE ? OR CONCAT(nombre, ' ', apellido) LIKE ?)
-        ORDER BY nombre, apellido
-        """
-        
-        patron = f"%{texto_busqueda}%"
-        rows = self._ejecutar_consulta(query, (patron, patron, patron))
-        
-        agricultores = []
-        for row in rows:
-            agricultor = {
-                'id_agricultor': row.id_agricultor,
-                'nombre': row.nombre,
-                'apellido': row.apellido,
-                'identificacion': row.identificacion,
-                'telefono': row.telefono,
-                'correo': row.correo,
-                'direccion': row.direccion,
-                'fecha_registro': self._formatear_fecha(row.fecha_registro),
-                'esPropietario': bool(row.es_propietario),
-                'activo': bool(row.activo)
-            }
-            agricultores.append(agricultor)
-        
-        logger.info(f"Búsqueda '{texto_busqueda}': {len(agricultores)} resultados")
-        return agricultores
-    
-    def obtener_propietarios(self):
-        """
-        Obtiene la lista de agricultores que son propietarios.
-        
-        Returns:
-            list: Lista de propietarios con formato {id, nombre}.
-        """
-        query = """
-        SELECT id_agricultor, nombre, apellido
-        FROM Agricultores
-        WHERE es_propietario = 1 AND activo = 1
-        ORDER BY nombre, apellido
-        """
-        
-        rows = self._ejecutar_consulta(query)
-        propietarios = []
-        
-        for row in rows:
-            propietario = {
-                'id': row.id_agricultor,
-                'nombre': f"{row.nombre} {row.apellido}"
-            }
-            propietarios.append(propietario)
-        
-        logger.info(f"Se obtuvieron {len(propietarios)} propietarios")
-        return propietarios
+
+    # ==================== MÉTODOS AUXILIARES ====================
     
     def _validar_datos_agricultor(self, datos):
         """
@@ -381,7 +381,7 @@ class AgricultorRepositorio(RepositorioBase):
         Returns:
             bool: True si existe.
         """
-        count = self._contar_registros("Agricultores", "identificacion = ? AND activo = 1", (identificacion,))
+        count = self._contar_registros("Productores", "identificacion = ? AND activo = 1", (identificacion,))
         return count > 0
     
     def _existe_identificacion_excepto(self, identificacion, id_excluir):
@@ -396,11 +396,9 @@ class AgricultorRepositorio(RepositorioBase):
             bool: True si existe.
         """
         count = self._contar_registros(
-            "Agricultores", 
-            "identificacion = ? AND activo = 1 AND id_agricultor != ?", 
+            "Productores", 
+            "identificacion = ? AND activo = 1 AND id_productor!= ?", 
             (identificacion, id_excluir)
         )
         return count > 0
 
-x = AgricultorRepositorio("DESKTOP-NVQ729A", "Producto_CitricosS")
-x.obtener_todos()

@@ -21,8 +21,8 @@ class VariedadCultivoRepositorio(RepositorioBase):
         """
         query = """
         SELECT v.id_variedad, v.id_tipo_cultivo, v.nombre, v.tiempo_produccion, 
-               v.rendimiento_esperado, v.resistencia_zona, v.activo,
-               t.nombre AS nombre_tipo_cultivo, t.nombre_cientifico AS nombre_cientifico_tipo
+               v.resistencia_zona, v.activo,
+               t.nombre AS nombre_tipo_cultivo,
         FROM VariedadesCultivo v
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
         WHERE v.activo = 1 AND t.activo = 1
@@ -55,8 +55,8 @@ class VariedadCultivoRepositorio(RepositorioBase):
         """
         query = """
         SELECT v.id_variedad, v.id_tipo_cultivo, v.nombre, v.tiempo_produccion, 
-               v.rendimiento_esperado, v.resistencia_zona, v.activo,
-               t.nombre AS nombre_tipo_cultivo, t.nombre_cientifico AS nombre_cientifico_tipo
+                v.resistencia_zona, v.activo,
+               t.nombre AS nombre_tipo_cultivo
         FROM VariedadesCultivo v
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
         WHERE v.id_variedad = ? AND v.activo = 1 AND t.activo = 1
@@ -82,8 +82,8 @@ class VariedadCultivoRepositorio(RepositorioBase):
         """
         query = """
         SELECT v.id_variedad, v.id_tipo_cultivo, v.nombre, v.tiempo_produccion, 
-               v.rendimiento_esperado, v.resistencia_zona, v.activo,
-               t.nombre AS nombre_tipo_cultivo, t.nombre_cientifico AS nombre_cientifico_tipo
+               v.resistencia_zona, v.activo,
+               t.nombre AS nombre_tipo_cultivo
         FROM VariedadesCultivo v
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
         WHERE v.id_tipo_cultivo = ? AND v.activo = 1 AND t.activo = 1
@@ -131,8 +131,8 @@ class VariedadCultivoRepositorio(RepositorioBase):
         # Obtener registros paginados
         data_query = f"""
         SELECT v.id_variedad, v.id_tipo_cultivo, v.nombre, v.tiempo_produccion, 
-               v.rendimiento_esperado, v.resistencia_zona, v.activo,
-               t.nombre AS nombre_tipo_cultivo, t.nombre_cientifico AS nombre_cientifico_tipo
+               v.resistencia_zona, v.activo,
+               t.nombre AS nombre_tipo_cultivo
         FROM VariedadesCultivo v
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
         WHERE {where_clause}
@@ -173,8 +173,8 @@ class VariedadCultivoRepositorio(RepositorioBase):
         """
         query = """
         SELECT v.id_variedad, v.id_tipo_cultivo, v.nombre, v.tiempo_produccion, 
-               v.rendimiento_esperado, v.resistencia_zona, v.activo,
-               t.nombre AS nombre_tipo_cultivo, t.nombre_cientifico AS nombre_cientifico_tipo
+               v.resistencia_zona, v.activo,
+               t.nombre AS nombre_tipo_cultivo
         FROM VariedadesCultivo v
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
         WHERE v.activo = 1 AND t.activo = 1 
@@ -206,13 +206,12 @@ class VariedadCultivoRepositorio(RepositorioBase):
         """
         query = """
         SELECT v.id_variedad, v.id_tipo_cultivo, v.nombre, v.tiempo_produccion, 
-               v.rendimiento_esperado, v.resistencia_zona, v.activo,
-               t.nombre AS nombre_tipo_cultivo, t.nombre_cientifico AS nombre_cientifico_tipo
+               v.resistencia_zona, v.activo,
+               t.nombre AS nombre_tipo_cultivo
         FROM VariedadesCultivo v
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
         WHERE v.activo = 1 AND t.activo = 1 
-        AND v.rendimiento_esperado >= ?
-        ORDER BY v.rendimiento_esperado DESC, t.nombre, v.nombre
+        ORDER BY t.nombre, v.nombre
         """
         
         rows = self._ejecutar_consulta(query, (rendimiento_minimo,))
@@ -265,8 +264,6 @@ class VariedadCultivoRepositorio(RepositorioBase):
         SELECT 
             COUNT(*) as total_variedades,
             COUNT(DISTINCT v.id_tipo_cultivo) as tipos_cultivo_con_variedades,
-            COUNT(CASE WHEN v.rendimiento_esperado IS NOT NULL THEN 1 END) as con_rendimiento,
-            AVG(v.rendimiento_esperado) as rendimiento_promedio,
             COUNT(CASE WHEN v.tiempo_produccion IS NOT NULL THEN 1 END) as con_tiempo_produccion,
             AVG(v.tiempo_produccion) as tiempo_promedio_produccion
         FROM VariedadesCultivo v
@@ -280,8 +277,6 @@ class VariedadCultivoRepositorio(RepositorioBase):
             stats = {
                 'total_variedades': row.total_variedades,
                 'tipos_cultivo_con_variedades': row.tipos_cultivo_con_variedades,
-                'con_rendimiento_esperado': row.con_rendimiento,
-                'rendimiento_promedio': float(row.rendimiento_promedio) if row.rendimiento_promedio else 0,
                 'con_tiempo_produccion': row.con_tiempo_produccion,
                 'tiempo_promedio_produccion': float(row.tiempo_promedio_produccion) if row.tiempo_promedio_produccion else 0
             }
@@ -289,8 +284,6 @@ class VariedadCultivoRepositorio(RepositorioBase):
             stats = {
                 'total_variedades': 0,
                 'tipos_cultivo_con_variedades': 0,
-                'con_rendimiento_esperado': 0,
-                'rendimiento_promedio': 0,
                 'con_tiempo_produccion': 0,
                 'tiempo_promedio_produccion': 0
             }
@@ -311,13 +304,11 @@ class VariedadCultivoRepositorio(RepositorioBase):
         """
         query = """
         SELECT TOP (?) v.id_variedad, v.id_tipo_cultivo, v.nombre, v.tiempo_produccion, 
-               v.rendimiento_esperado, v.resistencia_zona, v.activo,
-               t.nombre AS nombre_tipo_cultivo, t.nombre_cientifico AS nombre_cientifico_tipo
+               v.resistencia_zona, v.activo,
+               t.nombre AS nombre_tipo_cultivo
         FROM VariedadesCultivo v
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
         WHERE v.activo = 1 AND t.activo = 1 
-        AND v.rendimiento_esperado IS NOT NULL
-        ORDER BY v.rendimiento_esperado DESC
         """
         
         rows = self._ejecutar_consulta(query, (limite,))
@@ -362,7 +353,7 @@ class VariedadCultivoRepositorio(RepositorioBase):
         
         query = """
         INSERT INTO VariedadesCultivo (id_tipo_cultivo, nombre, tiempo_produccion, 
-                                    rendimiento_esperado, resistencia_zona, activo)
+                                    resistencia_zona, activo)
         VALUES (?, ?, ?, ?, ?, ?)
         """
         
@@ -370,7 +361,6 @@ class VariedadCultivoRepositorio(RepositorioBase):
             datos_variedad['id_tipo_cultivo'],
             datos_variedad['nombre'],
             datos_variedad.get('tiempo_produccion'),
-            datos_variedad.get('rendimiento_esperado'),
             datos_variedad.get('resistencia_zona'),
             1  # activo por defecto
         )
@@ -426,10 +416,6 @@ class VariedadCultivoRepositorio(RepositorioBase):
         if 'tiempo_produccion' in datos_variedad:
             campos_actualizar.append("tiempo_produccion = ?")
             valores.append(datos_variedad['tiempo_produccion'])
-            
-        if 'rendimiento_esperado' in datos_variedad:
-            campos_actualizar.append("rendimiento_esperado = ?")
-            valores.append(datos_variedad['rendimiento_esperado'])
             
         if 'resistencia_zona' in datos_variedad:
             campos_actualizar.append("resistencia_zona = ?")
@@ -500,7 +486,6 @@ class VariedadCultivoRepositorio(RepositorioBase):
             'id_tipo_cultivo': row.id_tipo_cultivo,
             'nombre': row.nombre or '',
             'tiempo_produccion': row.tiempo_produccion,
-            'rendimiento_esperado': float(row.rendimiento_esperado) if row.rendimiento_esperado else None,
             'resistencia_zona': row.resistencia_zona or '',
             'activo': bool(row.activo),
             
@@ -510,11 +495,8 @@ class VariedadCultivoRepositorio(RepositorioBase):
             'nombre_completo': f"{row.nombre_tipo_cultivo} - {row.nombre}" if row.nombre_tipo_cultivo else row.nombre,
             
             # Campos calculados
-            'tiene_rendimiento': bool(row.rendimiento_esperado),
             'tiene_tiempo_produccion': bool(row.tiempo_produccion),
-            'rendimiento_texto': self._formatear_rendimiento(row.rendimiento_esperado),
             'tiempo_produccion_texto': self._formatear_tiempo_produccion(row.tiempo_produccion),
-            'categoria_rendimiento': self._categorizar_rendimiento(row.rendimiento_esperado)
         }
     
     def _validar_datos_variedad(self, datos):
@@ -537,11 +519,6 @@ class VariedadCultivoRepositorio(RepositorioBase):
         tiempo_produccion = datos.get('tiempo_produccion')
         if tiempo_produccion is not None and tiempo_produccion < 0:
             raise ErrorValidacion("El tiempo de producción debe ser positivo")
-        
-        # Validar rendimiento esperado
-        rendimiento = datos.get('rendimiento_esperado')
-        if rendimiento is not None and rendimiento < 0:
-            raise ErrorValidacion("El rendimiento esperado debe ser positivo")
         
         # Validar longitud de campos
         if len(datos.get('nombre', '')) > 100:

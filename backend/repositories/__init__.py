@@ -10,9 +10,9 @@ from .usuario_repositorio import UsuarioRepositorio
 from .auto_repositorio import AutoRepositorio
 
 # Repositorios de Agricultores y Parcelas
-from .Agriculor_Parcelas_rep.agricultor_repositorio import AgricultorRepositorio
-from .Agriculor_Parcelas_rep.parcela_repositorio import ParcelaRepositorio
-from .Agriculor_Parcelas_rep.relacion_AgriPar_repositorio import RelacionRepositorio
+from .Productor_Parcelas_rep.productor_repositorio import ProductorRepositorio
+from .Productor_Parcelas_rep.parcela_repositorio import ParcelaRepositorio
+from .Productor_Parcelas_rep.relacion_AgriPar_repositorio import RelacionRepositorio
 
 # Repositorios de Cultivos
 from .CultivosRepositorio.tipo_cultivo_repositorio import TipoCultivoRepositorio
@@ -33,7 +33,7 @@ __all__ = [
     'UsuarioRepositorio',
     'AutoRepositorio',
     # Agricultores y Parcelas
-    'AgricultorRepositorio',
+    'ProductorRepositorio',
     'ParcelaRepositorio', 
     'RelacionRepositorio',
     

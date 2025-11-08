@@ -90,7 +90,6 @@ class AnalisisRentabilidadServicio:
                 'top_performers': comparativo[:5] if comparativo else [],
                 'necesitan_atencion': [v for v in comparativo if v.get('roi_promedio', 0) < 15],
                 'analisis_por_tipo_cultivo': self._analizar_por_tipo_cultivo(comparativo),
-                'recomendaciones_estrategicas': self._generar_recomendaciones_variedades(comparativo),
                 'oportunidades_mejora': self._identificar_oportunidades_mejora_variedades(comparativo)
             }
             
@@ -398,10 +397,6 @@ class AnalisisRentabilidadServicio:
     def _get_timestamp(self):
         """Obtiene timestamp actual en formato ISO."""
         return datetime.now().isoformat()
-    
-    # Placeholders para métodos complejos (implementación simplificada)
-    def _generar_recomendaciones_variedades(self, comparativo):
-        return ["Enfocarse en variedades con ROI > 30%", "Diversificar portfolio de cultivos"]
     
     def _identificar_oportunidades_mejora_variedades(self, comparativo):
         return ["Optimizar variedades con ROI 15-25%", "Eliminar variedades con ROI < 10%"]

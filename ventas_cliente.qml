@@ -1069,7 +1069,7 @@ Rectangle {
                         
                         Button {
                             text: "Nuevo Cliente"
-                            icon.source: "Image/Image_UI_interfaz/Inconos/agregar-usuario.svg"
+                            icon.source: "recursos/image/icons/agregar-usuario.svg"
                             implicitHeight: 36
                             background: Rectangle {
                                 color: parent.hovered ? "#E65A00" : "#f5922f"

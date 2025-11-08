@@ -20,7 +20,7 @@ class TipoCultivoRepositorio(RepositorioBase):
             list: Lista de diccionarios con información de tipos de cultivo.
         """
         query = """
-        SELECT id_tipo_cultivo, nombre, nombre_cientifico, descripcion, 
+        SELECT id_tipo_cultivo, nombre, descripcion, 
                tiempo_cosecha_min, tiempo_cosecha_max, activo
         FROM TiposCultivo
         WHERE activo = 1
@@ -52,7 +52,7 @@ class TipoCultivoRepositorio(RepositorioBase):
             RegistroNoEncontrado: Si el tipo de cultivo no existe.
         """
         query = """
-        SELECT id_tipo_cultivo, nombre, nombre_cientifico, descripcion, 
+        SELECT id_tipo_cultivo, nombre, descripcion, 
                tiempo_cosecha_min, tiempo_cosecha_max, activo
         FROM TiposCultivo
         WHERE id_tipo_cultivo = ? AND activo = 1
@@ -84,7 +84,7 @@ class TipoCultivoRepositorio(RepositorioBase):
         
         # Obtener registros paginados
         query = """
-        SELECT id_tipo_cultivo, nombre, nombre_cientifico, descripcion, 
+        SELECT id_tipo_cultivo, nombre, descripcion, 
                tiempo_cosecha_min, tiempo_cosecha_max, activo
         FROM TiposCultivo
         WHERE activo = 1
@@ -123,11 +123,11 @@ class TipoCultivoRepositorio(RepositorioBase):
             list: Lista de tipos de cultivo que coinciden.
         """
         query = """
-        SELECT id_tipo_cultivo, nombre, nombre_cientifico, descripcion, 
+        SELECT id_tipo_cultivo, nombre, descripcion, 
                tiempo_cosecha_min, tiempo_cosecha_max, activo
-        FROM TiposCultivo
+        FROM TiposCultivo   
         WHERE activo = 1 
-        AND (nombre LIKE ? OR nombre_cientifico LIKE ? OR descripcion LIKE ?)
+        AND (nombre LIKE ? OR descripcion LIKE ?)
         ORDER BY nombre
         """
         
@@ -208,7 +208,7 @@ class TipoCultivoRepositorio(RepositorioBase):
             params.append(tiempo_max)
         
         query = f"""
-        SELECT id_tipo_cultivo, nombre, nombre_cientifico, descripcion, 
+        SELECT id_tipo_cultivo, nombre, descripcion, 
                tiempo_cosecha_min, tiempo_cosecha_max, activo
         FROM TiposCultivo
         WHERE {' AND '.join(where_clauses)}
@@ -253,14 +253,13 @@ class TipoCultivoRepositorio(RepositorioBase):
             raise RegistroYaExiste(f"Ya existe un tipo de cultivo con el nombre '{datos_tipo_cultivo['nombre']}'")
         
         query = """
-        INSERT INTO TiposCultivo (nombre, nombre_cientifico, descripcion, 
+        INSERT INTO TiposCultivo (nombre, descripcion, 
                                tiempo_cosecha_min, tiempo_cosecha_max, activo)
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?)
         """
         
         valores = (
             datos_tipo_cultivo['nombre'],
-            datos_tipo_cultivo.get('nombre_cientifico'),
             datos_tipo_cultivo.get('descripcion'),
             datos_tipo_cultivo.get('tiempo_cosecha_min'),
             datos_tipo_cultivo.get('tiempo_cosecha_max'),
@@ -307,10 +306,7 @@ class TipoCultivoRepositorio(RepositorioBase):
                 raise RegistroYaExiste(f"Ya existe otro tipo de cultivo con el nombre '{datos_tipo_cultivo['nombre']}'")
             campos_actualizar.append("nombre = ?")
             valores.append(datos_tipo_cultivo['nombre'])
-            
-        if 'nombre_cientifico' in datos_tipo_cultivo:
-            campos_actualizar.append("nombre_cientifico = ?")
-            valores.append(datos_tipo_cultivo['nombre_cientifico'])
+        
             
         if 'descripcion' in datos_tipo_cultivo:
             campos_actualizar.append("descripcion = ?")
@@ -385,7 +381,6 @@ class TipoCultivoRepositorio(RepositorioBase):
             'id_tipo_cultivo': row.id_tipo_cultivo,
             'id': row.id_tipo_cultivo,  # Alias para compatibilidad
             'nombre': row.nombre or '',
-            'nombre_cientifico': row.nombre_cientifico or '',
             'descripcion': row.descripcion or '',
             'tiempo_cosecha_min': row.tiempo_cosecha_min,
             'tiempo_cosecha_max': row.tiempo_cosecha_max,
@@ -433,9 +428,7 @@ class TipoCultivoRepositorio(RepositorioBase):
         # Validar longitud de campos
         if len(datos.get('nombre', '')) > 100:
             raise ErrorValidacion("El nombre no puede exceder 100 caracteres")
-            
-        if datos.get('nombre_cientifico') and len(datos['nombre_cientifico']) > 150:
-            raise ErrorValidacion("El nombre científico no puede exceder 150 caracteres")
+        
     
     def _existe_nombre(self, nombre):
         """

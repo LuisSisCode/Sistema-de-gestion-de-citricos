@@ -113,10 +113,6 @@ class AutoRepositorio(RepositorioBase):
                 if 'fecha' in col.lower():
                     valor = self._formatear_fecha(valor)
                 
-                # Convertir bits a bool
-                if isinstance(valor, int) and col in ['activo', 'es_propietario']:
-                    valor = bool(valor)
-                
                 registro[col] = valor
             
             registros.append(registro)
@@ -157,10 +153,6 @@ class AutoRepositorio(RepositorioBase):
             # Formatear fechas
             if 'fecha' in col.lower():
                 valor = self._formatear_fecha(valor)
-            
-            # Convertir bits a bool
-            if isinstance(valor, int) and col in ['activo', 'es_propietario']:
-                valor = bool(valor)
             
             registro[col] = valor
         
@@ -351,9 +343,6 @@ class AutoRepositorio(RepositorioBase):
                 
                 if 'fecha' in col.lower():
                     valor_col = self._formatear_fecha(valor_col)
-                
-                if isinstance(valor_col, int) and col in ['activo', 'es_propietario']:
-                    valor_col = bool(valor_col)
                 
                 registro[col] = valor_col
             

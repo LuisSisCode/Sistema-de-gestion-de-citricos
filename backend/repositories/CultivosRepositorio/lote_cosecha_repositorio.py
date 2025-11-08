@@ -36,7 +36,7 @@ class LoteCosechaRepositorio(RepositorioBase):
         JOIN Parcelas p ON c.id_parcela = p.id_parcela
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
-        JOIN Agricultores a ON p.id_agricultor = a.id_agricultor
+        JOIN Productores a ON p.id_productor = a.id_productor
         JOIN CategoriasCalidad cc ON l.id_categoria_calidad = cc.id_categoria
         JOIN Usuarios u ON l.registrado_por = u.id_usuario
         WHERE l.activo = 1 AND c.activo = 1 AND p.activo = 1 AND v.activo = 1 AND t.activo = 1
@@ -84,7 +84,7 @@ class LoteCosechaRepositorio(RepositorioBase):
         JOIN Parcelas p ON c.id_parcela = p.id_parcela
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
-        JOIN Agricultores a ON p.id_agricultor = a.id_agricultor
+        JOIN Productores a ON p.id_productor = a.id_productor
         JOIN CategoriasCalidad cc ON l.id_categoria_calidad = cc.id_categoria
         JOIN Usuarios u ON l.registrado_por = u.id_usuario
         WHERE l.id_lote = ? AND l.activo = 1
@@ -125,7 +125,7 @@ class LoteCosechaRepositorio(RepositorioBase):
         JOIN Parcelas p ON c.id_parcela = p.id_parcela
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
-        JOIN Agricultores a ON p.id_agricultor = a.id_agricultor
+        JOIN Productores a ON p.id_productor = a.id_productor
         JOIN CategoriasCalidad cc ON l.id_categoria_calidad = cc.id_categoria
         JOIN Usuarios u ON l.registrado_por = u.id_usuario
         WHERE l.id_ciclo = ? AND l.activo = 1
@@ -171,7 +171,7 @@ class LoteCosechaRepositorio(RepositorioBase):
         JOIN Parcelas p ON c.id_parcela = p.id_parcela
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
-        JOIN Agricultores a ON p.id_agricultor = a.id_agricultor
+        JOIN Productores a ON p.id_productor = a.id_productor
         JOIN CategoriasCalidad cc ON l.id_categoria_calidad = cc.id_categoria
         JOIN Usuarios u ON l.registrado_por = u.id_usuario
         WHERE l.fecha_cosecha BETWEEN ? AND ? AND l.activo = 1
@@ -215,7 +215,7 @@ class LoteCosechaRepositorio(RepositorioBase):
         JOIN Parcelas p ON c.id_parcela = p.id_parcela
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
-        JOIN Agricultores a ON p.id_agricultor = a.id_agricultor
+        JOIN Productores a ON p.id_productor = a.id_productor
         JOIN CategoriasCalidad cc ON l.id_categoria_calidad = cc.id_categoria
         JOIN Usuarios u ON l.registrado_por = u.id_usuario
         LEFT JOIN DetallesVenta dv ON l.id_lote = dv.id_lote

@@ -1,8 +1,8 @@
-# bd_conecciones/servicios/agricultor_servicio.py
+# bd_conecciones/servicios/productor_servicio.py
 
 import logging
-from ...repositories.Agriculor_Parcelas_rep.agricultor_repositorio import AgricultorRepositorio
-from ...repositories.Agriculor_Parcelas_rep.relacion_AgriPar_repositorio import RelacionRepositorio
+from ...repositories.Productor_Parcelas_rep.productor_repositorio import ProductorRepositorio
+from ...repositories.Productor_Parcelas_rep.relacion_AgriPar_repositorio import RelacionRepositorio
 from ...core.excepciones_bd import (
     ErrorValidacion, 
     RegistroNoEncontrado, 
@@ -13,17 +13,17 @@ from ...core.cache_system import cacheable, cache_invalidator, get_ttl
 
 logger = logging.getLogger(__name__)
 
-class AgricultorServicio:
-    """Servicio para lógica de negocio de agricultores con caché optimizado."""
+class ProductorServicio:
+    """Servicio para lógica de negocio de productores con caché optimizado."""
     
     def __init__(self):
-        self.agricultor_repo = AgricultorRepositorio()
+        self.productor_repo = ProductorRepositorio()
         self.relacion_repo = RelacionRepositorio()
     
-    @cacheable('servicio_agricultores', key_func=lambda pagina, por_pagina=8: f"paginado_{pagina}_{por_pagina}", ttl=900)  # 15 min
-    def obtener_agricultores_paginado(self, pagina, por_pagina=8):
+    @cacheable('servicio_productores', key_func=lambda pagina, por_pagina=8: f"paginado_{pagina}_{por_pagina}", ttl=900)  # 15 min
+    def obtener_productores_paginado(self, pagina, por_pagina=8):
         """
-        Obtiene agricultores con paginación y lógica de negocio aplicada.
+        Obtiene productores con paginación y lógica de negocio aplicada.
         ⭐ MUY OPTIMIZADO: Elimina el problema de N+1 queries cacheando el resultado completo enriquecido
         
         Args:
@@ -31,38 +31,37 @@ class AgricultorServicio:
             por_pagina (int): Registros por página.
             
         Returns:
-            dict: Resultado con agricultores y metadatos.
+            dict: Resultado con productores y metadatos.
         """
         try:
-            resultado = self.agricultor_repo.obtener_paginado(pagina, por_pagina)
+            resultado = self.productor_repo.obtener_paginado(pagina, por_pagina)
             
             # Enriquecer datos con información adicional (OPTIMIZADO: resultado completo cacheado)
-            agricultores_enriquecidos = []
-            for agricultor in resultado['agricultores']:
+            productores_enriquecidos = []
+            for agricultor in resultado['productores']:
                 agricultor_enriquecido = agricultor.copy()
                 
                 # Obtener datos adicionales (estos métodos ya están cacheados en repositorios)
-                agricultor_enriquecido['cantidad_parcelas'] = self.relacion_repo.contar_parcelas_por_agricultor(agricultor['id_agricultor'])
-                agricultor_enriquecido['puede_eliminar'] = self._puede_eliminar_agricultor_cached(agricultor['id_agricultor'])
+                agricultor_enriquecido['cantidad_parcelas'] = self.relacion_repo.contar_parcelas_por_productor(agricultor['id_productor'])
+                agricultor_enriquecido['puede_eliminar'] = self._puede_eliminar_agricultor_cached(agricultor['id_productor'])
                 
                 # Agregar metadatos de negocio
-                agricultor_enriquecido['es_propietario_activo'] = agricultor['esPropietario'] and agricultor['activo']
                 agricultor_enriquecido['tiene_parcelas'] = agricultor_enriquecido['cantidad_parcelas'] > 0
                 
-                agricultores_enriquecidos.append(agricultor_enriquecido)
+                productores_enriquecidos.append(agricultor_enriquecido)
             
             # Actualizar resultado con datos enriquecidos
-            resultado['agricultores'] = agricultores_enriquecidos
+            resultado['productores'] = productores_enriquecidos
             
-            logger.info(f"Servicio: página {pagina} procesada con {len(resultado['agricultores'])} agricultores")
+            logger.info(f"Servicio: página {pagina} procesada con {len(resultado['productores'])} productores")
             return resultado
             
         except Exception as e:
-            logger.error(f"Error en servicio obtener_agricultores_paginado: {str(e)}")
+            logger.error(f"Error en servicio obtener_productores_paginado: {str(e)}")
             raise
 
-    @cache_invalidator('servicio_agricultores', pattern='paginado_')  # Invalidar paginación
-    @cache_invalidator('servicio_agricultores', pattern='busqueda_') # Invalidar búsquedas
+    @cache_invalidator('servicio_productores', pattern='paginado_')  # Invalidar paginación
+    @cache_invalidator('servicio_productores', pattern='busqueda_') # Invalidar búsquedas
     @cache_invalidator('validaciones')                               # Invalidar validaciones
     def crear_agricultor(self, datos_agricultor):
         """
@@ -83,18 +82,17 @@ class AgricultorServicio:
             datos_normalizados = self._normalizar_datos_agricultor(datos_agricultor)
             
             # Crear agricultor
-            exito, id_agricultor = self.agricultor_repo.crear(datos_normalizados)
+            exito, id_productor = self.productor_repo.crear(datos_normalizados)
             
             if exito:
                 resultado = {
                     'exito': True,
-                    'id_agricultor': id_agricultor,
-                    'mensaje': f"Agricultor creado exitosamente con ID {id_agricultor}",
-                    'es_propietario': datos_normalizados.get('esPropietario', False),
+                    'id_productor': id_productor,
+                    'mensaje': f"Agricultor creado exitosamente con ID {id_productor}",
                     'requiere_actualizacion_listas': True
                 }
                 
-                logger.info(f"Servicio: agricultor creado con ID {id_agricultor}")
+                logger.info(f"Servicio: agricultor creado con ID {id_productor}")
                 return resultado
             else:
                 return {'exito': False, 'mensaje': 'Error al crear agricultor'}
@@ -106,17 +104,17 @@ class AgricultorServicio:
             logger.error(f"Error en servicio crear_agricultor: {str(e)}")
             return {'exito': False, 'mensaje': 'Error interno del sistema'}
 
-    @cache_invalidator('servicio_agricultores', pattern='paginado_')  # Invalidar paginación
-    @cache_invalidator('servicio_agricultores', pattern='busqueda_') # Invalidar búsquedas
+    @cache_invalidator('servicio_productores', pattern='paginado_')  # Invalidar paginación
+    @cache_invalidator('servicio_productores', pattern='busqueda_') # Invalidar búsquedas
     @cache_invalidator('validaciones')                               # Invalidar validaciones
     @cache_invalidator('estados_agricultor')                         # Invalidar estados
-    def actualizar_agricultor(self, id_agricultor, datos_agricultor):
+    def actualizar_agricultor(self, id_productor, datos_agricultor):
         """
         Actualiza un agricultor con validaciones de negocio.
         OPTIMIZADO: Invalidación específica del agricultor actualizado.
         
         Args:
-            id_agricultor (int): ID del agricultor.
+            id_productor (int): ID del agricultor.
             datos_agricultor (dict): Datos actualizados.
             
         Returns:
@@ -124,7 +122,7 @@ class AgricultorServicio:
         """
         try:
             # Obtener datos actuales para comparación
-            agricultor_actual = self.agricultor_repo.obtener_por_id(id_agricultor)
+            agricultor_actual = self.productor_repo.obtener_por_id(id_productor)
             
             # Validar cambios críticos
             self._validar_cambios_criticos(agricultor_actual, datos_agricultor)
@@ -133,7 +131,7 @@ class AgricultorServicio:
             datos_normalizados = self._normalizar_datos_agricultor(datos_agricultor)
             
             # Actualizar agricultor
-            exito = self.agricultor_repo.actualizar(id_agricultor, datos_normalizados)
+            exito = self.productor_repo.actualizar(id_productor, datos_normalizados)
             
             if exito:
                 # Verificar si cambió el estado de propietario
@@ -147,7 +145,7 @@ class AgricultorServicio:
                     'requiere_actualizacion_listas': True
                 }
                 
-                logger.info(f"Servicio: agricultor {id_agricultor} actualizado")
+                logger.info(f"Servicio: agricultor {id_productor} actualizado")
                 return resultado
             else:
                 return {'exito': False, 'mensaje': 'Error al actualizar agricultor'}
@@ -159,27 +157,27 @@ class AgricultorServicio:
             logger.error(f"Error en servicio actualizar_agricultor: {str(e)}")
             return {'exito': False, 'mensaje': 'Error interno del sistema'}
 
-    @cache_invalidator('servicio_agricultores', pattern='paginado_')  # Invalidar paginación
-    @cache_invalidator('servicio_agricultores', pattern='busqueda_') # Invalidar búsquedas
+    @cache_invalidator('servicio_productores', pattern='paginado_')  # Invalidar paginación
+    @cache_invalidator('servicio_productores', pattern='busqueda_') # Invalidar búsquedas
     @cache_invalidator('validaciones')                               # Invalidar validaciones
     @cache_invalidator('estados_agricultor')                         # Invalidar estados
-    def eliminar_agricultor(self, id_agricultor):
+    def eliminar_agricultor(self, id_productor):
         """
         Elimina un agricultor verificando dependencias y reglas de negocio.
         OPTIMIZADO: Invalidación completa ya que afecta listas y estadísticas.
         
         Args:
-            id_agricultor (int): ID del agricultor.
+            id_productor (int): ID del agricultor.
             
         Returns:
             dict: Resultado detallado de la operación.
         """
         try:
             # Obtener información del agricultor
-            agricultor = self.agricultor_repo.obtener_por_id(id_agricultor)
+            agricultor = self.productor_repo.obtener_por_id(id_productor)
             
             # Verificar dependencias usando RelacionRepositorio (ya cacheado)
-            dependencias = self.relacion_repo.verificar_dependencias_agricultor(id_agricultor)
+            dependencias = self.relacion_repo.verificar_dependencias_agricultor(id_productor)
             
             # Si tiene dependencias, no se puede eliminar
             if not dependencias['puede_eliminar']:
@@ -192,7 +190,7 @@ class AgricultorServicio:
                 }
             
             # Proceder con eliminación
-            exito = self.agricultor_repo.desactivar(id_agricultor)
+            exito = self.productor_repo.desactivar(id_productor)
             
             if exito:
                 resultado = {
@@ -203,7 +201,7 @@ class AgricultorServicio:
                     'requiere_actualizacion_listas': True
                 }
                 
-                logger.info(f"Servicio: agricultor {id_agricultor} eliminado")
+                logger.info(f"Servicio: agricultor {id_productor} eliminado")
                 return resultado
             else:
                 return {'exito': False, 'mensaje': 'Error al eliminar agricultor'}
@@ -224,90 +222,66 @@ class AgricultorServicio:
             logger.error(f"Error en servicio eliminar_agricultor: {str(e)}")
             return {'exito': False, 'mensaje': 'Error interno del sistema', 'tipo_error': 'interno'}
 
-    @cacheable('servicio_agricultores', key_func=lambda texto: f"busqueda_{texto.lower().replace(' ', '_')}", ttl=600)  # 10 min
-    def buscar_agricultores(self, texto_busqueda):
+    @cacheable('servicio_productores', key_func=lambda texto: f"busqueda_{texto.lower().replace(' ', '_')}", ttl=600)  # 10 min
+    def buscar_productores(self, texto_busqueda):
         """
-        Busca agricultores con lógica de negocio aplicada.
+        Busca productores con lógica de negocio aplicada.
         ⭐ OPTIMIZADO: Resultado enriquecido completo cacheado para evitar N+1 queries
         
         Args:
             texto_busqueda (str): Texto a buscar.
             
         Returns:
-            list: Lista de agricultores encontrados con información adicional.
+            list: Lista de productores encontrados con información adicional.
         """
         try:
             if not texto_busqueda or len(texto_busqueda.strip()) < 2:
                 return []
             
-            agricultores = self.agricultor_repo.buscar_por_nombre(texto_busqueda.strip())
+            productores = self.productor_repo.buscar_por_nombre(texto_busqueda.strip())
             
             # Enriquecer resultados (OPTIMIZADO: resultado completo cacheado)
-            agricultores_enriquecidos = []
-            for agricultor in agricultores:
+            productores_enriquecidos = []
+            for agricultor in productores:
                 agricultor_enriquecido = agricultor.copy()
                 
                 # Agregar información adicional (métodos ya cacheados en repositorios)
-                agricultor_enriquecido['cantidad_parcelas'] = self.relacion_repo.contar_parcelas_por_agricultor(agricultor['id_agricultor'])
-                agricultor_enriquecido['puede_eliminar'] = self._puede_eliminar_agricultor_cached(agricultor['id_agricultor'])
+                agricultor_enriquecido['cantidad_parcelas'] = self.relacion_repo.contar_parcelas_por_productor(agricultor['id_productor'])
+                agricultor_enriquecido['puede_eliminar'] = self._puede_eliminar_agricultor_cached(agricultor['id_productor'])
                 
                 # Metadatos de negocio
-                agricultor_enriquecido['es_propietario_activo'] = agricultor['esPropietario'] and agricultor['activo']
                 agricultor_enriquecido['tiene_parcelas'] = agricultor_enriquecido['cantidad_parcelas'] > 0
                 
-                agricultores_enriquecidos.append(agricultor_enriquecido)
+                productores_enriquecidos.append(agricultor_enriquecido)
             
-            logger.info(f"Servicio: búsqueda '{texto_busqueda}' retornó {len(agricultores_enriquecidos)} resultados")
-            return agricultores_enriquecidos
+            logger.info(f"Servicio: búsqueda '{texto_busqueda}' retornó {len(productores_enriquecidos)} resultados")
+            return productores_enriquecidos
             
         except Exception as e:
-            logger.error(f"Error en servicio buscar_agricultores: {str(e)}")
-            return []
-
-    @cacheable('servicio_propietarios', key_func=lambda: 'activos_servicio', ttl=1800)  # 30 min
-    def obtener_propietarios_activos(self):
-        """
-        Obtiene la lista de propietarios activos.
-        ⭐ OPTIMIZADO: Cacheado a nivel de servicio para evitar delegación constante
-        
-        Returns:
-            list: Lista de propietarios.
-        """
-        try:
-            propietarios = self.relacion_repo.obtener_propietarios_activos()
-            
-            # Enriquecer con información de servicio si es necesario
-            for propietario in propietarios:
-                propietario['activo_servicio'] = True
-                propietario['timestamp_consulta'] = self._get_timestamp()
-            
-            return propietarios
-        except Exception as e:
-            logger.error(f"Error en servicio obtener_propietarios_activos: {str(e)}")
+            logger.error(f"Error en servicio buscar_productores: {str(e)}")
             return []
 
     @cacheable('estados_agricultor', key_func=lambda id_agr: f"estado_completo_{id_agr}", ttl=1200)  # 20 min
-    def verificar_estado_agricultor(self, id_agricultor):
+    def verificar_estado_agricultor(self, id_productor):
         """
         Verifica el estado completo de un agricultor.
         ⭐ OPTIMIZADO: Estado completo cacheado para evitar múltiples consultas
         
         Args:
-            id_agricultor (int): ID del agricultor.
+            id_productor (int): ID del agricultor.
             
         Returns:
             dict: Estado completo del agricultor.
         """
         try:
             # Estos métodos ya están cacheados en repositorios
-            agricultor = self.agricultor_repo.obtener_por_id(id_agricultor)
-            cantidad_parcelas = self.relacion_repo.contar_parcelas_por_agricultor(id_agricultor)
+            agricultor = self.productor_repo.obtener_por_id(id_productor)
+            cantidad_parcelas = self.relacion_repo.contar_parcelas_por_productor(id_productor)
             
             estado = {
                 'agricultor': agricultor,
                 'cantidad_parcelas': cantidad_parcelas,
                 'puede_eliminar': cantidad_parcelas == 0,
-                'es_propietario_activo': agricultor['esPropietario'] and agricultor['activo'],
                 'tiene_parcelas': cantidad_parcelas > 0,
                 'timestamp_verificacion': self._get_timestamp(),
                 
@@ -328,19 +302,19 @@ class AgricultorServicio:
     # ==================== MÉTODOS AUXILIARES OPTIMIZADOS ====================
 
     @cacheable('validaciones', key_func=lambda id_agr: f"puede_eliminar_{id_agr}", ttl=900)  # 15 min
-    def _puede_eliminar_agricultor_cached(self, id_agricultor):
+    def _puede_eliminar_agricultor_cached(self, id_productor):
         """
         Verifica si un agricultor puede ser eliminado (versión cacheada).
         ⭐ OPTIMIZADO: Evita consultar repetidamente la misma validación
         
         Args:
-            id_agricultor (int): ID del agricultor.
+            id_productor (int): ID del agricultor.
             
         Returns:
             bool: True si puede eliminarse.
         """
         try:
-            cantidad_parcelas = self.relacion_repo.contar_parcelas_por_agricultor(id_agricultor)
+            cantidad_parcelas = self.relacion_repo.contar_parcelas_por_productor(id_productor)
             return cantidad_parcelas == 0
         except Exception:
             return False
@@ -369,45 +343,38 @@ class AgricultorServicio:
         
         return True
 
-    @cacheable('metricas_servicio', key_func=lambda: 'resumen_agricultores', ttl=1800)  # 30 min
-    def obtener_resumen_agricultores(self):
+    @cacheable('metricas_servicio', key_func=lambda: 'resumen_productores', ttl=1800)  # 30 min
+    def obtener_resumen_productores(self):
         """
-        Obtiene un resumen completo de agricultores para dashboard.
+        Obtiene un resumen completo de productores para dashboard.
         ⭐ NUEVO: Método optimizado para dashboard
         
         Returns:
-            dict: Resumen completo de agricultores.
+            dict: Resumen completo de productores.
         """
         try:
             # Obtener estadísticas básicas (ya cacheadas)
             estadisticas = self.relacion_repo.obtener_estadisticas_generales()
-            propietarios = self.obtener_propietarios_activos()
             
             # Calcular métricas adicionales
-            total_agricultores = estadisticas['agricultores']['total']
-            total_propietarios = len(propietarios)
-            total_trabajadores = total_agricultores - total_propietarios
+            total_productores = estadisticas['productores']['total']
+            total_trabajadores = total_productores
             
             resumen = {
                 'totales': {
-                    'agricultores': total_agricultores,
-                    'propietarios': total_propietarios,
+                    'productores': total_productores,
                     'trabajadores': total_trabajadores
                 },
                 'estadisticas': estadisticas,
-                'propietarios_activos': propietarios[:10],  # Solo los primeros 10
                 'timestamp': self._get_timestamp(),
                 
-                # Métricas de negocio
-                'porcentaje_propietarios': (total_propietarios / total_agricultores * 100) if total_agricultores > 0 else 0,
-                'promedio_parcelas_propietario': estadisticas['parcelas']['total'] / total_propietarios if total_propietarios > 0 else 0
             }
             
-            logger.info(f"Resumen de agricultores generado: {total_agricultores} total")
+            logger.info(f"Resumen de productores generado: {total_productores} total")
             return resumen
             
         except Exception as e:
-            logger.error(f"Error generando resumen de agricultores: {str(e)}")
+            logger.error(f"Error generando resumen de productores: {str(e)}")
             return {}
 
     # ==================== MÉTODOS AUXILIARES PRIVADOS ====================
@@ -423,7 +390,7 @@ class AgricultorServicio:
             'esPropietario' in datos_nuevos and 
             not datos_nuevos['esPropietario']):
             
-            cantidad_parcelas = self.relacion_repo.contar_parcelas_por_agricultor(agricultor_actual['id_agricultor'])
+            cantidad_parcelas = self.relacion_repo.contar_parcelas_por_productor(agricultor_actual['id_productor'])
             if cantidad_parcelas > 0:
                 raise ErrorValidacion(f"No se puede quitar el estado de propietario. Tiene {cantidad_parcelas} parcelas asociadas")
     

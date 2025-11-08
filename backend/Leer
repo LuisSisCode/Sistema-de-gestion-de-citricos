@@ -11,6 +11,6 @@ Usa al repositorio para realizar su logica o el trabajo.
 
 Nota: Los __init__.py en cada carpeta(capa) Son como directorios telefónicos de Python.
 ¿Qué hacen exactamente?
-Dicen qué se puede importar: __all__ = ['AgricultorRepositorio']
-Hacen importaciones más fáciles: En lugar de from bd_capa.repositorios.agricultor_repositorio import AgricultorRepositorio
+Dicen qué se puede importar: __all__ = ['ProductorRepositorio']
+Hacen importaciones más fáciles: En lugar de from bd_capa.repositorios.agricultor_repositorio import ProductorRepositorio
 Organizan el código: Como el índice de un libro

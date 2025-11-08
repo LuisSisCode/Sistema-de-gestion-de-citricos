@@ -4,7 +4,7 @@ import logging
 from datetime import datetime, date, timedelta
 from ...repositories.CultivosRepositorio.ciclo_produccion_repositorio import CicloProduccionRepositorio
 from ...repositories.CultivosRepositorio.variedad_cultivo_repositorio import VariedadCultivoRepositorio
-from ...repositories.Agriculor_Parcelas_rep.parcela_repositorio import ParcelaRepositorio
+from ...repositories.Productor_Parcelas_rep.parcela_repositorio import ParcelaRepositorio
 from ...repositories.CultivosRepositorio.relacion_cultivo_repositorio import RelacionCultivoRepositorio
 from ...core.excepciones_bd import (
     ErrorValidacion, 
@@ -69,7 +69,6 @@ class CicloProduccionServicio:
                 ciclo_enriquecido['puede_avanzar'] = self._puede_avanzar_estado_cached(ciclo)
                 ciclo_enriquecido['siguiente_estado'] = self._obtener_siguiente_estado(ciclo['estado'])
                 ciclo_enriquecido['alertas'] = self._generar_alertas_ciclo(ciclo)
-                ciclo_enriquecido['rendimiento_proyectado'] = self._calcular_rendimiento_proyectado_cached(ciclo)
                 
                 # Análisis de fechas y tiempos
                 ciclo_enriquecido['analisis_fechas'] = self._analizar_fechas_ciclo(ciclo)
@@ -77,7 +76,6 @@ class CicloProduccionServicio:
                 
                 # Información de área y productividad
                 ciclo_enriquecido['analisis_area'] = self._analizar_area_ciclo_cached(ciclo)
-                ciclo_enriquecido['categoria_productividad'] = self._categorizar_productividad_ciclo(ciclo)
                 
                 # Recomendaciones específicas
                 ciclo_enriquecido['recomendaciones'] = self._generar_recomendaciones_ciclo(ciclo)
@@ -158,7 +156,6 @@ class CicloProduccionServicio:
                     'variedad': f"{variedad['nombre_tipo_cultivo']} - {variedad['nombre']}",
                     'area_sembrada': datos_normalizados['area_sembrada'],
                     'fecha_cosecha_estimada': datos_normalizados.get('fecha_cosecha_estimada'),
-                    'rendimiento_proyectado': self._calcular_rendimiento_proyectado_inicial(variedad, datos_normalizados['area_sembrada']),
                     'requiere_actualizacion_listas': True
                 }
                 
@@ -587,39 +584,6 @@ class CicloProduccionServicio:
         estado_actual = ciclo['estado']
         return bool(self.TRANSICIONES_VALIDAS.get(estado_actual, []))
 
-    @cacheable('calculos_ciclos', key_func=lambda ciclo: f"rendimiento_{ciclo['id_variedad']}_{ciclo['area_sembrada']}", ttl=1200)  # 20 min
-    def _calcular_rendimiento_proyectado_cached(self, ciclo):
-        """
-        Calcula el rendimiento proyectado de un ciclo (versión cacheada).
-        
-        Args:
-            ciclo (dict): Datos del ciclo.
-            
-        Returns:
-            dict: Información de rendimiento proyectado.
-        """
-        try:
-            variedad = self.variedad_repo.obtener_por_id(ciclo['id_variedad'])
-            rendimiento_esperado = variedad.get('rendimiento_esperado')
-            
-            if rendimiento_esperado:
-                rendimiento_total = rendimiento_esperado * ciclo['area_sembrada']
-                return {
-                    'rendimiento_por_hectarea': rendimiento_esperado,
-                    'rendimiento_total_proyectado': round(rendimiento_total, 2),
-                    'area_sembrada': ciclo['area_sembrada'],
-                    'tiene_proyeccion': True
-                }
-            else:
-                return {
-                    'rendimiento_por_hectarea': 0,
-                    'rendimiento_total_proyectado': 0,
-                    'area_sembrada': ciclo['area_sembrada'],
-                    'tiene_proyeccion': False
-                }
-        except Exception:
-            return {'tiene_proyeccion': False, 'rendimiento_total_proyectado': 0}
-
     @cacheable('validaciones_ciclos', key_func=lambda id_parcela, area: f"area_disponible_{id_parcela}_{area}", ttl=900)  # 15 min
     def _validar_area_disponible_cached(self, id_parcela, area_sembrada):
         """
@@ -795,16 +759,6 @@ class CicloProduccionServicio:
         except Exception:
             return None
     
-    def _calcular_rendimiento_proyectado_inicial(self, variedad, area_sembrada):
-        """Calcula el rendimiento proyectado inicial."""
-        rendimiento_esperado = variedad.get('rendimiento_esperado', 0)
-        if rendimiento_esperado:
-            return {
-                'rendimiento_total': round(rendimiento_esperado * area_sembrada, 2),
-                'rendimiento_por_hectarea': rendimiento_esperado
-            }
-        return {'rendimiento_total': 0, 'rendimiento_por_hectarea': 0}
-    
     def _obtener_siguiente_estado(self, estado_actual):
         """Obtiene el siguiente estado lógico en el flujo."""
         transiciones = self.TRANSICIONES_VALIDAS.get(estado_actual, [])
@@ -943,26 +897,6 @@ class CicloProduccionServicio:
                 pass
         
         return alertas
-    
-    def _categorizar_productividad_ciclo(self, ciclo):
-        """Categoriza la productividad esperada del ciclo."""
-        rendimiento_proyectado = self._calcular_rendimiento_proyectado_cached(ciclo)
-        
-        if not rendimiento_proyectado.get('tiene_proyeccion'):
-            return 'sin_datos'
-        
-        rendimiento_ha = rendimiento_proyectado['rendimiento_por_hectarea']
-        
-        if rendimiento_ha >= 25:
-            return 'muy_alta'
-        elif rendimiento_ha >= 15:
-            return 'alta'
-        elif rendimiento_ha >= 10:
-            return 'media'
-        elif rendimiento_ha >= 5:
-            return 'baja'
-        else:
-            return 'muy_baja'
     
     def _analizar_fechas_ciclo(self, ciclo):
         """Analiza las fechas del ciclo y su coherencia."""
@@ -1135,16 +1069,6 @@ class CicloProduccionServicio:
                     metricas['eficiencia_temporal'] = round(eficiencia, 1)
             except:
                 pass
-        
-        # Rendimiento vs proyectado
-        if 'rendimiento_real' in datos_finalizacion:
-            rendimiento_real = datos_finalizacion['rendimiento_real']
-            rendimiento_proyectado = self._calcular_rendimiento_proyectado_cached(ciclo)
-            
-            if rendimiento_proyectado.get('tiene_proyeccion'):
-                rendimiento_esperado = rendimiento_proyectado['rendimiento_por_hectarea']
-                eficiencia_rendimiento = (rendimiento_real / rendimiento_esperado) * 100 if rendimiento_esperado > 0 else 0
-                metricas['eficiencia_rendimiento'] = round(eficiencia_rendimiento, 1)
         
         return metricas
     
@@ -1339,9 +1263,6 @@ class CicloProduccionServicio:
             
             # 6. Obtener información completa del lote creado
             lote_creado = self.lote_repo.obtener_por_id(id_lote)
-            
-            # 7. Realizar análisis de rendimiento
-            analisis_rendimiento = self._analizar_rendimiento_ciclo_cosecha(ciclo, lote_creado)
             
             # 8. Generar recomendaciones
             recomendaciones = self._generar_recomendaciones_finalizacion(ciclo, lote_creado, analisis_rendimiento)
@@ -1590,71 +1511,6 @@ class CicloProduccionServicio:
             return False
     
     # ==================== MÉTODOS DE ANÁLISIS ====================
-    
-    def _analizar_rendimiento_ciclo_cosecha(self, ciclo, lote):
-        """
-        Analiza el rendimiento del ciclo vs expectativas.
-        
-        Args:
-            ciclo (dict): Información del ciclo
-            lote (dict): Información del lote creado
-            
-        Returns:
-            dict: Análisis completo del rendimiento
-        """
-        try:
-            # Obtener rendimiento esperado de la variedad
-            variedad = self.variedad_repo.obtener_por_id(ciclo['id_variedad'])
-            rendimiento_esperado = variedad.get('rendimiento_esperado', 0)
-            
-            rendimiento_real = lote['rendimiento_por_hectarea']
-            
-            # Calcular eficiencia
-            if rendimiento_esperado > 0:
-                eficiencia = (rendimiento_real / rendimiento_esperado) * 100
-            else:
-                eficiencia = 0
-            
-            # Categorizar rendimiento
-            if eficiencia >= 110:
-                categoria = 'excelente'
-                descripcion = 'Rendimiento excepcional - supera expectativas'
-            elif eficiencia >= 90:
-                categoria = 'bueno'
-                descripcion = 'Rendimiento satisfactorio'
-            elif eficiencia >= 70:
-                categoria = 'aceptable'
-                descripcion = 'Rendimiento dentro de rangos aceptables'
-            elif eficiencia >= 50:
-                categoria = 'bajo'
-                descripcion = 'Rendimiento por debajo de expectativas'
-            else:
-                categoria = 'muy_bajo'
-                descripcion = 'Rendimiento crítico - requiere análisis'
-            
-            # Calcular días de ciclo
-            dias_ciclo = self._calcular_dias_ciclo(ciclo, lote['fecha_cosecha'])
-            
-            return {
-                'rendimiento_real': round(rendimiento_real, 2),
-                'rendimiento_esperado': rendimiento_esperado,
-                'eficiencia_porcentaje': round(eficiencia, 1),
-                'categoria': categoria,
-                'descripcion': descripcion,
-                'diferencia_absoluta': round(rendimiento_real - rendimiento_esperado, 2),
-                'dias_ciclo': dias_ciclo,
-                'area_cosechada': ciclo['area_sembrada'],
-                'cantidad_total': lote['cantidad_cosechada'],
-                'timestamp_analisis': datetime.now().isoformat()
-            }
-            
-        except Exception as e:
-            logger.error(f"Error en análisis de rendimiento: {str(e)}")
-            return {
-                'categoria': 'error',
-                'descripcion': 'Error al calcular análisis de rendimiento',
-                'rendimiento_real': lote.get('rendimiento_por_hectarea', 0)
-            }
     
     def _generar_recomendaciones_finalizacion(self, ciclo, lote, analisis):
         """

@@ -1,7 +1,7 @@
 # bd_c/servicios/gestion_servicio.py
 
 import logging
-from .agricultor_servicio import AgricultorServicio
+from .productor_servicio import ProductorServicio
 from .parcela_servicio import ParcelaServicio
 from ..repositories.relacion_repositorio import RelacionRepositorio
 
@@ -11,7 +11,7 @@ class GestionServicio:
     """Servicio principal para operaciones complejas que involucran múltiples entidades."""
     
     def __init__(self):
-        self.agricultor_servicio = AgricultorServicio()
+        self.productor_servicio = ProductorServicio()
         self.parcela_servicio = ParcelaServicio()
         self.relacion_repo = RelacionRepositorio()
     
@@ -37,8 +37,7 @@ class GestionServicio:
             
             dashboard = {
                 'resumen': {
-                    'total_agricultores': estadisticas_generales['agricultores']['total'],
-                    'total_propietarios': estadisticas_generales['agricultores']['propietarios'],
+                    'total_productores': estadisticas_generales['productores']['total'],
                     'total_parcelas': estadisticas_generales['parcelas']['total'],
                     'area_total': estadisticas_generales['parcelas']['area_total'],
                     'area_promedio': estadisticas_generales['parcelas']['area_promedio']
@@ -65,7 +64,7 @@ class GestionServicio:
     
     def procesar_operacion_agricultor(self, operacion, datos):
         """
-        Procesa operaciones de agricultores con manejo unificado.
+        Procesa operaciones de productores con manejo unificado.
         
         Args:
             operacion (str): Tipo de operación (crear, actualizar, eliminar).
@@ -76,16 +75,16 @@ class GestionServicio:
         """
         try:
             if operacion == 'crear':
-                return self.agricultor_servicio.crear_agricultor(datos['agricultor'])
+                return self.productor_servicio.crear_agricultor(datos['agricultor'])
             
             elif operacion == 'actualizar':
-                return self.agricultor_servicio.actualizar_agricultor(
-                    datos['id_agricultor'], 
+                return self.productor_servicio.actualizar_agricultor(
+                    datos['id_productor'], 
                     datos['agricultor']
                 )
             
             elif operacion == 'eliminar':
-                return self.agricultor_servicio.eliminar_agricultor(datos['id_agricultor'])
+                return self.productor_servicio.eliminar_agricultor(datos['id_productor'])
             
             else:
                 return {'exito': False, 'mensaje': f"Operación '{operacion}' no reconocida"}
@@ -118,12 +117,6 @@ class GestionServicio:
             elif operacion == 'eliminar':
                 return self.parcela_servicio.eliminar_parcela(datos['id_parcela'])
             
-            elif operacion == 'transferir':
-                return self.parcela_servicio.transferir_parcela(
-                    datos['id_parcela'], 
-                    datos['nuevo_propietario_id']
-                )
-            
             else:
                 return {'exito': False, 'mensaje': f"Operación '{operacion}' no reconocida"}
                 
@@ -136,7 +129,7 @@ class GestionServicio:
         Obtiene datos paginados de cualquier entidad de forma unificada.
         
         Args:
-            entidad (str): Tipo de entidad (agricultores, parcelas).
+            entidad (str): Tipo de entidad (productores, parcelas).
             pagina (int): Número de página.
             por_pagina (int): Registros por página.
             filtros (dict, optional): Filtros a aplicar.
@@ -145,8 +138,8 @@ class GestionServicio:
             dict: Datos paginados con metadatos.
         """
         try:
-            if entidad == 'agricultores':
-                return self.agricultor_servicio.obtener_agricultores_paginado(pagina, 8) # Aqui solo se modifica la cantidad de agricultores que queremos ver
+            if entidad == 'productores':
+                return self.productor_servicio.obtener_productores_paginado(pagina, 8) # Aqui solo se modifica la cantidad de productores que queremos ver
             
             elif entidad == 'parcelas':
                 propietario_id = filtros.get('propietario_id') if filtros else None
@@ -176,15 +169,15 @@ class GestionServicio:
         Busca datos en cualquier entidad de forma unificada.
         
         Args:
-            entidad (str): Tipo de entidad (agricultores, parcelas).
+            entidad (str): Tipo de entidad (productores, parcelas).
             texto_busqueda (str): Texto a buscar.
             
         Returns:
             list: Resultados de la búsqueda.
         """
         try:
-            if entidad == 'agricultores':
-                return self.agricultor_servicio.buscar_agricultores(texto_busqueda)
+            if entidad == 'productores':
+                return self.productor_servicio.buscar_productores(texto_busqueda)
             
             elif entidad == 'parcelas':
                 
@@ -212,7 +205,7 @@ class GestionServicio:
         """
         try:
             # Obtener estado del agricultor
-            estado_agricultor = self.agricultor_servicio.verificar_estado_agricultor(id_propietario)
+            estado_agricultor = self.productor_servicio.verificar_estado_agricultor(id_propietario)
             
             if not estado_agricultor:
                 return {'error': 'Propietario no encontrado'}
@@ -234,7 +227,6 @@ class GestionServicio:
                     'porcentaje_coordenadas': (parcelas_con_coords / len(parcelas) * 100) if parcelas else 0
                 },
                 'parcelas': parcelas,
-                'recomendaciones': self._generar_recomendaciones_propietario(estado_agricultor, parcelas)
             }
             
             logger.info(f"Análisis de propietario {id_propietario} completado")
@@ -261,8 +253,7 @@ class GestionServicio:
             reporte = {
                 'fecha_generacion': self._obtener_fecha_actual(),
                 'resumen_ejecutivo': {
-                    'total_agricultores': estadisticas['agricultores']['total'],
-                    'total_propietarios': estadisticas['agricultores']['propietarios'],
+                    'total_productores': estadisticas['productores']['total'],
                     'total_parcelas': estadisticas['parcelas']['total'],
                     'area_total_sistema': estadisticas['parcelas']['area_total'],
                     'area_promedio': estadisticas['parcelas']['area_promedio']
@@ -283,39 +274,6 @@ class GestionServicio:
         except Exception as e:
             logger.error(f"Error en generar_reporte_completo: {str(e)}")
             return {'error': 'Error al generar reporte'}
-    
-    def validar_integridad_sistema(self):
-        """
-        Valida la integridad completa del sistema.
-        
-        Returns:
-            dict: Resultados de la validación.
-        """
-        try:
-            validaciones = {
-                'agricultores_sin_parcelas': self._validar_agricultores_sin_parcelas(),
-                'parcelas_sin_coordenadas': self._validar_parcelas_sin_coordenadas(),
-                'datos_inconsistentes': self._validar_datos_inconsistentes(),
-                'referencias_rotas': self._validar_referencias_rotas()
-            }
-            
-            # Calcular puntuación general
-            total_problemas = sum(len(v) for v in validaciones.values() if isinstance(v, list))
-            puntuacion = max(0, 100 - (total_problemas * 5))  # -5 puntos por problema
-            
-            resultado = {
-                'puntuacion_integridad': puntuacion,
-                'estado': 'Excelente' if puntuacion >= 90 else 'Bueno' if puntuacion >= 70 else 'Necesita atención',
-                'validaciones': validaciones,
-                'resumen_problemas': total_problemas
-            }
-            
-            logger.info(f"Validación de integridad completada - Puntuación: {puntuacion}")
-            return resultado
-            
-        except Exception as e:
-            logger.error(f"Error en validar_integridad_sistema: {str(e)}")
-            return {'error': 'Error al validar integridad'}
     
     # === MÉTODOS AUXILIARES ===
     
@@ -339,23 +297,6 @@ class GestionServicio:
         
         return alertas
     
-    def _generar_recomendaciones_propietario(self, estado_agricultor, parcelas):
-        """Genera recomendaciones específicas para un propietario."""
-        recomendaciones = []
-        
-        # Recomendación por parcelas sin coordenadas
-        sin_coords = [p for p in parcelas if not p['tiene_coordenadas']]
-        if sin_coords:
-            recomendaciones.append(f"Agregar coordenadas GPS a {len(sin_coords)} parcelas")
-        
-        # Recomendación por área promedio
-        if parcelas:
-            area_promedio = sum(p['area'] for p in parcelas) / len(parcelas)
-            if area_promedio < 1:
-                recomendaciones.append("Considerar consolidar parcelas pequeñas")
-        
-        return recomendaciones
-    
     def _generar_recomendaciones_sistema(self, estadisticas, parcelas_sin_coords):
         """Genera recomendaciones para el sistema completo."""
         recomendaciones = []
@@ -363,7 +304,7 @@ class GestionServicio:
         if len(parcelas_sin_coords) > 0:
             recomendaciones.append("Implementar campaña de actualización de coordenadas GPS")
         
-        if estadisticas['agricultores']['propietarios'] < estadisticas['agricultores']['total'] * 0.3:
+        if estadisticas['productores']['propietarios'] < estadisticas['productores']['total'] * 0.3:
             recomendaciones.append("Revisar clasificación de propietarios vs trabajadores")
         
         return recomendaciones
@@ -377,20 +318,6 @@ class GestionServicio:
         parcelas_con_coords = total_parcelas - len(parcelas_sin_coords)
         return round((parcelas_con_coords / total_parcelas) * 100, 1)
     
-    def _validar_agricultores_sin_parcelas(self):
-        """Valida agricultores propietarios sin parcelas."""
-        try:
-            propietarios = self.agricultor_servicio.obtener_propietarios_activos()
-            sin_parcelas = []
-            
-            for propietario in propietarios:
-                parcelas = self.parcela_servicio.obtener_parcelas_por_propietario(propietario['id'])
-                if not parcelas:
-                    sin_parcelas.append(propietario)
-            
-            return sin_parcelas
-        except Exception:
-            return []
     
     def _validar_parcelas_sin_coordenadas(self):
         """Valida parcelas sin coordenadas."""

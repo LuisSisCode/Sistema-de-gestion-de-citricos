@@ -211,14 +211,14 @@ Rectangle {
                 
                 // Email
                 Text {
-                    text: "Correo electrónico:"
+                    text: "Email:"
                     font.pixelSize: 14
                 }
                 
                 TextField {
                     Layout.fillWidth: true
                     text: "juan.delgado@example.com"
-                    placeholderText: "Correo electrónico"
+                    placeholderText: "Email"
                 }
                 
                 // Phone

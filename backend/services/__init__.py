@@ -6,7 +6,7 @@ Contiene toda la lógica de negocio organizada por módulos.
 """
 
 # Servicios de Agricultores y Parcelas
-from .AgricultorParcelaServ.agricultor_servicio import AgricultorServicio
+from .AgricultorParcelaServ.productor_servicio import ProductorServicio
 from .AgricultorParcelaServ.parcela_servicio import ParcelaServicio
 from .AgricultorParcelaServ.gestion_servicio import GestionServicio
 
@@ -24,7 +24,7 @@ from .ClientesVentasServ.gestion_cliente_venta_servicio import GestionClienteVen
 
 __all__ = [
     # Agricultores y Parcelas
-    'AgricultorServicio',
+    'ProductorServicio',
     'ParcelaServicio',
     'GestionServicio',
     

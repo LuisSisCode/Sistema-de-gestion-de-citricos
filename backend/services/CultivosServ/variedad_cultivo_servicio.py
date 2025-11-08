@@ -72,11 +72,9 @@ class VariedadCultivoServicio:
                 # Agregar metadatos de negocio
                 variedad_enriquecida['esta_en_uso'] = variedad_enriquecida['total_ciclos'] > 0
                 variedad_enriquecida['categoria_uso'] = self._categorizar_uso_variedad(variedad_enriquecida['total_ciclos'])
-                variedad_enriquecida['nivel_rendimiento'] = self._categorizar_nivel_rendimiento(variedad['rendimiento_esperado'])
                 variedad_enriquecida['completitud_datos'] = self._evaluar_completitud_variedad(variedad)
                 
                 # Información de productividad
-                variedad_enriquecida['info_productividad'] = self._analizar_productividad_variedad(variedad)
                 variedad_enriquecida['recomendacion_uso'] = self._generar_recomendacion_uso(variedad, variedad_enriquecida['total_ciclos'])
                 
                 variedades_enriquecidas.append(variedad_enriquecida)
@@ -88,8 +86,7 @@ class VariedadCultivoServicio:
             resultado['metadatos_servicio'] = {
                 'timestamp': self._get_timestamp(),
                 'total_en_uso': sum(1 for v in variedades_enriquecidas if v['esta_en_uso']),
-                'total_con_rendimiento': sum(1 for v in variedades_enriquecidas if v['tiene_rendimiento']),
-                'rendimiento_promedio_pagina': self._calcular_rendimiento_promedio_pagina(variedades_enriquecidas)
+                'total_con_rendimiento': sum(1 for v in variedades_enriquecidas if v['tiene_rendimiento'])
             }
             
             logger.info(f"Servicio: página {pagina} procesada con {len(resultado['variedades'])} variedades")
@@ -155,8 +152,6 @@ class VariedadCultivoServicio:
                     'mensaje': f"Variedad '{datos_normalizados['nombre']}' creada exitosamente",
                     'variedad': variedad_creada,
                     'tipo_cultivo': tipo_cultivo['nombre'],
-                    'tiene_rendimiento': bool(datos_normalizados.get('rendimiento_esperado')),
-                    'categoria_rendimiento': self._categorizar_nivel_rendimiento(datos_normalizados.get('rendimiento_esperado')),
                     'requiere_actualizacion_listas': True
                 }
                 
@@ -209,14 +204,12 @@ class VariedadCultivoServicio:
             if exito:
                 # Verificar cambios importantes
                 cambio_tipo = self._verificar_cambio_tipo(variedad_actual, datos_normalizados)
-                cambio_rendimiento = self._verificar_cambio_rendimiento(variedad_actual, datos_normalizados)
                 cambio_nombre = 'nombre' in datos_normalizados and variedad_actual['nombre'] != datos_normalizados['nombre']
                 
                 resultado = {
                     'exito': True,
                     'mensaje': f"Variedad '{variedad_actual['nombre']}' actualizada exitosamente",
                     'cambio_tipo_cultivo': cambio_tipo,
-                    'cambio_rendimiento': cambio_rendimiento,
                     'cambio_nombre': cambio_nombre,
                     'requiere_actualizacion_listas': True,
                     'impacto_ciclos': self._evaluar_impacto_en_ciclos(id_variedad, datos_normalizados)
@@ -348,7 +341,6 @@ class VariedadCultivoServicio:
                 # Metadatos de negocio
                 variedad_enriquecida['esta_en_uso'] = variedad_enriquecida['total_ciclos'] > 0
                 variedad_enriquecida['categoria_uso'] = self._categorizar_uso_variedad(variedad_enriquecida['total_ciclos'])
-                variedad_enriquecida['nivel_rendimiento'] = self._categorizar_nivel_rendimiento(variedad['rendimiento_esperado'])
                 variedad_enriquecida['relevancia_busqueda'] = self._calcular_relevancia_busqueda_variedad(variedad, texto_busqueda)
                 
                 variedades_enriquecidas.append(variedad_enriquecida)
@@ -390,8 +382,6 @@ class VariedadCultivoServicio:
                 variedad_enriquecida['total_ciclos'] = self._contar_ciclos_cached(variedad['id_variedad'])
                 variedad_enriquecida['esta_en_uso'] = variedad_enriquecida['total_ciclos'] > 0
                 variedad_enriquecida['categoria_uso'] = self._categorizar_uso_variedad(variedad_enriquecida['total_ciclos'])
-                variedad_enriquecida['nivel_rendimiento'] = self._categorizar_nivel_rendimiento(variedad['rendimiento_esperado'])
-                variedad_enriquecida['info_productividad'] = self._analizar_productividad_variedad(variedad)
                 
                 variedades_enriquecidas.append(variedad_enriquecida)
             
@@ -419,11 +409,10 @@ class VariedadCultivoServicio:
             for variedad in variedades:
                 variedad['total_ciclos'] = self._contar_ciclos_cached(variedad['id_variedad'])
                 variedad['popularidad'] = self._categorizar_uso_variedad(variedad['total_ciclos'])
-                variedad['eficiencia_estimada'] = self._calcular_eficiencia_estimada(variedad)
                 variedad['recomendacion_cultivo'] = self._generar_recomendacion_cultivo(variedad)
             
             # Ordenar por rendimiento y popularidad
-            variedades.sort(key=lambda x: (x['rendimiento_esperado'], x['total_ciclos']), reverse=True)
+            variedades.sort(key=lambda x: (x['total_ciclos']), reverse=True)
             
             logger.info(f"Variedades con rendimiento ≥ {rendimiento_minimo}: {len(variedades)} encontradas")
             return variedades
@@ -452,14 +441,12 @@ class VariedadCultivoServicio:
                 **estadisticas_basicas,
                 'top_variedades_rendimiento': top_variedades,
                 'ranking_completo': ranking_rendimiento,
-                'distribucion_rendimiento': self._analizar_distribucion_rendimiento(),
                 'analisis_resistencia': self._analizar_resistencia_por_zona(),
                 
                 # Nuevas métricas de servicio
                 'metricas_servicio': {
                     'variedades_sin_uso': self._contar_variedades_sin_uso(),
                     'variedades_populares': len([v for v in top_variedades if v['total_ciclos'] >= 5]),
-                    'rendimiento_promedio_sistema': estadisticas_basicas.get('rendimiento_promedio', 0),
                     'diversidad_por_tipo': self._calcular_diversidad_por_tipo(),
                     'cobertura_resistencia': self._evaluar_cobertura_resistencia(),
                     'timestamp': self._get_timestamp()
@@ -500,10 +487,7 @@ class VariedadCultivoServicio:
                 
                 # Información adicional de negocio
                 'categoria_uso': self._categorizar_uso_variedad(total_ciclos),
-                'nivel_rendimiento': self._categorizar_nivel_rendimiento(variedad['rendimiento_esperado']),
                 'completitud_datos': self._evaluar_completitud_variedad(variedad),
-                'productividad': self._analizar_productividad_variedad(variedad),
-                'recomendaciones': self._generar_recomendaciones_variedad(variedad, total_ciclos)
             }
             
             return estado
@@ -594,14 +578,6 @@ class VariedadCultivoServicio:
         if len(nombre) < 2:
             raise ErrorValidacion("El nombre de la variedad debe tener al menos 2 caracteres")
         
-        # Regla: Rendimiento esperado debe ser realista
-        rendimiento = datos.get('rendimiento_esperado')
-        if rendimiento is not None:
-            if rendimiento < 0:
-                raise ErrorValidacion("El rendimiento esperado debe ser positivo")
-            elif rendimiento > 200:  # 200 ton/ha es extremadamente alto
-                raise ErrorValidacion("El rendimiento esperado parece demasiado alto (máximo 200 ton/ha)")
-        
         # Regla: Tiempo de producción debe ser razonable
         tiempo_produccion = datos.get('tiempo_produccion')
         if tiempo_produccion is not None:
@@ -627,17 +603,10 @@ class VariedadCultivoServicio:
             return {'total_en_uso': 0, 'total_con_rendimiento': 0, 'rendimiento_promedio': 0}
         
         en_uso = sum(1 for v in variedades if v.get('esta_en_uso'))
-        con_rendimiento = sum(1 for v in variedades if v.get('tiene_rendimiento'))
-        
-        rendimientos = [v['rendimiento_esperado'] for v in variedades if v.get('rendimiento_esperado')]
-        rendimiento_promedio = sum(rendimientos) / len(rendimientos) if rendimientos else 0
         
         return {
             'variedades_en_uso': en_uso,
-            'variedades_con_rendimiento': con_rendimiento,
-            'rendimiento_promedio_pagina': round(rendimiento_promedio, 2),
-            'porcentaje_en_uso': round((en_uso / len(variedades)) * 100, 1),
-            'porcentaje_con_rendimiento': round((con_rendimiento / len(variedades)) * 100, 1)
+            'porcentaje_en_uso': round((en_uso / len(variedades)) * 100, 1)
         }
 
     @cacheable('info_tipos_variedades', key_func=lambda id_tipo: f"info_tipo_{id_tipo}", ttl=1800)  # 30 min
@@ -678,8 +647,7 @@ class VariedadCultivoServicio:
             resumen = {
                 'totales': {
                     'variedades': estadisticas.get('total_variedades', 0),
-                    'tipos_con_variedades': estadisticas.get('tipos_cultivo_con_variedades', 0),
-                    'con_rendimiento': estadisticas.get('con_rendimiento_esperado', 0)
+                    'tipos_con_variedades': estadisticas.get('tipos_cultivo_con_variedades', 0)
                 },
                 'rendimiento': {
                     'promedio_sistema': estadisticas.get('rendimiento_promedio', 0),
@@ -713,10 +681,6 @@ class VariedadCultivoServicio:
             if campo in datos_normalizados and datos_normalizados[campo]:
                 datos_normalizados[campo] = datos_normalizados[campo].strip()
         
-        # Normalizar rendimiento esperado
-        if 'rendimiento_esperado' in datos_normalizados and datos_normalizados['rendimiento_esperado'] is not None:
-            datos_normalizados['rendimiento_esperado'] = round(float(datos_normalizados['rendimiento_esperado']), 2)
-        
         # Normalizar tiempo de producción
         if 'tiempo_produccion' in datos_normalizados and datos_normalizados['tiempo_produccion'] is not None:
             datos_normalizados['tiempo_produccion'] = int(datos_normalizados['tiempo_produccion'])
@@ -736,19 +700,12 @@ class VariedadCultivoServicio:
         return ('id_tipo_cultivo' in datos_nuevos and 
                 variedad_actual['id_tipo_cultivo'] != datos_nuevos['id_tipo_cultivo'])
     
-    def _verificar_cambio_rendimiento(self, variedad_actual, datos_nuevos):
-        """Verifica si cambió el rendimiento esperado."""
-        return ('rendimiento_esperado' in datos_nuevos and 
-                variedad_actual['rendimiento_esperado'] != datos_nuevos.get('rendimiento_esperado'))
-    
     def _evaluar_impacto_en_ciclos(self, id_variedad, datos_nuevos):
         """Evalúa el impacto de los cambios en los ciclos asociados."""
         total_ciclos = self._contar_ciclos_cached(id_variedad)
         
         if total_ciclos == 0:
             return 'sin_impacto'
-        elif 'rendimiento_esperado' in datos_nuevos:
-            return 'impacto_planificacion'  # Puede afectar proyecciones
         elif 'tiempo_produccion' in datos_nuevos:
             return 'impacto_cronograma'  # Puede afectar tiempos
         else:
@@ -767,29 +724,12 @@ class VariedadCultivoServicio:
         else:
             return 'sin_uso'
     
-    def _categorizar_nivel_rendimiento(self, rendimiento):
-        """Categoriza el nivel de rendimiento de una variedad."""
-        if rendimiento is None:
-            return 'sin_datos'
-        elif rendimiento >= 30:
-            return 'excelente'
-        elif rendimiento >= 20:
-            return 'muy_bueno'
-        elif rendimiento >= 10:
-            return 'bueno'
-        elif rendimiento >= 5:
-            return 'aceptable'
-        else:
-            return 'bajo'
-    
     def _evaluar_completitud_variedad(self, variedad):
         """Evalúa qué tan completos están los datos de la variedad."""
         puntos = 0
         total_puntos = 5
         
         if variedad.get('nombre'):
-            puntos += 1
-        if variedad.get('rendimiento_esperado'):
             puntos += 1
         if variedad.get('tiempo_produccion'):
             puntos += 1
@@ -809,49 +749,10 @@ class VariedadCultivoServicio:
         else:
             return 'incompleto'
     
-    def _analizar_productividad_variedad(self, variedad):
-        """Analiza la productividad de una variedad."""
-        rendimiento = variedad.get('rendimiento_esperado')
-        tiempo = variedad.get('tiempo_produccion')
-        
-        if not rendimiento:
-            return {
-                'categoria': 'sin_datos',
-                'descripcion': 'Rendimiento no especificado',
-                'eficiencia': 0
-            }
-        
-        # Calcular eficiencia (rendimiento por día)
-        if tiempo and tiempo > 0:
-            eficiencia = round(rendimiento / tiempo * 30, 3)  # Rendimiento por mes
-        else:
-            eficiencia = 0
-        
-        # Categorizar productividad
-        if rendimiento >= 20 and eficiencia >= 5:
-            categoria = 'alta_productividad'
-            descripcion = 'Variedad altamente productiva'
-        elif rendimiento >= 10 and eficiencia >= 2:
-            categoria = 'buena_productividad'
-            descripcion = 'Variedad con buena productividad'
-        elif rendimiento >= 5:
-            categoria = 'productividad_moderada'
-            descripcion = 'Variedad con productividad moderada'
-        else:
-            categoria = 'baja_productividad'
-            descripcion = 'Variedad de baja productividad'
-        
-        return {
-            'categoria': categoria,
-            'descripcion': descripcion,
-            'eficiencia': eficiencia,
-            'rendimiento_por_mes': eficiencia
-        }
-    
     def _generar_recomendacion_uso(self, variedad, total_ciclos):
         """Genera recomendaciones de uso para una variedad."""
         if total_ciclos == 0:
-            if variedad.get('rendimiento_esperado', 0) >= 15:
+            if variedad.get(0) >= 15:
                 return "Variedad prometedora - considerar para próximos ciclos"
             else:
                 return "Evaluar viabilidad antes de usar en producción"
@@ -883,47 +784,7 @@ class VariedadCultivoServicio:
         total_ciclos = self._contar_ciclos_cached(variedad['id_variedad'])
         relevancia += min(total_ciclos, 5)  # Máximo 5 puntos por uso
         
-        if variedad.get('rendimiento_esperado', 0) >= 15:
-            relevancia += 3  # Bonus por alto rendimiento
-        
         return relevancia
-    
-    def _calcular_rendimiento_promedio_pagina(self, variedades):
-        """Calcula el rendimiento promedio de las variedades en la página."""
-        rendimientos = [v['rendimiento_esperado'] for v in variedades if v.get('rendimiento_esperado')]
-        return round(sum(rendimientos) / len(rendimientos), 2) if rendimientos else 0
-    
-    def _analizar_distribucion_rendimiento(self):
-        """Analiza la distribución de rendimientos en el sistema."""
-        try:
-            variedades = self.variedad_repo.obtener_todas()
-            distribucion = {
-                'bajo': 0,        # < 5 ton/ha
-                'aceptable': 0,   # 5-10 ton/ha
-                'bueno': 0,       # 10-20 ton/ha
-                'muy_bueno': 0,   # 20-30 ton/ha
-                'excelente': 0,   # >= 30 ton/ha
-                'sin_datos': 0
-            }
-            
-            for variedad in variedades:
-                categoria = self._categorizar_nivel_rendimiento(variedad.get('rendimiento_esperado'))
-                if categoria == 'sin_datos':
-                    distribucion['sin_datos'] += 1
-                elif categoria == 'bajo':
-                    distribucion['bajo'] += 1
-                elif categoria == 'aceptable':
-                    distribucion['aceptable'] += 1
-                elif categoria == 'bueno':
-                    distribucion['bueno'] += 1
-                elif categoria == 'muy_bueno':
-                    distribucion['muy_bueno'] += 1
-                elif categoria == 'excelente':
-                    distribucion['excelente'] += 1
-            
-            return distribucion
-        except Exception:
-            return {'bajo': 0, 'aceptable': 0, 'bueno': 0, 'muy_bueno': 0, 'excelente': 0, 'sin_datos': 0}
     
     def _analizar_resistencia_por_zona(self):
         """Analiza la resistencia por zona de las variedades."""
@@ -985,19 +846,8 @@ class VariedadCultivoServicio:
         except Exception:
             return 'sin_datos'
     
-    def _calcular_eficiencia_estimada(self, variedad):
-        """Calcula la eficiencia estimada de una variedad."""
-        rendimiento = variedad.get('rendimiento_esperado', 0)
-        tiempo = variedad.get('tiempo_produccion', 180)  # Default 6 meses
-        
-        if tiempo > 0:
-            return round((rendimiento / tiempo) * 30, 3)  # Rendimiento por mes
-        else:
-            return 0
-    
     def _generar_recomendacion_cultivo(self, variedad):
         """Genera recomendaciones específicas para cultivar una variedad."""
-        rendimiento = variedad.get('rendimiento_esperado', 0)
         tiempo = variedad.get('tiempo_produccion')
         resistencia = variedad.get('resistencia_zona', '')
         
@@ -1016,27 +866,6 @@ class VariedadCultivoServicio:
             recomendaciones.append("Evaluar condiciones específicas antes del cultivo")
         
         return "; ".join(recomendaciones)
-    
-    def _generar_recomendaciones_variedad(self, variedad, total_ciclos):
-        """Genera recomendaciones específicas para una variedad."""
-        recomendaciones = []
-        
-        if total_ciclos == 0:
-            if variedad.get('rendimiento_esperado', 0) >= 15:
-                recomendaciones.append("Variedad prometedora - iniciar ciclo de prueba")
-            else:
-                recomendaciones.append("Completar datos de rendimiento antes de usar")
-        
-        if not variedad.get('resistencia_zona'):
-            recomendaciones.append("Especificar resistencia por zona")
-        
-        if not variedad.get('tiempo_produccion'):
-            recomendaciones.append("Agregar tiempo de producción para planificación")
-        
-        if variedad.get('rendimiento_esperado', 0) < 5:
-            recomendaciones.append("Evaluar viabilidad económica del rendimiento")
-        
-        return recomendaciones
     
     def _get_timestamp(self):
         """Obtiene timestamp actual en formato ISO."""

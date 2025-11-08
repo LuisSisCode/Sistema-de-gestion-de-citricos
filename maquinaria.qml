@@ -404,7 +404,7 @@ Rectangle {
                                         Button {
                                             width: 40
                                             height: 40
-                                            icon.source: "Image/Image_UI_interfaz/Inconos/editar.svg"
+                                            icon.source: "recursos/image/icons/editar.svg"
                                             flat: true
                                             ToolTip.visible: hovered
                                             ToolTip.text: "Editar equipo"
@@ -457,7 +457,7 @@ Rectangle {
                                         Button {
                                             width: 40
                                             height: 40
-                                            icon.source: "Image/Image_UI_interfaz/Inconos/basura.svg"
+                                            icon.source: "recursos/image/icons/basura.svg"
                                             flat: true
                                             ToolTip.visible: hovered
                                             ToolTip.text: "Eliminar equipo"
@@ -763,7 +763,7 @@ Rectangle {
                                         Button {
                                             width: 40
                                             height: 40
-                                            icon.source: "Image/Image_UI_interfaz/Inconos/editar.svg"
+                                            icon.source: "recursos/image/icons/editar.svg"
                                             flat: true
                                             ToolTip.visible: hovered
                                             ToolTip.text: "Editar mantenimiento"
@@ -784,7 +784,7 @@ Rectangle {
                                             ToolTip.text: estado === "Programado" ? "Completar mantenimiento" : "Eliminar mantenimiento"
                                              icon.source: estado === "Programado" ? 
                                                 "Image/Image_UI_interfaz/Inconos/check.svg" : 
-                                                "Image/Image_UI_interfaz/Inconos/basura.svg"
+                                                "recursos/image/icons/basura.svg"
 
                                             icon.color: estado === "Programado" ? "#4CAF50" : "#F44336"
 
@@ -1194,7 +1194,7 @@ Rectangle {
                                         Button {
                                             width: 40
                                             height: 40
-                                            icon.source: "Image/Image_UI_interfaz/Inconos/editar.svg"
+                                            icon.source: "recursos/image/icons/editar.svg"
                                             flat: true
                                             ToolTip.visible: hovered
                                             ToolTip.text: "Editar Compra Combustibles"
@@ -1210,7 +1210,7 @@ Rectangle {
                                         Button {
                                             width: 40
                                             height: 40
-                                            icon.source: "Image/Image_UI_interfaz/Inconos/basura.svg"
+                                            icon.source: "recursos/image/icons/basura.svg"
                                             icon.color: "#F44336"
                                             flat: true
                                             ToolTip.visible: hovered

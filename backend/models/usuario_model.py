@@ -162,6 +162,6 @@ class UsuariosRolesModel(QObject):
                                        texto_busqueda in u['nombre'].lower() or 
                                        texto_busqueda in u['apellido'].lower() or 
                                        texto_busqueda in u['usuario'].lower() or 
-                                       texto_busqueda in u['correo'].lower() or 
+                                       texto_busqueda in u['email'].lower() or 
                                        texto_busqueda in u['rol'].lower()]
         self.usuariosFiltradosChanged.emit()

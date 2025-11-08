@@ -223,31 +223,31 @@ class RelacionRepositorio(RepositorioBase):
         return True
     
     # MÉTODOS REALES DE RELACIONES
-    def contar_parcelas_por_agricultor(self, id_agricultor):
+    def contar_parcelas_por_productor(self, id_productor):
         """
-        Cuenta las parcelas activas de un agricultor específico.
+        Cuenta las parcelas activas de un productor específico.
         
         Args:
-            id_agricultor (int): ID del agricultor.
+            id_productor (int): ID del productor.
             
         Returns:
-            int: Número de parcelas activas del agricultor.
+            int: Número de parcelas activas del productor.
         """
         count = self._contar_registros(
             "Parcelas", 
-            "id_agricultor = ? AND activo = 1", 
-            (id_agricultor,)
+            "id_productor = ? AND activo = 1", 
+            (id_productor,)
         )
         
-        print(f"Agricultor {id_agricultor} tiene {count} parcelas activas")
+        print(f"Agricultor {id_productor} tiene {count} parcelas activas")
         return count
     
-    def verificar_dependencias_agricultor(self, id_agricultor):
+    def verificar_dependencias_agricultor(self, id_productor):
         """
         Verifica todas las dependencias de un agricultor antes de eliminarlo.
         
         Args:
-            id_agricultor (int): ID del agricultor.
+            id_productor (int): ID del agricultor.
             
         Returns:
             dict: Información detallada de dependencias.
@@ -256,7 +256,7 @@ class RelacionRepositorio(RepositorioBase):
             RegistroTieneDependencias: Si tiene dependencias que impiden la eliminación.
         """
         # Contar parcelas
-        parcelas = self.contar_parcelas_por_agricultor(id_agricultor)
+        parcelas = self.contar_parcelas_por_productor(id_productor)
         
         dependencias = {
             'parcelas': parcelas,
@@ -268,5 +268,5 @@ class RelacionRepositorio(RepositorioBase):
             mensaje = f"No se puede eliminar el agricultor. Tiene {parcelas} parcelas asociadas."
             raise RegistroTieneDependencias(mensaje, parcelas)
         
-        print(f"Agricultor {id_agricultor} puede ser eliminado - sin dependencias")
+        print(f"Agricultor {id_productor} puede ser eliminado - sin dependencias")
         return dependencias

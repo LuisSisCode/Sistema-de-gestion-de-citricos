@@ -226,7 +226,6 @@ Rectangle {
                     id_tipo_cultivo: variedades[i].id_tipo_cultivo,
                     nombre: variedades[i].nombre,
                     tiempo_produccion: variedades[i].tiempo_produccion,
-                    rendimiento_esperado: variedades[i].rendimiento_esperado,
                     resistencia_zona: variedades[i].resistencia_zona,
                     activo: variedades[i].activo,
                     nombre_tipo_cultivo: variedades[i].nombre_tipo_cultivo
@@ -764,7 +763,6 @@ Rectangle {
         cmbTipoCultivo.currentIndex = getTipoIndex(variedad.id_tipo_cultivo);
         txtNombreVariedad.text = variedad.nombre;
         txtTiempoProduccion.text = (variedad.tiempo_produccion || 0).toString();
-        txtRendimiento.text = variedad.rendimiento_esperado ? variedad.rendimiento_esperado.toString() : "";
         cmbResistencia.currentIndex = getResistenciaIndex(variedad.resistencia_zona);
         
         // Guardar ID para actualización
@@ -772,7 +770,6 @@ Rectangle {
             id_tipo_cultivo: variedad.id_tipo_cultivo,
             nombre: variedad.nombre,
             tiempo_produccion: variedad.tiempo_produccion || 0,
-            rendimiento_esperado: variedad.rendimiento_esperado || 0.0,
             resistencia_zona: variedad.resistencia_zona || "Media",
             activo: variedad.activo
         };
@@ -990,7 +987,6 @@ Rectangle {
                     id_tipo_cultivo: variedad.id_tipo_cultivo || 0,
                     nombre: variedad.nombre || "",
                     tiempo_produccion: variedad.tiempo_produccion || 0,
-                    rendimiento_esperado: variedad.rendimiento_esperado || 0.0,
                     resistencia_zona: variedad.resistencia_zona || "Media",
                     activo: Boolean(variedad.activo),
                     nombre_tipo_cultivo: variedad.nombre_tipo_cultivo || ""
@@ -1027,7 +1023,6 @@ Rectangle {
                 id_tipo_cultivo: variedades[i].id_tipo_cultivo,
                 nombre: variedades[i].nombre,
                 tiempo_produccion: variedades[i].tiempo_produccion,
-                rendimiento_esperado: variedades[i].rendimiento_esperado,
                 resistencia_zona: variedades[i].resistencia_zona,
                 activo: variedades[i].activo,
                 nombre_tipo_cultivo: variedades[i].nombre_tipo_cultivo
@@ -1249,7 +1244,7 @@ Rectangle {
         
         for (let i = 0; i < variedadesModel.count; i++) {
             const v = variedadesModel.get(i);
-            csv += `${v.id_variedad},${v.nombre_tipo_cultivo},${v.nombre},${v.tiempo_produccion || 0},${v.rendimiento_esperado || 0},${v.resistencia_zona}\n`;
+            csv += `${v.id_variedad},${v.nombre_tipo_cultivo},${v.nombre},${v.tiempo_produccion || 0},${v.resistencia_zona}\n`;
         }
         
         // En lugar de usar clipboard, mostrar en una ventana emergente
@@ -1358,7 +1353,6 @@ Rectangle {
             id_tipo_cultivo: tiposVariedadModel.get(cmbTipoCultivo.currentIndex).value,
             nombre: txtNombreVariedad.text,
             tiempo_produccion: spinTiempoProduccion.value,
-            rendimiento_esperado: txtRendimiento.text ? parseFloat(txtRendimiento.text) : 0.0,
             resistencia_zona: cmbResistencia.currentText,
             activo: true // Mantener activo por defecto
         };
@@ -1403,7 +1397,6 @@ Rectangle {
         "id_tipo_cultivo": 1,
         "nombre": "",
         "tiempo_produccion": 0,
-        "rendimiento_esperado": 0.0,
         "resistencia_zona": "Media",
         "activo": true
     }
@@ -2164,7 +2157,6 @@ Rectangle {
                                     "id_tipo_cultivo": tiposCultivoModel.count > 0 ? tiposCultivoModel.get(0).id_tipo_cultivo : 1,
                                     "nombre": "",
                                     "tiempo_produccion": 0,
-                                    "rendimiento_esperado": 0.0,
                                     "resistencia_zona": "Media",
                                     "activo": true
                                 }
@@ -2401,20 +2393,6 @@ Rectangle {
                                 }
                                 
                                 // Rendimiento
-                                Rectangle {
-                                    width: parent.width * 0.15
-                                    height: parent.height
-                                    color: "transparent"
-                                    
-                                    Text {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        anchors.left: parent.left
-                                        anchors.leftMargin: 10
-                                        text: rendimiento_esperado ? rendimiento_esperado + " ton/ha" : "No definido"
-                                        elide: Text.ElideRight
-                                        width: parent.width - 20
-                                    }
-                                }
                                 
                                 // Resistencia
                                 Rectangle {
@@ -2453,7 +2431,7 @@ Rectangle {
                                         Button {
                                             width: 36
                                             height: 36
-                                            icon.source: "Image/Image_UI_interfaz/Inconos/editar.svg"
+                                            icon.source: "recursos/image/icons/editar.svg"
                                             flat: true
                                             ToolTip.visible: hovered
                                             ToolTip.text: "Editar"
@@ -2463,7 +2441,7 @@ Rectangle {
                                         Button {
                                             width: 36
                                             height: 36
-                                            icon.source: "Image/Image_UI_interfaz/Inconos/basura.svg"
+                                            icon.source: "recursos/image/icons/basura.svg"
                                             flat: true
                                             ToolTip.visible: hovered
                                             ToolTip.text: "Eliminar"
@@ -2908,7 +2886,7 @@ Rectangle {
                                         Button {
                                             width: 36
                                             height: 36
-                                            icon.source: "Image/Image_UI_interfaz/Inconos/editar.svg"
+                                            icon.source: "recursos/image/icons/editar.svg"
                                             flat: true
                                             ToolTip.visible: hovered
                                             ToolTip.text: "Editar"
@@ -2923,7 +2901,7 @@ Rectangle {
                                         Button {
                                             width: 36
                                             height: 36
-                                            icon.source: "Image/Image_UI_interfaz/Inconos/basura.svg"
+                                            icon.source: "recursos/image/icons/basura.svg"
                                             flat: true
                                             ToolTip.visible: hovered
                                             ToolTip.text: "Eliminar"
@@ -3518,17 +3496,6 @@ Rectangle {
                         Text {
                             text: "Rendimiento (ton/ha):"
                             Layout.alignment: Qt.AlignRight
-                        }
-                        
-                        TextField {
-                            id: txtRendimiento
-                            placeholderText: "Ej: 5.5"
-                            Layout.fillWidth: true
-                            validator: DoubleValidator { bottom: 0 }
-                            onTextChanged: {
-                                if (text.trim() !== "")
-                                    nuevaVariedad.rendimiento_esperado = parseFloat(text)
-                            }
                         }
                         
                         // Resistencia

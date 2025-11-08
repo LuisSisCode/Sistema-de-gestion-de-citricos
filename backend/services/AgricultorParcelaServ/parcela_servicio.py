@@ -1,9 +1,9 @@
 # bd_conecciones/servicios/parcela_servicio.py
 
 import logging
-from ...repositories.Agriculor_Parcelas_rep.parcela_repositorio import ParcelaRepositorio
-from ...repositories.Agriculor_Parcelas_rep.relacion_AgriPar_repositorio import RelacionRepositorio
-from ...repositories.Agriculor_Parcelas_rep.agricultor_repositorio import AgricultorRepositorio
+from ...repositories.Productor_Parcelas_rep.parcela_repositorio import ParcelaRepositorio
+from ...repositories.Productor_Parcelas_rep.relacion_AgriPar_repositorio import RelacionRepositorio
+from ...repositories.Productor_Parcelas_rep.productor_repositorio import ProductorRepositorio
 from ...core.excepciones_bd import (
     ErrorValidacion, 
     RegistroNoEncontrado, 
@@ -19,7 +19,7 @@ class ParcelaServicio:
     def __init__(self):
         self.parcela_repo = ParcelaRepositorio()
         self.relacion_repo = RelacionRepositorio()
-        self.agricultor_repo = AgricultorRepositorio()
+        self.productor_repo = ProductorRepositorio()
 
     @cacheable('servicio_parcelas', key_func=lambda pagina, por_pagina=5, prop_id=None: f"paginado_{pagina}_{por_pagina}_{prop_id or 'all'}", ttl=900)  # 15 min
     def obtener_parcelas_paginado(self, pagina, por_pagina=5, propietario_id=None):
@@ -238,58 +238,6 @@ class ParcelaServicio:
             logger.error(f"Error en servicio eliminar_parcela: {str(e)}")
             return {'exito': False, 'mensaje': 'Error interno del sistema'}
 
-    @cache_invalidator('servicio_parcelas', pattern='paginado_')     # Invalidar paginación
-    @cache_invalidator('servicio_parcelas', pattern='propietario_') # Invalidar por propietario
-    @cache_invalidator('estadisticas_parcelas')                     # Invalidar estadísticas
-    @cache_invalidator('transferencias')                            # Invalidar validaciones de transferencia
-    def transferir_parcela(self, id_parcela, nuevo_propietario_id):
-        """
-        Transfiere una parcela a un nuevo propietario.
-        OPTIMIZADO: Invalidación específica para transferencias.
-        
-        Args:
-            id_parcela (int): ID de la parcela.
-            nuevo_propietario_id (int): ID del nuevo propietario.
-            
-        Returns:
-            dict: Resultado de la transferencia.
-        """
-        try:
-            # Validar transferencia usando RelacionRepositorio (ya cacheado)
-            validacion = self.relacion_repo.validar_transferencia_parcela(id_parcela, nuevo_propietario_id)
-            
-            if not validacion['puede_transferir']:
-                return {
-                    'exito': False,
-                    'mensaje': 'No se puede transferir la parcela al mismo propietario',
-                    'validacion': validacion
-                }
-            
-            # Ejecutar transferencia
-            exito = self.relacion_repo.ejecutar_transferencia_parcela(id_parcela, nuevo_propietario_id)
-            
-            if exito:
-                resultado = {
-                    'exito': True,
-                    'mensaje': f"Parcela '{validacion['parcela_nombre']}' transferida exitosamente",
-                    'propietario_anterior': validacion['propietario_actual'],
-                    'propietario_nuevo': validacion['nuevo_propietario'],
-                    'requiere_actualizacion_listas': True,
-                    'requiere_actualizacion_propietarios': True
-                }
-                
-                logger.info(f"Servicio: parcela {id_parcela} transferida")
-                return resultado
-            else:
-                return {'exito': False, 'mensaje': 'Error al ejecutar la transferencia'}
-                
-        except (RegistroNoEncontrado, ErrorValidacion) as e:
-            logger.error(f"Error en transferir_parcela: {str(e)}")
-            return {'exito': False, 'mensaje': str(e)}
-        except Exception as e:
-            logger.error(f"Error en servicio transferir_parcela: {str(e)}")
-            return {'exito': False, 'mensaje': 'Error interno del sistema'}
-
     @cacheable('servicio_parcelas', key_func=lambda texto: f"busqueda_{texto.lower().replace(' ', '_')}", ttl=600)  # 10 min
     def buscar_parcelas(self, texto_busqueda):
         """
@@ -444,7 +392,7 @@ class ParcelaServicio:
             ErrorValidacion: Si no es válido.
         """
         try:
-            agricultor = self.agricultor_repo.obtener_por_id(propietario_id)
+            agricultor = self.productor_repo.obtener_por_id(propietario_id)
             if not agricultor['esPropietario']:
                 raise ErrorValidacion("El agricultor seleccionado no está marcado como propietario")
             return True
