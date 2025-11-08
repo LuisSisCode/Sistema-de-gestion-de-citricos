@@ -1,4 +1,5 @@
 import QtQuick 2.15
+import QtQuick.Controls 2.15
 import QtQuick.Controls.Universal 2.15
 import QtQuick.Layouts 1.15
 
@@ -337,30 +338,36 @@ Rectangle {
             }
         }
     }
-    
     // DIÁLOGO DE NUEVO USUARIO
     Dialog {
         id: nuevoUsuarioDialog
         title: "Nuevo Usuario"
         modal: true
-        width: 550
-        height: 500
+        width: 500
+        height: 600
         x: (parent.width - width) / 2
         y: (parent.height - height) / 2
+        padding: 0
+    
+        background: Rectangle {
+            radius: 5
+            border.width: 1
+            border.color: "#EEEEEE"
+            color: "white"
+        }
 
         // Contenido del diálogo
         contentItem: Rectangle {
             color: "white"
 
-            ScrollView {
-                id: scrollView
+            Item {
+                id: contenedorItem
                 anchors.fill: parent
                 clip: true
-                ScrollBar.vertical.policy: ScrollBar.AsNeeded
 
                 Column {
                     id: mainColumn
-                    width: scrollView.width - 30 // Asegurar que no se extienda demasiado
+                    width: contenedorItem.width - 30 // Asegurar que no se extienda demasiado
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.top: parent.top
                     anchors.topMargin: 20

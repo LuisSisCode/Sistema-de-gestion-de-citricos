@@ -104,7 +104,7 @@ C:\AgroIchilo\
 ├── 📄 ARCHIVOS QML EN RAÍZ (Reorganizar en Sprint futuro)
 │   ├── main.qml                         # Ventana principal
 │   ├── login.qml                        # Login
-│   ├── agricultores_parcela.qml         # Agricultores
+│   ├── productores_parcela.qml         # Agricultores
 │   ├── agroquimico.qml                  # Agroquímicos
 │   ├── configuracion.qml                # Configuración
 │   ├── cultivos.qml                     # Cultivos

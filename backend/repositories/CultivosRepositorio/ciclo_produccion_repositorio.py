@@ -28,7 +28,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         query = """
         SELECT c.id_ciclo, c.id_parcela, c.id_variedad, c.fecha_siembra, 
                c.fecha_cosecha_estimada, c.fecha_cosecha_real, c.area_sembrada,
-               c.densidad_siembra, c.estado, c.activo,
+               c.densidad_siembra, c.estado,
                c.fecha_floracion, c.fecha_poda, c.fecha_limpieza, c.frecuencia_limpieza,
                p.nombre AS nombre_parcela, 
                v.nombre AS nombre_variedad,
@@ -39,7 +39,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
         JOIN Productores a ON p.id_productor = a.id_productor
-        WHERE c.activo = 1 AND p.activo = 1 AND v.activo = 1 AND t.activo = 1 AND a.activo = 1
+        WHERE p.activo = 1 AND v.activo = 1 AND t.activo = 1 AND a.activo = 1
         ORDER BY c.fecha_siembra DESC
         """
         
@@ -70,7 +70,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         query = """
         SELECT c.id_ciclo, c.id_parcela, c.id_variedad, c.fecha_siembra, 
                c.fecha_cosecha_estimada, c.fecha_cosecha_real, c.area_sembrada,
-               c.densidad_siembra, c.estado, c.activo,
+               c.densidad_siembra, c.estado,
                c.fecha_floracion, c.fecha_poda, c.fecha_limpieza, c.frecuencia_limpieza,
                p.nombre AS nombre_parcela, 
                v.nombre AS nombre_variedad,
@@ -81,7 +81,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
         JOIN Productores a ON p.id_productor = a.id_productor
-        WHERE c.id_ciclo = ? AND c.activo = 1 AND p.activo = 1 AND v.activo = 1 AND t.activo = 1
+        WHERE c.id_ciclo = ? AND p.activo = 1 AND v.activo = 1 AND t.activo = 1
         """
         
         rows = self._ejecutar_consulta(query, (id_ciclo,))
@@ -105,7 +105,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         query = """
         SELECT c.id_ciclo, c.id_parcela, c.id_variedad, c.fecha_siembra, 
                c.fecha_cosecha_estimada, c.fecha_cosecha_real, c.area_sembrada,
-               c.densidad_siembra, c.estado, c.activo,
+               c.densidad_siembra, c.estado,
                c.fecha_floracion, c.fecha_poda, c.fecha_limpieza, c.frecuencia_limpieza,
                p.nombre AS nombre_parcela, 
                v.nombre AS nombre_variedad,
@@ -116,7 +116,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
         JOIN Productores a ON p.id_productor = a.id_productor
-        WHERE c.id_parcela = ? AND c.activo = 1 AND p.activo = 1 AND v.activo = 1 AND t.activo = 1
+        WHERE c.id_parcela = ? AND p.activo = 1 AND v.activo = 1 AND t.activo = 1
         ORDER BY c.fecha_siembra DESC
         """
         
@@ -147,7 +147,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         query = """
         SELECT c.id_ciclo, c.id_parcela, c.id_variedad, c.fecha_siembra, 
                c.fecha_cosecha_estimada, c.fecha_cosecha_real, c.area_sembrada,
-               c.densidad_siembra, c.estado, c.activo,
+               c.densidad_siembra, c.estado,
                c.fecha_floracion, c.fecha_poda, c.fecha_limpieza, c.frecuencia_limpieza,
                p.nombre AS nombre_parcela, 
                v.nombre AS nombre_variedad,
@@ -158,7 +158,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
         JOIN Productores a ON p.id_productor = a.id_productor
-        WHERE c.estado = ? AND c.activo = 1 AND p.activo = 1 AND v.activo = 1 AND t.activo = 1
+        WHERE c.estado = ? AND p.activo = 1 AND v.activo = 1 AND t.activo = 1
         ORDER BY c.fecha_siembra DESC
         """
         
@@ -188,7 +188,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         pagina, por_pagina, offset = self._validar_parametros_paginacion(pagina, por_pagina)
         
         # Construir condiciones WHERE
-        where_clauses = ["c.activo = 1 AND p.activo = 1 AND v.activo = 1 AND t.activo = 1"]
+        where_clauses = ["p.activo = 1 AND v.activo = 1 AND t.activo = 1"]
         params_count = []
         params_data = []
         
@@ -222,7 +222,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         data_query = f"""
         SELECT c.id_ciclo, c.id_parcela, c.id_variedad, c.fecha_siembra, 
                c.fecha_cosecha_estimada, c.fecha_cosecha_real, c.area_sembrada,
-               c.densidad_siembra, c.estado, c.activo,
+               c.densidad_siembra, c.estado,
                c.fecha_floracion, c.fecha_poda, c.fecha_limpieza, c.frecuencia_limpieza,
                p.nombre AS nombre_parcela, 
                v.nombre AS nombre_variedad,
@@ -273,7 +273,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         query = f"""
         SELECT c.id_ciclo, c.id_parcela, c.id_variedad, c.fecha_siembra, 
                c.fecha_cosecha_estimada, c.fecha_cosecha_real, c.area_sembrada,
-               c.densidad_siembra, c.estado, c.activo,
+               c.densidad_siembra, c.estado,
                c.fecha_floracion, c.fecha_poda, c.fecha_limpieza, c.frecuencia_limpieza,
                p.nombre AS nombre_parcela, 
                v.nombre AS nombre_variedad,
@@ -284,7 +284,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
         JOIN Productoresa ON p.id_productor = a.id_productor
-        WHERE c.estado IN ({placeholders}) AND c.activo = 1 AND p.activo = 1 AND v.activo = 1 AND t.activo = 1
+        WHERE c.estado IN ({placeholders}) AND p.activo = 1 AND v.activo = 1 AND t.activo = 1
         ORDER BY c.fecha_siembra DESC
         """
         
@@ -309,7 +309,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         Returns:
             int: Número total de ciclos.
         """
-        where_clauses = ["c.activo = 1 AND p.activo = 1 AND v.activo = 1 AND t.activo = 1"]
+        where_clauses = [" p.activo = 1 AND v.activo = 1 AND t.activo = 1"]
         params = []
         
         if filtros:
@@ -363,7 +363,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         FROM CiclosProduccion c
         JOIN Parcelas p ON c.id_parcela = p.id_parcela
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
-        WHERE c.activo = 1 AND p.activo = 1 AND v.activo = 1
+        WHERE p.activo = 1 AND v.activo = 1
         """
         
         rows = self._ejecutar_consulta(query)
@@ -391,7 +391,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         SELECT estado, COUNT(*) as cantidad
         FROM CiclosProduccion c
         JOIN Parcelas p ON c.id_parcela = p.id_parcela
-        WHERE c.activo = 1 AND p.activo = 1
+        WHERE p.activo = 1
         GROUP BY estado
         ORDER BY cantidad DESC
         """
@@ -864,7 +864,7 @@ class CicloProduccionRepositorio(RepositorioBase):
             LEFT JOIN DetallesVenta dv ON l.id_lote = dv.id_lote
             LEFT JOIN CostosProduccion cp ON c.id_ciclo = cp.id_ciclo
             
-            WHERE c.activo = 1 AND c.estado = 'Finalizado' 
+            WHERE c.estado = 'Finalizado' 
             AND c.id_ciclo != ?
             AND (c.id_variedad = ? OR c.id_parcela = ?)
             

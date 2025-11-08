@@ -11,6 +11,7 @@ Rectangle {
     // Propiedades públicas
     property string buttonText: "Botón"
     property string iconText: "📄"
+    property string iconSource: ""  // Nueva propiedad para imágenes
     property bool isActive: false
     
     // Señales
@@ -62,17 +63,45 @@ Rectangle {
         anchors.rightMargin: Styles.AppTheme.spaceMd
         spacing: Styles.AppTheme.spaceSm
         
-        // Icono
-        Text {
-            text: root.iconText
-            font.pixelSize: Styles.AppTheme.sidebarIconSize
-            color: root.isActive ? 
-                   Styles.AppTheme.colors.white : 
-                   Styles.AppTheme.colors.sidebarTextMuted
+        // Icono - Ahora soporta tanto texto como imagen
+        Item {
+            width: Styles.AppTheme.sidebarIconSize
+            height: Styles.AppTheme.sidebarIconSize
             
-            // Animación del color
-            Behavior on color {
-                ColorAnimation { duration: Styles.AppTheme.transitionFast }
+            // Icono de texto (emoji)
+            Text {
+                id: textIcon
+                anchors.centerIn: parent
+                text: root.iconText
+                font.pixelSize: Styles.AppTheme.sidebarIconSize
+                color: root.isActive ? 
+                       Styles.AppTheme.colors.white : 
+                       Styles.AppTheme.colors.sidebarTextMuted
+                visible: root.iconSource === ""  // Mostrar solo si no hay imagen
+                
+                // Animación del color
+                Behavior on color {
+                    ColorAnimation { duration: Styles.AppTheme.transitionFast }
+                }
+            }
+            
+            // Icono de imagen - Versión simplificada sin ColorOverlay
+            Image {
+                id: imageIcon
+                anchors.centerIn: parent
+                source: root.iconSource
+                width: Styles.AppTheme.sidebarIconSize +10
+                height: Styles.AppTheme.sidebarIconSize +10
+                fillMode: Image.PreserveAspectFit
+                visible: root.iconSource !== ""  // Mostrar solo si hay imagen
+                mipmap: true  // Mejor calidad al escalar
+                
+                // Control de opacidad en lugar de cambio de color
+                opacity: root.isActive ? 1.0 : 0.8
+                
+                Behavior on opacity {
+                    NumberAnimation { duration: Styles.AppTheme.transitionFast }
+                }
             }
         }
         

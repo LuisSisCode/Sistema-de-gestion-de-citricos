@@ -34,7 +34,6 @@ from backend.models.gastos_model import GastosModel
 from backend.models.reportes_model import *
 from backend.models.dashboard_model import DashboardModel
 
-from recursos.mapa.mapa_service_integrado import inicializar_servicio_mapa, servicio_mapa
 
 class AppManager(QObject):
     """Gestor principal de la aplicación con autenticación"""
@@ -145,7 +144,7 @@ class ModuleManager(QObject):
         self.module_files = {
             0: "dashboard.qml",  # ✅ CORREGIDO: en minúsculas
             1: "usuario_roles.qml",
-            2: "agricultores_parcela.qml",
+            2: "productores_parcela.qml",
             3: "cultivos.qml",
             4: "agroquimico.qml",
             5: "ventas_cliente.qml",
@@ -199,47 +198,6 @@ class ModuleManager(QObject):
         self._current_module = module_index
         self.moduleChanged.emit(module_index)
 
-
-def configurar_webengine_global():
-    """Configura WebEngine globalmente para localhost"""
-    try:
-        settings = QWebEngineSettings.globalSettings()
-        
-        settings.setAttribute(QWebEngineSettings.LocalContentCanAccessRemoteUrls, True)
-        settings.setAttribute(QWebEngineSettings.LocalContentCanAccessFileUrls, True) 
-        settings.setAttribute(QWebEngineSettings.AllowRunningInsecureContent, True)
-        settings.setAttribute(QWebEngineSettings.JavascriptEnabled, True)
-        settings.setAttribute(QWebEngineSettings.PluginsEnabled, True)
-        settings.setAttribute(QWebEngineSettings.LocalStorageEnabled, True)
-        
-        print("✅ WebEngine configurado globalmente")
-        return True
-        
-    except Exception as e:
-        print(f"⚠️ Error configurando WebEngine: {e}")
-        return False
-
-
-def inicializar_servicios_mapa():
-    """Inicializa el servicio de mapas integrado"""
-    print("🚀 Iniciando servicio de mapas...")
-    print("📦 Configurando sistema de caché...")
-    print("✅ Sistema de caché configurado")
-    print_cache_stats()
-
-    try:
-        if inicializar_servicio_mapa():
-            print("✅ Servicio de mapas iniciado")
-            print("🗺️ Mapa disponible en: http://localhost:5001/mapa")
-            return True
-        else:
-            print("⚠️ Servicio de mapas no disponible")
-            return False
-    except Exception as e:
-        print(f"❌ Error iniciando servicio de mapas: {str(e)}")
-        return False
-
-
 def main():
     print("🔧 Configurando WebEngine...")
     
@@ -274,18 +232,11 @@ def main():
     
     app = QGuiApplication(args)
     
-    # Configurar WebEngine
-    print("⚙️ Configurando WebEngine globalmente...")
-    configurar_webengine_global()
-    
     os.environ["QT_DEBUG_PLUGINS"] = "0"
     
     # Crear el motor QML
     engine = QQmlApplicationEngine()
-    
-    # Inicializar servicios de mapa
-    print("🗺️ Iniciando servicios de mapa...")
-    inicializar_servicios_mapa()
+
     
     # Crear el gestor de aplicación
     app_manager = AppManager(engine)
@@ -349,8 +300,8 @@ def main():
         print(f"⚠️ No se pudo registrar UsuariosRolesModel: {e}")
     
     try:
-        agricultores_parcelas_model = ProductoresParcelasModels()
-        engine.rootContext().setContextProperty("agricultoresparcelas", agricultores_parcelas_model)
+        productores_parcelas_model = ProductoresParcelasModels()
+        engine.rootContext().setContextProperty("productoresparcelas", productores_parcelas_model)
         print("✅ ProductoresParcelasModels registrado en QML")
     except Exception as e:
         print(f"⚠️ No se pudo registrar ProductoresParcelasModels: {e}")
@@ -413,7 +364,7 @@ def main():
     print("   - gastosModel (GastosModel)")
     print("   - reportesModel (ReportesModel)")
     print("   - usuariosRolesModel (UsuariosRolesModel)")
-    print("   - agricultoresparcelas (ProductoresParcelasModels)")
+    print("   - productoresparcelas (ProductoresParcelasModels)")
     print("   - cultivos (CultivosModel)")
     print("   - agroquimicosModel (AgroquimicosModel)")
     print("   - ventaModel (ClientesVentaModel)")

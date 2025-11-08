@@ -38,7 +38,7 @@ Rectangle {
         var modulosFiles = {
             0: "dashboard.qml",
             1: "usuario_roles.qml",
-            2: "agricultores_parcela.qml",
+            2: "productores_parcela.qml",
             3: "cultivos.qml",
             4: "agroquimico.qml",
             5: "ventas_cliente.qml",
@@ -61,7 +61,7 @@ Rectangle {
         var modulos = [
             "Inicio",
             "Usuarios y Roles",
-            "Agricultores y Parcelas",
+            "Productores y Parcelas",
             "Cultivos",
             "Agroquímicos",
             "Ventas y Clientes",
@@ -210,7 +210,7 @@ Rectangle {
                             Layout.fillWidth: true
                             Layout.margins: Styles.AppTheme.spaceXs
                             buttonText: "Inicio"
-                            iconText: "🏠"
+                            iconSource: "../recursos/image/icons/Home.png"
                             isActive: mainContainer.activeModule === 0
                             onClicked: mainContainer.activeModule = 0
                         }
@@ -225,19 +225,19 @@ Rectangle {
                             Layout.fillWidth: true
                             Layout.margins: Styles.AppTheme.spaceXs
                             buttonText: "Usuarios"
-                            iconText: "👥"
+                            iconSource: "../recursos/image/icons/usuario.png"
                             isActive: mainContainer.activeModule === 1
                             onClicked: mainContainer.activeModule = 1
                         }
                         
-                        // Botón Agricultores
+                        // Botón Productores
                         MenuButton {
-                            id: btnAgricultores
-                            objectName: "btnAgricultores"
+                            id: btnProductores
+                            objectName: "btnProductores" 
                             Layout.fillWidth: true
                             Layout.margins: Styles.AppTheme.spaceXs
-                            buttonText: "Agricultores"
-                            iconText: "🧑‍🌾"
+                            buttonText: "Productores"
+                            iconSource: "../recursos/image/icons/agricultor.png" 
                             isActive: mainContainer.activeModule === 2
                             onClicked: mainContainer.activeModule = 2
                         }
@@ -252,7 +252,7 @@ Rectangle {
                             Layout.fillWidth: true
                             Layout.margins: Styles.AppTheme.spaceXs
                             buttonText: "Cultivos"
-                            iconText: "🌱"
+                            iconSource: "../recursos/image/icons/cultivos.png"
                             isActive: mainContainer.activeModule === 3
                             onClicked: mainContainer.activeModule = 3
                         }
@@ -264,7 +264,7 @@ Rectangle {
                             Layout.fillWidth: true
                             Layout.margins: Styles.AppTheme.spaceXs
                             buttonText: "Agroquímicos"
-                            iconText: "🧪"
+                            iconSource: "../recursos/image/icons/productos-quimicos.png"
                             isActive: mainContainer.activeModule === 4
                             onClicked: mainContainer.activeModule = 4
                         }
@@ -279,7 +279,7 @@ Rectangle {
                             Layout.fillWidth: true
                             Layout.margins: Styles.AppTheme.spaceXs
                             buttonText: "Ventas"
-                            iconText: "💰"
+                            iconSource: "../recursos/image/icons/ventas.png"
                             isActive: mainContainer.activeModule === 5
                             onClicked: mainContainer.activeModule = 5
                         }
@@ -291,7 +291,7 @@ Rectangle {
                             Layout.fillWidth: true
                             Layout.margins: Styles.AppTheme.spaceXs
                             buttonText: "Gastos"
-                            iconText: "💸"
+                            iconSource: "../recursos/image/icons/gasto.png"
                             isActive: mainContainer.activeModule === 9
                             onClicked: mainContainer.activeModule = 9
                         }
@@ -306,7 +306,7 @@ Rectangle {
                             Layout.fillWidth: true
                             Layout.margins: Styles.AppTheme.spaceXs
                             buttonText: "Maquinaria"
-                            iconText: "🚜"
+                            iconSource: "../recursos/image/icons/tractor.png"
                             isActive: mainContainer.activeModule === 6
                             onClicked: mainContainer.activeModule = 6
                         }
@@ -321,7 +321,7 @@ Rectangle {
                             Layout.fillWidth: true
                             Layout.margins: Styles.AppTheme.spaceXs
                             buttonText: "Reportes"
-                            iconText: "📊"
+                            iconSource: "../recursos/image/icons/reportes.png"
                             isActive: mainContainer.activeModule === 8
                             onClicked: mainContainer.activeModule = 8
                         }
@@ -344,7 +344,7 @@ Rectangle {
                             Layout.fillWidth: true
                             Layout.margins: Styles.AppTheme.spaceXs
                             buttonText: "Configuración"
-                            iconText: "⚙️"
+                            iconSource: "../recursos/image/icons/configuraciones.png"
                             isActive: mainContainer.activeModule === 7
                             onClicked: mainContainer.activeModule = 7
                         }

@@ -6,26 +6,26 @@ import QtPositioning 5.15
 
 
 Rectangle {
-    id: agricultorerParcelaRoot
+    id: productoresParcelaRoot
     anchors.fill: parent
     color: "#F8F9FA"
 
     // Propiedades para emitir señales
     property bool modelReady: false
-    property bool agricultoresLoaded: false
+    property bool productoresLoaded: false
     // Controlar cuando el modelo está disponible
-    onAgricultoresparcelasChanged: {
-        if (agricultoresparcelas) {
-            agricultoresparcelas.cargar_agricultores()
-            agricultoresparcelas.cargar_parcelas()
+    onProductoresparcelasChanged: {
+        if (productoresparcelas) {
+            productoresparcelas.cargar_productores()
+            productoresparcelas.cargar_parcelas()
             modelReady = true
         }
     }
 
     property double latitudSeleccionada: -17.4001
     property double longitudSeleccionada: -63.9260  
-    // Propiedades para la edición de agricultores
-    property var nuevoAgricultor: {  
+    // Propiedades para la edición de productores
+    property var nuevoProductor: {  
         "nombre": "", 
         "apellido": "", 
         "identificacion": "", 
@@ -46,67 +46,67 @@ Rectangle {
         "latitud": 0,
         "longitud": 0
     }
-    // Propiedades de paginación para agricultores
-    property int paginaActualAgricultores: 1
-    property int totalPaginasAgricultores: 1
-    property int agricultoresPorPagina: 6
+    // Propiedades de paginación para productores
+    property int paginaActualProductores: 1
+    property int totalPaginasProductores: 1
+    property int productoresPorPagina: 6
 
     // Propiedades de paginación para parcelas
     property int paginaActualParcelas: 1
     property int totalPaginasParcelas: 1
     property int parcelasPorPagina: 3
     
-    // agricultoresparcelas
-    property var agricultoresparcelas: contentContainer.agricultoresModel
+    // productoresparcelas
+    property var productoresparcelas: contentContainer.productoresModel
 
     Component.onCompleted: {
-        if (!agricultoresparcelas && contentContainer.agricultoresModel) {
-            agricultoresparcelas = contentContainer.agricultoresModel;
+        if (!productoresparcelas && contentContainer.productoresModel) {
+            productoresparcelas = contentContainer.productoresModel;
         }
-        //console.log("Modelo disponible:", agricultoresparcelas !== null)
-        if (agricultoresparcelas) {
-            console.log("Tipo de agricultoresparcelas.agricultores:", typeof agricultoresparcelas.agricultores)
-            console.log("Es array:", Array.isArray(agricultoresparcelas.agricultores))
+        //console.log("Modelo disponible:", productoresparcelas !== null)
+        if (productoresparcelas) {
+            console.log("Tipo de productoresparcelas.productores:", typeof productoresparcelas.productores)
+            console.log("Es array:", Array.isArray(productoresparcelas.productores))
             
-            if (agricultoresparcelas.agricultores) {
-                console.log("Número de agricultores:", agricultoresparcelas.agricultores.length)
-                if (agricultoresparcelas.agricultores.length > 0) {
-                    console.log("Primer agricultor:", JSON.stringify(agricultoresparcelas.agricultores[0]))
+            if (productoresparcelas.productores) {
+                console.log("Número de productores:", productoresparcelas.productores.length)
+                if (productoresparcelas.productores.length > 0) {
+                    console.log("Primer agricultor:", JSON.stringify(productoresparcelas.productores[0]))
                 }
             }
             
             // Cargar explícitamente los datos
-            agricultoresparcelas.cargar_agricultores_pagina(1)
-            agricultoresparcelas.cargar_parcelas_pagina(1)
+            productoresparcelas.cargar_productores_pagina(1)
+            productoresparcelas.cargar_parcelas_pagina(1)
         }
     }
     
     Connections {
-        target: agricultoresparcelas ? agricultoresparcelas : null
+        target: productoresparcelas ? productoresparcelas : null
         ignoreUnknownSignals: true
         
-        function onAgricultoresChanged() {
-            if (agricultoresparcelas) {
-                agricultoresLoaded = true
-                agricultoesListView.model = agricultoresparcelas.agricultores
-                paginaActualAgricultores = agricultoresparcelas.paginaActualAgricultores || 1
-                totalPaginasAgricultores = agricultoresparcelas.totalPaginasAgricultores || 1
-                console.log("Agricultores actualizados:", agricultoresparcelas.agricultores.length)
+        function onProductoresChanged() {
+            if (productoresparcelas) {
+                productoresLoaded = true
+                productoresListView.model = productoresparcelas.productores
+                paginaActualProductores = productoresparcelas.paginaActualProductores || 1
+                totalPaginasProductores = productoresparcelas.totalPaginasProductores || 1
+                console.log("Productores actualizados:", productoresparcelas.productores.length)
             }
         }
         
         function onParcelasChanged() {
-            if (agricultoresparcelas) {
-                parcelasGrid.model = agricultoresparcelas.parcelas
-                paginaActualParcelas = agricultoresparcelas.paginaActualParcelas || 1
-                totalPaginasParcelas = agricultoresparcelas.totalPaginasParcelas || 1
-                console.log("Parcelas actualizadas:", agricultoresparcelas.parcelas.length)
+            if (productoresparcelas) {
+                parcelasGrid.model = productoresparcelas.parcelas
+                paginaActualParcelas = productoresparcelas.paginaActualParcelas || 1
+                totalPaginasParcelas = productoresparcelas.totalPaginasParcelas || 1
+                console.log("Parcelas actualizadas:", productoresparcelas.parcelas.length)
                 console.log("Página parcelas:", paginaActualParcelas, "de", totalPaginasParcelas)
             }
         }
         
         function onPropietariosChanged() {
-            console.log("Propietarios actualizados:", agricultoresparcelas.propietarios.length)
+            console.log("Propietarios actualizados:", productoresparcelas.propietarios.length)
         }
     }
     
@@ -230,7 +230,7 @@ Rectangle {
                         }
                         onClicked: {
                             // Inicializa los valores para el nuevo agricultor
-                            nuevoAgricultor = {  
+                            nuevoProductor = {  
                                 "nombre": "", 
                                 "apellido": "", 
                                 "identificacion": "", 
@@ -272,24 +272,24 @@ Rectangle {
                         }
                         onTextChanged: {
                             if (text.length > 2) {
-                                var resultados = agricultoresparcelas.filtrar_agricultores_por_nombre(text)
-                                agricultoesListView.model = resultados
+                                var resultados = productoresparcelas.filtrar_productores_por_nombre(text)
+                                productoresListView.model = resultados
                             } else if (text.length === 0) {
                                 // Restaurar la lista completa
-                                agricultoesListView.model = agricultoresparcelas.agricultores
+                                productoresListView.model = productoresparcelas.productores
                             }
                         }
                     }
                 }
             }
 
-            // Tabla de agricultores
+            // Tabla de productores
             Rectangle {
                 anchors.top: actionBar.bottom
                 anchors.topMargin: 20
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.bottom: navegacionAgricultores.top
+                anchors.bottom: navegacionProductores.top
                 anchors.bottomMargin: 10
                 color: "white"
                 radius: 5
@@ -297,18 +297,18 @@ Rectangle {
 
                 BusyIndicator {
                     anchors.centerIn: parent
-                    running: !agricultoresLoaded && modelReady
+                    running: !productoresLoaded && modelReady
                     visible: running
                 }
 
                 ListView {
-                    id: agricultoesListView
+                    id: productoresListView
                     anchors.fill: parent
                     anchors.margins: 1
                     clip: true
-                    model: agricultoresparcelas ? agricultoresparcelas.agricultores : []
+                    model: productoresparcelas ? productoresparcelas.productores : []
                     onModelChanged: {
-                        console.log("Modelo de agricultores cambiado, elementos:", model ? model.length : 0)
+                        console.log("Modelo de productores cambiado, elementos:", model ? model.length : 0)
                     }        
                     headerPositioning: ListView.OverlayHeader
 
@@ -389,7 +389,7 @@ Rectangle {
 
                     // Delegado para cada fila
                     delegate: Rectangle {
-                        width: agricultorerParcelaRoot.width
+                        width: productoresParcelaRoot.width
                         height: 50
                         color: index % 2 === 0 ? "#FFFFFF" : "#F9F9F9"
 
@@ -406,7 +406,7 @@ Rectangle {
                                 
                                 Text {
                                     anchors.centerIn: parent
-                                    text: modelData.id_agricultor 
+                                    text: modelData.id_productor 
                                     verticalAlignment: Text.AlignVCenter
                                     horizontalAlignment: Text.AlignHCenter
                                 }
@@ -512,8 +512,8 @@ Rectangle {
                                         ToolTip.text: "Editar"
                                         onClicked:{
                                             // Cargar datos del agricultor a editar
-                                            nuevoAgricultor = {
-                                                "id_agricultor": modelData.id_agricultor,
+                                            nuevoProductor = {
+                                                "id_productor": modelData.id_productor,
                                                 "nombre": modelData.nombre,
                                                 "apellido": modelData.apellido,
                                                 "identificacion": modelData.identificacion,
@@ -547,9 +547,9 @@ Rectangle {
                                         ToolTip.text: "Eliminar"
                                         onClicked: {
                                             // Mostrar diálogo de confirmación de eliminación
-                                            confirmDeleteAgricultorDialog.agricultorId = modelData.id_agricultor
-                                            confirmDeleteAgricultorDialog.nombreAgricultor = modelData.nombre + " " + modelData.apellido
-                                            confirmDeleteAgricultorDialog.open()
+                                            confirmDeleteProductorDialog.agricultorId = modelData.id_productor
+                                            confirmDeleteProductorDialog.nombreProductor = modelData.nombre + " " + modelData.apellido
+                                            confirmDeleteProductorDialog.open()
                                         }
                                     }
                                 }
@@ -560,16 +560,16 @@ Rectangle {
                     // Mensaje cuando no hay datos
                     Text {
                         anchors.centerIn: parent
-                        text: "No hay agricultores registrados.\nHaga clic en 'Nuevo Agricultor' para agregar uno."
+                        text: "No hay productores registrados.\nHaga clic en 'Nuevo Productor' para agregar uno."
                         color: "#757575"
                         font.pixelSize: 14
                         horizontalAlignment: Text.AlignHCenter
-                        visible: agricultoresparcelas && agricultoresparcelas.agricultores && agricultoresparcelas.agricultores.length === 0
+                        visible: productoresarcelas && productoresparcelas.productores && productoresparcelas.productores.length === 0
                     }
                 }
             }
             Rectangle{
-                id: navegacionAgricultores
+                id: navegacionProductores
                 anchors.bottom: parent.bottom
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -582,20 +582,20 @@ Rectangle {
                     
                     Button {
                         text: "← Anterior"
-                        enabled: paginaActualAgricultores > 1
-                        onClicked: agricultoresparcelas.pagina_anterior_agricultores()
+                        enabled: paginaActualProductores > 1
+                        onClicked: productoresparcelas.pagina_anterior_productores()
                     }
                     
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "Página " + paginaActualAgricultores + " de " + totalPaginasAgricultores
+                        text: "Página " + paginaActualProductores + " de " + totalPaginasProductores
                         font.pixelSize: 14
                     }
                     
                     Button {
                         text: "Siguiente →"
-                        enabled: paginaActualAgricultores < totalPaginasAgricultores
-                        onClicked: agricultoresparcelas.pagina_siguiente_agricultores()
+                        enabled: paginaActualProductores < totalPaginasProductores
+                        onClicked: productoresparcelas.pagina_siguiente_productores()
                     }
                 }
             }
@@ -620,7 +620,7 @@ Rectangle {
 
                     Button {
                         text: "Nueva Parcela"
-                        icon.source: "Image/Image_UI_interfaz/Inconos/agregar-documento.svg"
+                        icon.source: "recursos/image/icons/agregar-documento.svg"
                         implicitHeight: 36
                         background: Rectangle {
                             color: parent.hovered ? "#E65A00" : "#f5922f"
@@ -661,18 +661,18 @@ Rectangle {
                                     leftMargin: 10
                                     verticalCenter: parent.verticalCenter
                                 }
-                                source: "Image/Image_UI_interfaz/Inconos/lupa.png" // Cambia por tu ruta
+                                source: "recursos/image/icons/lupa.png" // lupa.png
                                 width: 16
                                 height: 16
                             }
                         }
                         onTextChanged: {
                             if (text.length > 2) {
-                                var resultados = agricultoresparcelas.filtrar_parcelas_por_nombre(text)
+                                var resultados = productoresparcelas.filtrar_parcelas_por_nombre(text)
                                 parcelasGrid.model = resultados
                             } else if (text.length === 0) {
                                 // Restaurar la lista completa
-                                parcelasGrid.model = agricultoresparcelas.parcelas
+                                parcelasGrid.model = productoresparcelas.parcelas
                             }
                         }
                     }
@@ -682,12 +682,12 @@ Rectangle {
                         implicitWidth: 200
                         implicitHeight: 36
                         
-                        // Modelo inicial con la opción "Todos los agricultores"
+                        // Modelo inicial con la opción "Todos los productores"
                         model: {
-                            var items = [{ id: 0, nombre: "Todos los agricultores" }];
-                            if (agricultoresparcelas && agricultoresparcelas.propietarios) {
+                            var items = [{ id: 0, nombre: "Todos los productores" }];
+                            if (productoresparcelas && productoresparcelas.propietarios) {
                                 // Agregar los propietarios de la lista
-                                items = items.concat(agricultoresparcelas.propietarios);
+                                items = items.concat(productoresparcelas.propietarios);
                             }
                             return items;
                         }
@@ -700,22 +700,22 @@ Rectangle {
                         onActivated: {
                             var selectedId = cmbFiltroAgricultores.currentValue;
                             if (selectedId === 0) {
-                                parcelasGrid.model = agricultoresparcelas.parcelas;
+                                parcelasGrid.model = productoresparcelas.parcelas;
                             } else {
-                                parcelasGrid.model = agricultoresparcelas.obtener_parcelas_por_propietario(selectedId);
+                                parcelasGrid.model = productoresparcelas.obtener_parcelas_por_propietario(selectedId);
                             }
 
                         }
                         
                         // Actualizar cuando cambien los datos
                         Connections {
-                            target: agricultoresparcelas ? agricultoresparcelas : null
+                            target: productoresparcelas ? productoresparcelas : null
                             
                             function onPropietariosChanged() {
                                 // Recrear el modelo con la opción "Todos" + la lista de propietarios
-                                var items = [{ id: 0, nombre: "Todos los agricultores" }];
-                                if (agricultoresparcelas && agricultoresparcelas.propietarios) {
-                                    items = items.concat(agricultoresparcelas.propietarios);
+                                var items = [{ id: 0, nombre: "Todos los productores" }];
+                                if (productoresparcelas && productoresparcelas.propietarios) {
+                                    items = items.concat(productoresparcelas.propietarios);
                                 }
                                 cmbFiltroAgricultores.model = items;
                             }
@@ -724,9 +724,9 @@ Rectangle {
                                 // Si está seleccionado un propietario específico, actualizar el filtro
                                 var selectedId = cmbFiltroAgricultores.currentValue;
                                 if (selectedId === 0) {
-                                    parcelasGrid.model = agricultoresparcelas.parcelas;
+                                    parcelasGrid.model = productoresparcelas.parcelas;
                                 } else {
-                                    parcelasGrid.model = agricultoresparcelas.obtener_parcelas_por_propietario(selectedId);
+                                    parcelasGrid.model = productoresparcelas.obtener_parcelas_por_propietario(selectedId);
                                 }
                             }
                         }
@@ -744,7 +744,7 @@ Rectangle {
                 anchors.bottom: navegacionParcelas.top
                 anchors.bottomMargin: 10
                 clip: true
-                model: agricultoresparcelas ? agricultoresparcelas.parcelas : []
+                model: productoresparcelas ? productoresparcelas.parcelas : []
                 onModelChanged: {
                     console.log("Modelo de parcelas cambiado, elementos:", model ? model.length : 0)
                 }
@@ -758,7 +758,7 @@ Rectangle {
                     color: "#757575"
                     font.pixelSize: 14
                     horizontalAlignment: Text.AlignHCenter
-                    visible: agricultoresparcelas && agricultoresparcelas.parcelas && agricultoresparcelas.parcelas.length === 0
+                    visible: productoresparcelas && productoresparcelas.parcelas && productoresparcelas.parcelas.length === 0
                 }
 
                 delegate: Rectangle {
@@ -900,7 +900,7 @@ Rectangle {
                     Button {
                         text: "← Anterior"
                         enabled: paginaActualParcelas > 1
-                        onClicked: agricultoresparcelas.pagina_anterior_parcelas()
+                        onClicked: productoresparcelas.pagina_anterior_parcelas()
                     }
                     
                     Text {
@@ -912,7 +912,7 @@ Rectangle {
                     Button {
                         text: "Siguiente →"
                         enabled: paginaActualParcelas < totalPaginasParcelas
-                        onClicked: agricultoresparcelas.pagina_siguiente_parcelas()
+                        onClicked: productoresparcelas.pagina_siguiente_parcelas()
                     }
                 }
             } 
@@ -953,7 +953,7 @@ Rectangle {
                 
                 // Título
                 Text {
-                    text: "Agregar Nuevo Agricultor"
+                    text: "Agregar Nuevo Productor"
                     font.pixelSize: 18
                     font.bold: true
                     width: parent.width
@@ -977,7 +977,7 @@ Rectangle {
                         id: txtNombre
                         placeholderText: "Ingrese nombre"
                         Layout.fillWidth: true
-                        onTextChanged: nuevoAgricultor.nombre = text
+                        onTextChanged: nuevoProductor.nombre = text
                     }
                     
                     // Apellido
@@ -990,7 +990,7 @@ Rectangle {
                         id: txtApellido
                         placeholderText: "Ingrese apellido"
                         Layout.fillWidth: true
-                        onTextChanged: nuevoAgricultor.apellido = text
+                        onTextChanged: nuevoProductor.apellido = text
                     }
                     
                     // Identificación
@@ -1005,7 +1005,7 @@ Rectangle {
                         Layout.fillWidth: true
                         inputMethodHints: Qt.ImhDigitsOnly
                         validator: RegularExpressionValidator { regularExpression: /\d+/ }
-                        onTextChanged: nuevoAgricultor.identificacion = text
+                        onTextChanged: nuevoProductor.identificacion = text
                     }
                     
                     // Teléfono
@@ -1020,7 +1020,7 @@ Rectangle {
                         Layout.fillWidth: true
                         inputMethodHints: Qt.ImhDigitsOnly
                         validator: RegularExpressionValidator { regularExpression: /\d+/ }
-                        onTextChanged: nuevoAgricultor.telefono = text
+                        onTextChanged: nuevoProductor.telefono = text
                     }
                     
                     // Correo
@@ -1034,7 +1034,7 @@ Rectangle {
                         placeholderText: "Ingrese correo electrónico"
                         Layout.fillWidth: true
                         inputMethodHints: Qt.ImhEmailCharactersOnly
-                        onTextChanged: nuevoAgricultor.correo = text
+                        onTextChanged: nuevoProductor.correo = text
                     }
                     // Dirección
                     Text {
@@ -1046,19 +1046,7 @@ Rectangle {
                         id: txtDireccion
                         placeholderText: "Ingrese dirección"
                         Layout.fillWidth: true
-                        onTextChanged: nuevoAgricultor.direccion = text
-                    }
-                 
-                    // Es Propietario
-                    Text {
-                        text: "Es propietario:"
-                        Layout.alignment: Qt.AlignRight
-                    }
-                    
-                    CheckBox {
-                        id: chkPropietario
-                        text: "Marcar como propietario de parcelas"
-                        onCheckedChanged: nuevoAgricultor.esPropietario = checked
+                        onTextChanged: nuevoProductor.direccion = text
                     }
                     
                     // Fecha de registro
@@ -1132,9 +1120,9 @@ Rectangle {
                     }
                     // Verificar si está en modo edición o creación
                     if (dialogNuevoAgricultor.isEditMode) {
-                        editarAgricultor();
+                        editarProductor();
                     } else {
-                        guardarNuevoAgricultor();
+                        guardarNuevoProductor();
                     }
                 }
             }
@@ -1151,7 +1139,7 @@ Rectangle {
             chkPropietario.checked = false
             mensajeValidacionAgricultor.text = ""
             isEditMode = false
-            title = "Nuevo Agricultor"  // Restaurar el título original
+            title = "Nuevo Productor"  // Restaurar el título original
         }
     }
     // DIÁLOGO DE NUEVA PARCELA
@@ -1211,15 +1199,15 @@ Rectangle {
                     ComboBox {
                         id: cmbPropietario
                         Layout.fillWidth: true
-                        model: agricultoresparcelas ? agricultoresparcelas.propietarios : []
+                        model: productoresparcelas ? productoresparcelas.propietarios : []
                         textRole: "nombre"
                         valueRole: "id"
 
                         // Actualizar cuando cambien los propietarios
                         Connections {
-                            target: agricultoresparcelas ? agricultoresparcelas : null
+                            target: productoresparcelas ? productoresparcelas : null
                             function onPropietariosChanged() {
-                                cmbPropietario.model = agricultoresparcelas ? agricultoresparcelas.propietarios : [];
+                                cmbPropietario.model = productoresparcelas ? productoresparcelas.propietarios : [];
                             }
                         }
                         
@@ -1568,7 +1556,7 @@ Rectangle {
         }
         
         onAccepted: {
-            var exito = agricultoresparcelas.eliminar_agricultor(confirmDeleteAgricultorDialog.agricultorId);
+            var exito = productoresparcelas.eliminar_agricultor(confirmDeleteAgricultorDialog.agricultorId);
             if (exito) {
                 showMessage("Agricultor eliminado correctamente")
             } else {
@@ -1902,25 +1890,25 @@ Rectangle {
 
     function obtenerPropietariosModel() {
             var propietariosArray = [];
-            if (agricultoresparcelas && agricultoresparcelas.propietarios) {
-                for (var i = 0; i < agricultoresparcelas.propietarios.length; i++) {
+            if (productoresparcelas && productoresparcelas.propietarios) {
+                for (var i = 0; i < productoresparcelas.propietarios.length; i++) {
                     propietariosArray.push({
-                    id: agricultoresparcelas.propietarios[i].id,
-                    text: agricultoresparcelas.propietarios[i].nombre
+                    id: productoresparcelas.propietarios[i].id,
+                    text: productoresparcelas.propietarios[i].nombre
                     });
                 }
             }
             return propietariosArray;
         }
 
-        function guardarNuevoAgricultor() {
-            // Asegúrate de que nuevoAgricultor tenga todos los campos requeridos
-            nuevoAgricultor.fecha_registro = getFormattedDate();
+        function guardarNuevoProductor() {
+            // Asegúrate de que nuevoProductor tenga todos los campos requeridos
+            nuevoProductor.fecha_registro = getFormattedDate();
             // Asegúrate de que esPropietario sea booleano
-            nuevoAgricultor.esPropietario = nuevoAgricultor.esPropietario ? true : false;
+            nuevoProductor.esPropietario = nuevoProductor.esPropietario ? true : false;
             
-            var agricultor_json = JSON.stringify(nuevoAgricultor);
-            var exito = agricultoresparcelas.agregar_agricultor(agricultor_json);
+            var agricultor_json = JSON.stringify(nuevoProductor);
+            var exito = productoresparcelas.agregar_agricultor(agricultor_json);
             
             if (exito) {
                 showMessage("Agricultor guardado correctamente");
@@ -1939,7 +1927,7 @@ Rectangle {
         nuevaParcela.longitud = parseFloat(txtLongitud.text) || null;
         
         var parcela_json = JSON.stringify(nuevaParcela);
-        var exito = agricultoresparcelas.agregar_parcela(parcela_json);
+        var exito = productoresparcelas.agregar_parcela(parcela_json);
         
         if (exito) {
             showMessage("Parcela guardada correctamente");
@@ -1965,26 +1953,26 @@ Rectangle {
         var yyyy = today.getFullYear();
         return dd + '/' + mm + '/' + yyyy;
     }
-    function editarAgricultor() {
+    function editarProductor() {
         // Crear objeto con los datos actualizados
         var agricultor_actualizado = {
-            "nombre": nuevoAgricultor.nombre,
-            "apellido": nuevoAgricultor.apellido,
-            "identificacion": nuevoAgricultor.identificacion,
-            "telefono": nuevoAgricultor.telefono,
-            "correo": nuevoAgricultor.correo,
-            "direccion": nuevoAgricultor.direccion,
-            "esPropietario": nuevoAgricultor.esPropietario
+            "nombre": nuevoProductor.nombre,
+            "apellido": nuevoProductor.apellido,
+            "identificacion": nuevoProductor.identificacion,
+            "telefono": nuevoProductortelefono,
+            "correo": nuevoProductor.correo,
+            "direccion": nuevoProductor.direccion,
+            "esPropietario": nuevoProductor.esPropietario
         }
         
         // Enviar al modelo para actualizar
-        var exito = agricultoresparcelas.actualizar_agricultor(nuevoAgricultor.id_agricultor, JSON.stringify(agricultor_actualizado))
+        var exito = productoresparcelas.actualizar_productor(nuevoProductor.id_productor, JSON.stringify(agricultor_actualizado))
         
         if (exito) {
-            showMessage("Agricultor actualizado correctamente")
-            dialogNuevoAgricultor.close()
+            showMessage("Productor actualizado correctamente")
+            dialogNuevoProductor.close()
         } else {
-            mensajeValidacionAgricultor.text = "Error al actualizar el agricultor"
+            mensajeValidacionProductor.text = "Error al actualizar el agricultor"
         }
     }
     function abrirEdicionParcela(parcela) {
@@ -2033,8 +2021,8 @@ Rectangle {
             "longitud": parseFloat(txtLongitud.text)
         }
         
-        // Enviar al modelo para actualizar (necesitarás agregar este método en agricultores_parcelas_model.py)
-        var exito = agricultoresparcelas.actualizar_parcela(nuevaParcela.parcelaId, JSON.stringify(parcela_actualizada))
+        // Enviar al modelo para actualizar (necesitarás agregar este método en productores_parcelas_model.py)
+        var exito = productoresparcelas.actualizar_parcela(nuevaParcela.parcelaId, JSON.stringify(parcela_actualizada))
         
         if (exito) {
             showMessage("Parcela actualizada correctamente")

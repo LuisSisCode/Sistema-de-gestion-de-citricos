@@ -29,11 +29,11 @@ Rectangle {
                 rowSpacing: Styles.AppTheme.spaceLg
                 columnSpacing: Styles.AppTheme.spaceLg
                 
-                // Tarjeta: Total Agricultores
+                // Tarjeta: Total Productores
                 DataCard {
                     Layout.fillWidth: true
-                    title: "Total Agricultores"
-                    value: dashboardModel ? dashboardModel.totalAgricultores : "0"
+                    title: "Total Productores"
+                    value: dashboardModel ? dashboardModel.totalProductores : "0"
                     iconText: "👨‍🌾"
                     iconColor: Styles.AppTheme.colors.primary
                     trend: "up"

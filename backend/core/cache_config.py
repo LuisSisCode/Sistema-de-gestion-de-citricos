@@ -76,7 +76,7 @@ class CacheConfigurator:
         """Configura las dependencias entre módulos (simulado)"""
         # Como tu CacheManager no tiene add_dependency, solo mostramos la configuración
         dependencias = {
-            'agricultores': ['parcelas', 'estadisticas'],
+            'productores': ['parcelas', 'estadisticas'],
             'parcelas': ['estadisticas'],
             'clientes': ['ventas', 'estadisticas'],
             'ventas': ['estadisticas', 'reportes'],
@@ -143,7 +143,7 @@ class CacheConfigurator:
         orden_calentamiento = [
             'usuarios',
             'roles', 
-            'agricultores',
+            'productores',
             'clientes',
             'cultivos',
             'variedades',

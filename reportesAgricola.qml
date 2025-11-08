@@ -70,7 +70,7 @@ Item {
             nombre: "Gestión de Parcelas",
             modulo: "parcelas",
             icono: "🏡",
-            descripcion: "Información de parcelas y agricultores registrados",
+            descripcion: "Información de parcelas y productores registrados",
             color: primaryColor
         },
         {

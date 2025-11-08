@@ -155,7 +155,7 @@ class GestorUsuariosRoles:
             },
             {
                 'seccion': 'Productores',
-                'descripcion': 'Gestión de agricultores',
+                'descripcion': 'Gestión de productores',
                 'permitido': True if id_rol in [1, 2] else False
             },
             {

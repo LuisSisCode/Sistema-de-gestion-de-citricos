@@ -181,7 +181,7 @@ def cache_invalidator(namespace: str, key: str = None, pattern: str = None):
 
 # Configuración de TTL por módulo
 TTL_CONFIG = {
-    'agricultores': 1800,      # 30 minutos
+    'productores': 1800,      # 30 minutos
     'parcelas': 1800,          # 30 minutos  
     'clientes': 900,           # 15 minutos
     'ventas': 300,             # 5 minutos

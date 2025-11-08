@@ -22,7 +22,7 @@ class VariedadCultivoRepositorio(RepositorioBase):
         query = """
         SELECT v.id_variedad, v.id_tipo_cultivo, v.nombre, v.tiempo_produccion, 
                v.resistencia_zona, v.activo,
-               t.nombre AS nombre_tipo_cultivo,
+               t.nombre AS nombre_tipo_cultivo
         FROM VariedadesCultivo v
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
         WHERE v.activo = 1 AND t.activo = 1
@@ -491,7 +491,6 @@ class VariedadCultivoRepositorio(RepositorioBase):
             
             # Información del tipo de cultivo
             'nombre_tipo_cultivo': row.nombre_tipo_cultivo or '',
-            'nombre_cientifico_tipo': row.nombre_cientifico_tipo or '',
             'nombre_completo': f"{row.nombre_tipo_cultivo} - {row.nombre}" if row.nombre_tipo_cultivo else row.nombre,
             
             # Campos calculados
