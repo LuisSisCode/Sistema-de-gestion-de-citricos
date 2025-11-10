@@ -7,6 +7,15 @@ Rectangle {
     anchors.fill: parent
     color: "#F8F9FA"
     
+    // Estado para controlar la pestaña activa
+    property int tabActiva: 1
+    property var tabsInfo: [
+        {"text": "Costos de Producción", "icon": "recursos/image/icons/costoproduccion.png", "color": "#FF9800"},
+        {"text": "Pagos a Agricultores", "icon": "recursos/image/icons/pagosagricultures.png", "color": "#4CAF50"},
+        {"text": "Combustible y Maquinaria", "icon": "recursos/image/icons/combustible.png", "color": "#2196F3"},
+        {"text": "Inventario Agroquímicos", "icon": "recursos/image/icons/inventario.png", "color": "#9C27B0"}
+    ]
+    
     // Propiedades para manejar datos dinámicos
     property var costosProduccion: [
         {
@@ -96,6 +105,87 @@ Rectangle {
     property var monedas: ["BOB", "USD"]
     property string monedaSeleccionada: "BOB"
     
+    // Propiedades para paginación
+    property int paginaActualCostos: 1
+    property int totalPaginasCostos: 5
+    property int paginaActualPagos: 1
+    property int totalPaginasPagos: 3
+    property int paginaActualCombustible: 1
+    property int totalPaginasCombustible: 4
+    property int paginaActualInventario: 1
+    property int totalPaginasInventario: 2
+    
+    // Componente de paginador reutilizable
+    Component {
+        id: paginadorComponent
+        
+        Rectangle {
+            width: 300
+            height: 40
+            color: "transparent"
+            
+            Row {
+                anchors.centerIn: parent
+                spacing: 15
+                
+                Button {
+                    text: "Anterior"
+                    width: 80
+                    height: 32
+                    enabled: paginaActual > 1
+                    background: Rectangle {
+                        color: parent.enabled ? (parent.hovered ? "#E0E0E0" : "#F5F5F5") : "#FAFAFA"
+                        radius: 6
+                        border.color: parent.enabled ? "#CCCCCC" : "transparent"
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        font.pixelSize: 12
+                        color: parent.enabled ? "#424242" : "#BDBDBD"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                    onClicked: {
+                        if (paginaActual > 1) {
+                            paginaActual--
+                        }
+                    }
+                }
+                
+                Text {
+                    text: "Página " + paginaActual + " de " + totalPaginas
+                    font.pixelSize: 13
+                    color: "#666666"
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+                
+                Button {
+                    text: "Siguiente"
+                    width: 80
+                    height: 32
+                    enabled: paginaActual < totalPaginas
+                    background: Rectangle {
+                        color: parent.enabled ? (parent.hovered ? "#E0E0E0" : "#F5F5F5") : "#FAFAFA"
+                        radius: 6
+                        border.color: parent.enabled ? "#CCCCCC" : "transparent"
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        font.pixelSize: 12
+                        color: parent.enabled ? "#424242" : "#BDBDBD"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                    onClicked: {
+                        if (paginaActual < totalPaginas) {
+                            paginaActual++
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
     // Título de la página
     Rectangle {
         id: titleBar
@@ -108,7 +198,6 @@ Rectangle {
             font.pixelSize: 28
             font.bold: true
             color: "#2E7D32"
-            anchors.left: parent.left
             anchors.centerIn: parent
         }
         
@@ -139,1082 +228,1357 @@ Rectangle {
         }
     }
 
-    // Pestañas principales
-    Rectangle {
-        id: tabBar
-        width: parent.width
-        height: 50
+    // BARRA DE PESTAÑAS CENTRADA
+    Item {
+        id: modernTabBar
+        width: parent.width - 40
+        height: 90
         anchors.top: titleBar.bottom
         anchors.topMargin: 10
-        color: "white"
-        radius: 5
-        border.color: "#EEEEEE"
-
+        anchors.horizontalCenter: parent.horizontalCenter
+        
+        // Contenedor de pestañas centrado
         Row {
-            anchors.fill: parent
-            spacing: 0
-
+            id: tabsRow
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: 5
+            
             Repeater {
-                model: [
-                    {"text": "Costos de Producción", "icon": "📊"},
-                    {"text": "Pagos a Agricultores", "icon": "💰"},
-                    {"text": "Combustible y Maquinaria", "icon": "⛽"},
-                    {"text": "Inventario Agroquímicos", "icon": "🧪"}
-                ]
-
-                Rectangle {
-                    width: tabBar.width / 4
-                    height: parent.height
-                    color: stackLayout.currentIndex === index ? "#f5922f" : "transparent"
-                    radius: stackLayout.currentIndex === index ? 5 : 0
-
-                    Row {
-                        anchors.centerIn: parent
-                        spacing: 8
-
-                        Text {
-                            text: modelData.icon
-                            font.pixelSize: 16
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-
-                        Text {
-                            text: modelData.text
-                            font.pixelSize: 14
-                            font.bold: stackLayout.currentIndex === index
-                            color: stackLayout.currentIndex === index ? "white" : "#333333"
-                            anchors.verticalCenter: parent.verticalCenter
+                model: tabsInfo
+                
+                Item {
+                    id: tabItem
+                    width: 280
+                    height: 80
+                    
+                    // Indicador de pestaña activa (barra inferior)
+                    Rectangle {
+                        id: activeIndicator
+                        width: parent.width - 20
+                        height: 4
+                        anchors.bottom: parent.bottom
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        color: tabsInfo[index].color
+                        radius: 2
+                        opacity: tabActiva === index ? 1 : 0
+                        
+                        Behavior on opacity {
+                            NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
                         }
                     }
-
-                    MouseArea {
+                    
+                    // Card de la pestaña
+                    Rectangle {
+                        id: tabCard
                         anchors.fill: parent
-                        onClicked: stackLayout.currentIndex = index
+                        anchors.margins: 5
+                        radius: 12
+                        color: tabActiva === index ? "white" : "transparent"
+                        border.color: tabActiva === index ? tabsInfo[index].color : "#E0E0E0"
+                        border.width: tabActiva === index ? 2 : 1
+                        
+                        // Transiciones suaves
+                        Behavior on color {
+                            ColorAnimation { duration: 300 }
+                        }
+                        
+                        Behavior on y {
+                            NumberAnimation { duration: 250; easing.type: Easing.OutCubic }
+                        }
+                        
+                        Behavior on border.color {
+                            ColorAnimation { duration: 300 }
+                        }
+                        
+                        y: tabActiva === index ? -5 : 0
+                        
+                        // Sombra simple usando Rectangle sin GraphicalEffects
+                        Rectangle {
+                            width: parent.width + 8
+                            height: parent.height + 8
+                            anchors.centerIn: parent
+                            radius: 12
+                            color: "#15000000"
+                            visible: tabActiva === index
+                            z: -1
+                        }
+                        
+                        // Contenido de la pestaña
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            
+                            onEntered: {
+                                if (tabActiva !== index) {
+                                    tabCard.color = "#FAFAFA"
+                                    iconContainer.scale = 1.1
+                                }
+                            }
+                            
+                            onExited: {
+                                if (tabActiva !== index) {
+                                    tabCard.color = "transparent"
+                                    iconContainer.scale = 1.0
+                                }
+                            }
+                            
+                            onClicked: {
+                                tabActiva = index
+                            }
+                            
+                            // Layout del contenido
+                            Row {
+                                anchors.centerIn: parent
+                                spacing: 12
+                                
+                                // Contenedor del icono con fondo circular
+                                Item {
+                                    id: iconContainer
+                                    width: 42
+                                    height: 42
+                                    
+                                    Behavior on scale {
+                                        NumberAnimation { duration: 200; easing.type: Easing.OutBack }
+                                    }
+                                    
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        radius: width / 2
+                                        color: tabActiva === index ? tabsInfo[index].color : "#F5F5F5"
+                                        opacity: tabActiva === index ? 0.15 : 1
+                                        
+                                        Behavior on color {
+                                            ColorAnimation { duration: 300 }
+                                        }
+                                        
+                                        Behavior on opacity {
+                                            NumberAnimation { duration: 300 }
+                                        }
+                                    }
+                                    
+                                    Image {
+                                        id: tabIcon
+                                        source: modelData.icon
+                                        width: 24
+                                        height: 24
+                                        anchors.centerIn: parent
+                                        opacity: tabActiva === index ? 1 : 0.7
+                                        
+                                        Behavior on opacity {
+                                            NumberAnimation { duration: 300 }
+                                        }
+                                    }
+                                }
+                                
+                                // Texto de la pestaña
+                                Column {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: 2
+                                    
+                                    Text {
+                                        text: modelData.text
+                                        font.pixelSize: 14
+                                        font.weight: tabActiva === index ? Font.Bold : Font.Normal
+                                        color: tabActiva === index ? tabsInfo[index].color : "#616161"
+                                        
+                                        Behavior on color {
+                                            ColorAnimation { duration: 300 }
+                                        }
+                                    }
+                                    
+                                    // Indicador de número o estado (opcional)
+                                    Rectangle {
+                                        width: 40
+                                        height: 18
+                                        radius: 9
+                                        color: tabActiva === index ? tabsInfo[index].color : "#E0E0E0"
+                                        opacity: tabActiva === index ? 1 : 0
+                                        visible: tabActiva === index
+                                        
+                                        Behavior on opacity {
+                                            NumberAnimation { duration: 300 }
+                                        }
+                                        
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: {
+                                                switch(index) {
+                                                    case 0: return "3"
+                                                    case 1: return "3"
+                                                    case 2: return "4"
+                                                    case 3: return "3"
+                                                    default: return "0"
+                                                }
+                                            }
+                                            font.pixelSize: 11
+                                            font.bold: true
+                                            color: "white"
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     }
 
-    // Contenido de las pestañas
-    StackLayout {
-        id: stackLayout
-        width: parent.width
-        anchors.top: tabBar.bottom
-        anchors.bottom: parent.bottom
+    // Área de contenido principal
+    Item {
+        id: contentArea
+        width: parent.width - 40
+        height: parent.height - modernTabBar.y - modernTabBar.height - 20
+        anchors.top: modernTabBar.bottom
         anchors.topMargin: 20
-        currentIndex: 0
-
-        // PESTAÑA 1: COSTOS DE PRODUCCIÓN
+        anchors.horizontalCenter: parent.horizontalCenter
+        
+        // Contenido de Costos de Producción
         Item {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-
-            // Barra de acciones
-            Rectangle {
-                id: actionBarCostos
-                width: parent.width
-                height: 50
-                color: "white"
-                radius: 25
-                border.color: "#EEEEEE"
-
-                RowLayout {
-                    anchors.left: parent.left
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.leftMargin: 20
-                    spacing: 10
-
-                    Button {
-                        text: "Nuevo Costo"
-                        icon.source: "Image/Image_UI_interfaz/Inconos/agregar.svg"
-                        implicitHeight: 36
-                        background: Rectangle {
-                            color: parent.hovered ? "#E65A00" : "#f5922f"
-                            radius: height / 2
-                        }
-                        onClicked: console.log("Nuevo costo de producción")
-                    }
-
-                    ComboBox {
-                        id: filtroCiclo
-                        implicitWidth: 200
-                        implicitHeight: 36
-                        model: ["Filtrar por ciclo...", "Todos", "Ciclo Naranja 2025-A", "Ciclo Mandarina 2025-B"]
-                        currentIndex: 0
-                    }
-
-                    ComboBox {
-                        id: filtroCategoria
-                        implicitWidth: 180
-                        implicitHeight: 36
-                        model: ["Filtrar por categoría...", "Todas"].concat(categoriasCostos)
-                        currentIndex: 0
-                    }
-
-                    TextField {
-                        id: txtBuscarCostos
-                        placeholderText: "Buscar concepto..."
-                        implicitWidth: 250
-                        implicitHeight: 28
-                        leftPadding: 30
-
-                        background: Rectangle {
-                            color: "#ffffff"
-                            radius: height / 2
-                            border.color: "#808080"
-                            border.width: 1
-
-                            Image {
-                                anchors {
-                                    left: parent.left
-                                    leftMargin: 10
-                                    verticalCenter: parent.verticalCenter
-                                }
-                                source: "Image/Image_UI_interfaz/Inconos/lupa.png"
-                                width: 16
-                                height: 16
-                            }
-                        }
-                    }
-                }
+            anchors.fill: parent
+            visible: tabActiva === 0
+            opacity: tabActiva === 0 ? 1 : 0
+            
+            Behavior on opacity {
+                NumberAnimation { duration: 300 }
             }
-
-            // Tabla de costos de producción
-            Rectangle {
-                anchors.top: actionBarCostos.bottom
-                anchors.topMargin: 20
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                color: "white"
-                radius: 5
-                border.color: "#EEEEEE"
-
-                ListView {
-                    id: costosListView
-                    anchors.fill: parent
-                    anchors.margins: 1
-                    clip: true
-                    model: costosProduccion
-                    headerPositioning: ListView.OverlayHeader
-
-                    header: Rectangle {
-                        width: parent.width
-                        height: 40
-                        color: "#F5F5F5"
-                        z: 2
-
-                        Row {
-                            anchors.fill: parent
-
-                            Text { width: parent.width * 0.08; height: parent.height; text: "Fecha"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                            Text { width: parent.width * 0.15; height: parent.height; text: "Ciclo"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                            Text { width: parent.width * 0.12; height: parent.height; text: "Parcela"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                            Text { width: parent.width * 0.12; height: parent.height; text: "Categoría"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                            Text { width: parent.width * 0.18; height: parent.height; text: "Concepto"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                            Text { width: parent.width * 0.08; height: parent.height; text: "Cantidad"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                            Text { width: parent.width * 0.09; height: parent.height; text: "Total (" + monedaSeleccionada + ")"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                            Text { width: parent.width * 0.08; height: parent.height; text: "Acciones"; font.bold: true; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
-                        }
-                    }
-
-                    delegate: Rectangle {
-                        width: costosListView.width
-                        height: 50
-                        color: index % 2 === 0 ? "#FFFFFF" : "#F9F9F9"
-
-                        Row {
-                            anchors.fill: parent
-                            spacing: 0
-
-                            Text { width: parent.width * 0.08; height: parent.height; text: modelData.fecha; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                            Text { width: parent.width * 0.15; height: parent.height; text: modelData.ciclo; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                            Text { width: parent.width * 0.12; height: parent.height; text: modelData.parcela; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                            Text { width: parent.width * 0.12; height: parent.height; text: modelData.categoria; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                            Text { width: parent.width * 0.18; height: parent.height; text: modelData.concepto; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                            Text { width: parent.width * 0.08; height: parent.height; text: modelData.cantidad + " " + modelData.unidad; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                            Text { width: parent.width * 0.09; height: parent.height; text: modelData.total.toFixed(2); verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                            
-                            Rectangle {
-                                width: parent.width * 0.08
-                                height: parent.height
-                                color: "transparent"
-
-                                Row {
-                                    spacing: 5
-                                    anchors.centerIn: parent
-
-                                    Button {
-                                        width: 32; height: 32
-                                        icon.source: "recursos/image/icons/editar.svg"
-                                        flat: true
-                                        ToolTip.visible: hovered
-                                        ToolTip.text: "Editar"
-                                        onClicked: console.log("Editar costo", modelData.id)
-                                    }
-
-                                    Button {
-                                        width: 32; height: 32
-                                        icon.source: "recursos/image/icons/basura.svg"
-                                        flat: true
-                                        ToolTip.visible: hovered
-                                        ToolTip.text: "Eliminar"
-                                        onClicked: console.log("Eliminar costo", modelData.id)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // PESTAÑA 2: PAGOS A AGRICULTORES
-        Item {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-
-            Rectangle {
-                id: actionBarPagos
-                width: parent.width
-                height: 50
-                color: "white"
-                radius: 25
-                border.color: "#EEEEEE"
-
-                RowLayout {
-                    anchors.left: parent.left
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.leftMargin: 20
-                    spacing: 10
-
-                    Button {
-                        text: "Nuevo Pago"
-                        icon.source: "Image/Image_UI_interfaz/Inconos/agregar.svg"
-                        implicitHeight: 36
-                        background: Rectangle {
-                            color: parent.hovered ? "#E65A00" : "#f5922f"
-                            radius: height / 2
-                        }
-                        onClicked: console.log("Nuevo pago")
-                    }
-
-                    ComboBox {
-                        id: filtroEstadoPago
-                        implicitWidth: 150
-                        implicitHeight: 36
-                        model: ["Estado del pago...", "Todos"].concat(estadosPago)
-                        currentIndex: 0
-                    }
-
-                    ComboBox {
-                        id: filtroMetodoPago
-                        implicitWidth: 150
-                        implicitHeight: 36
-                        model: ["Método de pago...", "Todos"].concat(metodosPago)
-                        currentIndex: 0
-                    }
-
-                    TextField {
-                        id: txtBuscarPagos
-                        placeholderText: "Buscar agricultor..."
-                        implicitWidth: 250
-                        implicitHeight: 28
-                        leftPadding: 30
-
-                        background: Rectangle {
-                            color: "#ffffff"
-                            radius: height / 2
-                            border.color: "#808080"
-                            border.width: 1
-
-                            Image {
-                                anchors {
-                                    left: parent.left
-                                    leftMargin: 10
-                                    verticalCenter: parent.verticalCenter
-                                }
-                                source: "Image/Image_UI_interfaz/Inconos/lupa.png"
-                                width: 16
-                                height: 16
-                            }
-                        }
-                    }
-                }
-            }
-
-            Rectangle {
-                anchors.top: actionBarPagos.bottom
-                anchors.topMargin: 20
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                color: "white"
-                radius: 5
-                border.color: "#EEEEEE"
-
-                ListView {
-                    id: pagosListView
-                    anchors.fill: parent
-                    anchors.margins: 1
-                    clip: true
-                    model: pagosAgricultores
-                    headerPositioning: ListView.OverlayHeader
-
-                    header: Rectangle {
-                        width: parent.width
-                        height: 40
-                        color: "#F5F5F5"
-                        z: 2
-
-                        Row {
-                            anchors.fill: parent
-
-                            Text { width: parent.width * 0.1; height: parent.height; text: "Fecha"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                            Text { width: parent.width * 0.2; height: parent.height; text: "Agricultor"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                            Text { width: parent.width * 0.25; height: parent.height; text: "Concepto"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                            Text { width: parent.width * 0.12; height: parent.height; text: "Monto (" + monedaSeleccionada + ")"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                            Text { width: parent.width * 0.1; height: parent.height; text: "Método"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                            Text { width: parent.width * 0.1; height: parent.height; text: "Estado"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                            Text { width: parent.width * 0.13; height: parent.height; text: "Acciones"; font.bold: true; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
-                        }
-                    }
-
-                    delegate: Rectangle {
-                        width: pagosListView.width
-                        height: 50
-                        color: index % 2 === 0 ? "#FFFFFF" : "#F9F9F9"
-
-                        Row {
-                            anchors.fill: parent
-                            spacing: 0
-
-                            Text { width: parent.width * 0.1; height: parent.height; text: modelData.fecha; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                            Text { width: parent.width * 0.2; height: parent.height; text: modelData.agricultor; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                            Text { width: parent.width * 0.25; height: parent.height; text: modelData.concepto; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                            Text { width: parent.width * 0.12; height: parent.height; text: modelData.monto.toFixed(2); verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                            Text { width: parent.width * 0.1; height: parent.height; text: modelData.metodo; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                            
-                            Rectangle {
-                                width: parent.width * 0.1
-                                height: parent.height
-                                color: "transparent"
-                                
-                                Rectangle {
-                                    width: 70
-                                    height: 24
-                                    radius: 12
-                                    anchors.centerIn: parent
-                                    color: modelData.estado === "Confirmado" ? "#E8F5E8" : 
-                                           modelData.estado === "Pendiente" ? "#FFF3CD" : "#FADBD8"
-                                    
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: modelData.estado
-                                        font.pixelSize: 12
-                                        color: modelData.estado === "Confirmado" ? "#2E7D32" : 
-                                               modelData.estado === "Pendiente" ? "#B8860B" : "#C0392B"
-                                    }
-                                }
-                            }
-
-                            Rectangle {
-                                width: parent.width * 0.13
-                                height: parent.height
-                                color: "transparent"
-
-                                Row {
-                                    spacing: 5
-                                    anchors.centerIn: parent
-
-                                    Button {
-                                        width: 32; height: 32
-                                        icon.source: "recursos/image/icons/editar.svg"
-                                        flat: true
-                                        ToolTip.visible: hovered
-                                        ToolTip.text: "Editar"
-                                        onClicked: console.log("Editar pago", modelData.id)
-                                    }
-
-                                    Button {
-                                        width: 32; height: 32
-                                        icon.source: "recursos/image/icons/basura.svg"
-                                        flat: true
-                                        ToolTip.visible: hovered
-                                        ToolTip.text: "Eliminar"
-                                        onClicked: console.log("Eliminar pago", modelData.id)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // PESTAÑA 3: COMBUSTIBLE Y MAQUINARIA
-        Item {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-
-            // Sub-pestañas para combustible y maquinaria
-            Rectangle {
-                id: subTabBar
-                width: parent.width
-                height: 40
-                color: "white"
-                radius: 5
-                border.color: "#EEEEEE"
-
-                Row {
-                    anchors.fill: parent
-                    spacing: 0
-
-                    Repeater {
-                        model: [
-                            {"text": "Compras Combustible", "icon": "🔸"},
-                            {"text": "Uso Maquinaria", "icon": "🔸"},
-                            {"text": "Mantenimientos", "icon": "🔸"}
-                        ]
-
-                        Rectangle {
-                            width: subTabBar.width / 3
-                            height: parent.height
-                            color: subStackLayout.currentIndex === index ? "#E3F2FD" : "transparent"
-                            radius: subStackLayout.currentIndex === index ? 5 : 0
-
-                            Row {
-                                anchors.centerIn: parent
-                                spacing: 5
-
-                                Text {
-                                    text: modelData.icon
-                                    font.pixelSize: 14
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-
-                                Text {
-                                    text: modelData.text
-                                    font.pixelSize: 13
-                                    font.bold: subStackLayout.currentIndex === index
-                                    color: subStackLayout.currentIndex === index ? "#1976D2" : "#666666"
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: subStackLayout.currentIndex = index
-                            }
-                        }
-                    }
-                }
-            }
-
-            StackLayout {
-                id: subStackLayout
-                width: parent.width
-                anchors.top: subTabBar.bottom
-                anchors.bottom: parent.bottom
-                anchors.topMargin: 10
-                currentIndex: 0
-
-                // SUB-PESTAÑA: COMPRAS COMBUSTIBLE
-                Item {
-                    Rectangle {
-                        id: actionBarCombustible
-                        width: parent.width
-                        height: 50
-                        color: "white"
-                        radius: 25
-                        border.color: "#EEEEEE"
-
-                        RowLayout {
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.leftMargin: 20
-                            spacing: 10
-
-                            Button {
-                                text: "Nueva Compra"
-                                icon.source: "Image/Image_UI_interfaz/Inconos/agregar.svg"
-                                implicitHeight: 36
-                                background: Rectangle {
-                                    color: parent.hovered ? "#E65A00" : "#f5922f"
-                                    radius: height / 2
-                                }
-                                onClicked: console.log("Nueva compra de combustible")
-                            }
-
-                            ComboBox {
-                                id: filtroTipoCombustible
-                                implicitWidth: 180
-                                implicitHeight: 36
-                                model: ["Tipo de combustible...", "Todos"].concat(tiposCombustible)
-                                currentIndex: 0
-                            }
-                        }
-                    }
-
-                    Rectangle {
-                        anchors.top: actionBarCombustible.bottom
-                        anchors.topMargin: 20
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.bottom: parent.bottom
-                        color: "white"
-                        radius: 5
-                        border.color: "#EEEEEE"
-
-                        ListView {
-                            anchors.fill: parent
-                            anchors.margins: 1
-                            clip: true
-                            model: comprasCombustible
-                            headerPositioning: ListView.OverlayHeader
-
-                            header: Rectangle {
-                                width: parent.width
-                                height: 40
-                                color: "#F5F5F5"
-                                z: 2
-
-                                Row {
-                                    anchors.fill: parent
-                                    Text { width: parent.width * 0.12; height: parent.height; text: "Fecha"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                    Text { width: parent.width * 0.15; height: parent.height; text: "Tipo"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                    Text { width: parent.width * 0.12; height: parent.height; text: "Cantidad"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                    Text { width: parent.width * 0.12; height: parent.height; text: "Precio Unit."; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                    Text { width: parent.width * 0.12; height: parent.height; text: "Total (" + monedaSeleccionada + ")"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                    Text { width: parent.width * 0.25; height: parent.height; text: "Proveedor"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                    Text { width: parent.width * 0.12; height: parent.height; text: "Acciones"; font.bold: true; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
-                                }
-                            }
-
-                            delegate: Rectangle {
-                                width: parent.width
-                                height: 50
-                                color: index % 2 === 0 ? "#FFFFFF" : "#F9F9F9"
-
-                                Row {
-                                    anchors.fill: parent
-                                    spacing: 0
-
-                                    Text { width: parent.width * 0.12; height: parent.height; text: modelData.fecha; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                                    Text { width: parent.width * 0.15; height: parent.height; text: modelData.tipo; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                                    Text { width: parent.width * 0.12; height: parent.height; text: modelData.cantidad + " " + modelData.unidad; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                                    Text { width: parent.width * 0.12; height: parent.height; text: modelData.precio_unitario.toFixed(2); verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                                    Text { width: parent.width * 0.12; height: parent.height; text: modelData.total.toFixed(2); verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                                    Text { width: parent.width * 0.25; height: parent.height; text: modelData.proveedor; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-
-                                    Rectangle {
-                                        width: parent.width * 0.12
-                                        height: parent.height
-                                        color: "transparent"
-
-                                        Row {
-                                            spacing: 5
-                                            anchors.centerIn: parent
-
-                                            Button {
-                                                width: 32; height: 32
-                                                icon.source: "recursos/image/icons/editar.svg"
-                                                flat: true
-                                                ToolTip.visible: hovered
-                                                ToolTip.text: "Editar"
-                                                onClicked: console.log("Editar compra combustible", modelData.id)
-                                            }
-
-                                            Button {
-                                                width: 32; height: 32
-                                                icon.source: "recursos/image/icons/basura.svg"
-                                                flat: true
-                                                ToolTip.visible: hovered
-                                                ToolTip.text: "Eliminar"
-                                                onClicked: console.log("Eliminar compra combustible", modelData.id)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // SUB-PESTAÑA: USO MAQUINARIA  
-                Item {
-                    Rectangle {
-                        id: actionBarUso
-                        width: parent.width
-                        height: 50
-                        color: "white"
-                        radius: 25
-                        border.color: "#EEEEEE"
-
-                        RowLayout {
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.leftMargin: 20
-                            spacing: 10
-
-                            Button {
-                                text: "Registrar Uso"
-                                icon.source: "Image/Image_UI_interfaz/Inconos/agregar.svg"
-                                implicitHeight: 36
-                                background: Rectangle {
-                                    color: parent.hovered ? "#E65A00" : "#f5922f"
-                                    radius: height / 2
-                                }
-                                onClicked: console.log("Registrar uso de maquinaria")
-                            }
-                        }
-                    }
-
-                    Rectangle {
-                        anchors.top: actionBarUso.bottom
-                        anchors.topMargin: 20
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.bottom: parent.bottom
-                        color: "white"
-                        radius: 5
-                        border.color: "#EEEEEE"
-
-                        ListView {
-                            anchors.fill: parent
-                            anchors.margins: 1
-                            clip: true
-                            model: usoMaquinaria
-                            headerPositioning: ListView.OverlayHeader
-
-                            header: Rectangle {
-                                width: parent.width
-                                height: 40
-                                color: "#F5F5F5"
-                                z: 2
-
-                                Row {
-                                    anchors.fill: parent
-                                    Text { width: parent.width * 0.12; height: parent.height; text: "Fecha"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                    Text { width: parent.width * 0.2; height: parent.height; text: "Maquinaria"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                    Text { width: parent.width * 0.15; height: parent.height; text: "Usuario"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                    Text { width: parent.width * 0.2; height: parent.height; text: "Actividad"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                    Text { width: parent.width * 0.12; height: parent.height; text: "Combustible (L)"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                    Text { width: parent.width * 0.09; height: parent.height; text: "Costo (" + monedaSeleccionada + ")"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                    Text { width: parent.width * 0.12; height: parent.height; text: "Acciones"; font.bold: true; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
-                                }
-                            }
-
-                            delegate: Rectangle {
-                                width: parent.width
-                                height: 50
-                                color: index % 2 === 0 ? "#FFFFFF" : "#F9F9F9"
-
-                                Row {
-                                    anchors.fill: parent
-                                    spacing: 0
-
-                                    Text { width: parent.width * 0.12; height: parent.height; text: modelData.fecha; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                                    Text { width: parent.width * 0.2; height: parent.height; text: modelData.maquinaria; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                                    Text { width: parent.width * 0.15; height: parent.height; text: modelData.usuario; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                                    Text { width: parent.width * 0.2; height: parent.height; text: modelData.actividad; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                                    Text { width: parent.width * 0.12; height: parent.height; text: modelData.combustible.toFixed(1); verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                                    Text { width: parent.width * 0.09; height: parent.height; text: modelData.costo.toFixed(2); verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-
-                                    Rectangle {
-                                        width: parent.width * 0.12
-                                        height: parent.height
-                                        color: "transparent"
-
-                                        Row {
-                                            spacing: 5
-                                            anchors.centerIn: parent
-
-                                            Button {
-                                                width: 32; height: 32
-                                                icon.source: "recursos/image/icons/editar.svg"
-                                                flat: true
-                                                ToolTip.visible: hovered
-                                                ToolTip.text: "Editar"
-                                                onClicked: console.log("Editar uso", modelData.id)
-                                            }
-
-                                            Button {
-                                                width: 32; height: 32
-                                                icon.source: "recursos/image/icons/basura.svg"
-                                                flat: true
-                                                ToolTip.visible: hovered
-                                                ToolTip.text: "Eliminar"
-                                                onClicked: console.log("Eliminar uso", modelData.id)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // SUB-PESTAÑA: MANTENIMIENTOS
-                Item {
-                    Rectangle {
-                        id: actionBarMantenimiento
-                        width: parent.width
-                        height: 50
-                        color: "white"
-                        radius: 25
-                        border.color: "#EEEEEE"
-
-                        RowLayout {
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.leftMargin: 20
-                            spacing: 10
-
-                            Button {
-                                text: "Nuevo Mantenimiento"
-                                icon.source: "Image/Image_UI_interfaz/Inconos/agregar.svg"
-                                implicitHeight: 36
-                                background: Rectangle {
-                                    color: parent.hovered ? "#E65A00" : "#f5922f"
-                                    radius: height / 2
-                                }
-                                onClicked: console.log("Nuevo mantenimiento")
-                            }
-                        }
-                    }
-
-                    Rectangle {
-                        anchors.top: actionBarMantenimiento.bottom
-                        anchors.topMargin: 20
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.bottom: parent.bottom
-                        color: "white"
-                        radius: 5
-                        border.color: "#EEEEEE"
-
-                        ListView {
-                            anchors.fill: parent
-                            anchors.margins: 1
-                            clip: true
-                            model: mantenimientos
-                            headerPositioning: ListView.OverlayHeader
-
-                            header: Rectangle {
-                                width: parent.width
-                                height: 40
-                                color: "#F5F5F5"
-                                z: 2
-
-                                Row {
-                                    anchors.fill: parent
-                                    Text { width: parent.width * 0.12; height: parent.height; text: "Fecha"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                    Text { width: parent.width * 0.2; height: parent.height; text: "Maquinaria"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                    Text { width: parent.width * 0.12; height: parent.height; text: "Tipo"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                    Text { width: parent.width * 0.25; height: parent.height; text: "Descripción"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                    Text { width: parent.width * 0.12; height: parent.height; text: "Costo (" + monedaSeleccionada + ")"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                    Text { width: parent.width * 0.09; height: parent.height; text: "Estado"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                    Text { width: parent.width * 0.1; height: parent.height; text: "Acciones"; font.bold: true; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
-                                }
-                            }
-
-                            delegate: Rectangle {
-                                width: parent.width
-                                height: 50
-                                color: index % 2 === 0 ? "#FFFFFF" : "#F9F9F9"
-
-                                Row {
-                                    anchors.fill: parent
-                                    spacing: 0
-
-                                    Text { width: parent.width * 0.12; height: parent.height; text: modelData.fecha; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                                    Text { width: parent.width * 0.2; height: parent.height; text: modelData.maquinaria; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                                    Text { width: parent.width * 0.12; height: parent.height; text: modelData.tipo; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                                    Text { width: parent.width * 0.25; height: parent.height; text: modelData.descripcion; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                                    Text { width: parent.width * 0.12; height: parent.height; text: modelData.costo.toFixed(2); verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                                    
-                                    Rectangle {
-                                        width: parent.width * 0.09
-                                        height: parent.height
-                                        color: "transparent"
-                                        
-                                        Rectangle {
-                                            width: 80
-                                            height: 24
-                                            radius: 12
-                                            anchors.centerIn: parent
-                                            color: modelData.estado === "Completado" ? "#E8F5E8" : "#FFF3CD"
-                                            
-                                            Text {
-                                                anchors.centerIn: parent
-                                                text: modelData.estado
-                                                font.pixelSize: 11
-                                                color: modelData.estado === "Completado" ? "#2E7D32" : "#B8860B"
-                                            }
-                                        }
-                                    }
-
-                                    Rectangle {
-                                        width: parent.width * 0.1
-                                        height: parent.height
-                                        color: "transparent"
-
-                                        Row {
-                                            spacing: 5
-                                            anchors.centerIn: parent
-
-                                            Button {
-                                                width: 32; height: 32
-                                                icon.source: "recursos/image/icons/editar.svg"
-                                                flat: true
-                                                ToolTip.visible: hovered
-                                                ToolTip.text: "Editar"
-                                                onClicked: console.log("Editar mantenimiento", modelData.id)
-                                            }
-
-                                            Button {
-                                                width: 32; height: 32
-                                                icon.source: "recursos/image/icons/basura.svg"
-                                                flat: true
-                                                ToolTip.visible: hovered
-                                                ToolTip.text: "Eliminar"
-                                                onClicked: console.log("Eliminar mantenimiento", modelData.id)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // PESTAÑA 4: INVENTARIO AGROQUÍMICOS
-        Item {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-
+            
             Column {
-                width: parent.width
-                spacing: 20
-
-                // Cards de resumen
-                Row {
-                    width: parent.width
-                    spacing: 20
-
-                    Rectangle {
-                        width: (parent.width - 40) / 3
-                        height: 80
-                        color: "#E3F2FD"
-                        radius: 8
-                        border.color: "#BBDEFB"
-
-                        Column {
-                            anchors.centerIn: parent
-                            spacing: 5
-
-                            Text {
-                                text: "Total en Stock"
-                                font.pixelSize: 14
-                                color: "#1976D2"
-                                anchors.horizontalCenter: parent.horizontalCenter
-                            }
-
-                            Text {
-                                text: inventarioAgroquimicos.length + " productos"
-                                font.pixelSize: 18
-                                font.bold: true
-                                color: "#0D47A1"
-                                anchors.horizontalCenter: parent.horizontalCenter
-                            }
-                        }
-                    }
-
-                    Rectangle {
-                        width: (parent.width - 40) / 3
-                        height: 80
-                        color: "#FFF3E0"
-                        radius: 8
-                        border.color: "#FFCC80"
-
-                        Column {
-                            anchors.centerIn: parent
-                            spacing: 5
-
-                            Text {
-                                text: "Stock Bajo"
-                                font.pixelSize: 14
-                                color: "#F57C00"
-                                anchors.horizontalCenter: parent.horizontalCenter
-                            }
-
-                            Text {
-                                text: {
-                                    var count = 0
-                                    for (var i = 0; i < inventarioAgroquimicos.length; i++) {
-                                        if (inventarioAgroquimicos[i].estado === "Bajo") count++
-                                    }
-                                    return count + " productos"
-                                }
-                                font.pixelSize: 18
-                                font.bold: true
-                                color: "#E65100"
-                                anchors.horizontalCenter: parent.horizontalCenter
-                            }
-                        }
-                    }
-
-                    Rectangle {
-                        width: (parent.width - 40) / 3
-                        height: 80
-                        color: "#E8F5E8"
-                        radius: 8
-                        border.color: "#A5D6A7"
-
-                        Column {
-                            anchors.centerIn: parent
-                            spacing: 5
-
-                            Text {
-                                text: "Valor Total"
-                                font.pixelSize: 14
-                                color: "#388E3C"
-                                anchors.horizontalCenter: parent.horizontalCenter
-                            }
-
-                            Text {
-                                text: {
-                                    var total = 0
-                                    for (var i = 0; i < inventarioAgroquimicos.length; i++) {
-                                        total += inventarioAgroquimicos[i].valor_total
-                                    }
-                                    return total.toFixed(2) + " " + monedaSeleccionada
-                                }
-                                font.pixelSize: 18
-                                font.bold: true
-                                color: "#1B5E20"
-                                anchors.horizontalCenter: parent.horizontalCenter
-                            }
-                        }
-                    }
-                }
-
+                anchors.fill: parent
+                spacing: 15
+                
+                // Barra de herramientas con borde simple
                 Rectangle {
-                    id: actionBarInventario
                     width: parent.width
                     height: 50
                     color: "white"
-                    radius: 25
-                    border.color: "#EEEEEE"
-
-                    RowLayout {
+                    radius: 10
+                    border.color: "#E0E0E0"
+                    border.width: 1
+                    
+                    Row {
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.leftMargin: 20
                         spacing: 10
-
+                        
                         Button {
-                            text: "Agregar Producto"
-                            icon.source: "Image/Image_UI_interfaz/Inconos/agregar.svg"
+                            text: "Registrar Costo"
+                            icon.source: "recursos/image/icons/agregar.svg"
+                            icon.color: "white"
                             implicitHeight: 36
+                            leftPadding: 15
+                            rightPadding: 15
                             background: Rectangle {
-                                color: parent.hovered ? "#E65A00" : "#f5922f"
-                                radius: height / 2
+                                color: parent.hovered ? "#E65A00" : "#FF9800"
+                                radius: 8
                             }
-                            onClicked: console.log("Agregar producto agroquímico")
-                        }
-
-                        Button {
-                            text: "Registrar Movimiento"
-                            icon.source: "Image/Image_UI_interfaz/Inconos/telefono-inteligente-para-transferir-dinero.svg"
-                            implicitHeight: 36
-                            background: Rectangle {
-                                color: parent.hovered ? "#1976D2" : "#2196F3"
-                                radius: height / 2
+                            contentItem: Row {
+                                spacing: 8
+                                Image {
+                                    source: "recursos/image/icons/agregar.svg"
+                                    width: 16
+                                    height: 16
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                                Text {
+                                    text: parent.parent.text
+                                    color: "white"
+                                    font.pixelSize: 13
+                                    font.bold: true
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
                             }
-                            onClicked: console.log("Registrar movimiento de inventario")
+                            onClicked: console.log("Registrar nuevo costo de producción")
                         }
-
+                        
+                        ComboBox {
+                            id: cmbCiclo
+                            width: 200
+                            height: 36
+                            model: ["Todos los ciclos", "Ciclo Naranja 2025-A", "Ciclo Mandarina 2025-B"]
+                            currentIndex: 0
+                        }
+                        
+                        ComboBox {
+                            id: cmbCategoriaCosto
+                            width: 150
+                            height: 36
+                            model: ["Todas", "Semillas", "Fertilizantes", "Agroquímicos", "Mano de Obra"]
+                            currentIndex: 0
+                        }
+                        
                         TextField {
-                            id: txtBuscarInventario
-                            placeholderText: "Buscar producto..."
+                            id: txtBuscarCosto
+                            placeholderText: "Buscar costo..."
                             implicitWidth: 250
-                            implicitHeight: 28
-                            leftPadding: 30
-
+                            implicitHeight: 36
+                            leftPadding: 35
+                            
                             background: Rectangle {
-                                color: "#ffffff"
-                                radius: height / 2
-                                border.color: "#808080"
-                                border.width: 1
-
+                                color: "#F5F5F5"
+                                radius: 8
+                                border.color: parent.focus ? "#FF9800" : "transparent"
+                                border.width: 2
+                                
                                 Image {
                                     anchors {
                                         left: parent.left
                                         leftMargin: 10
                                         verticalCenter: parent.verticalCenter
                                     }
-                                    source: "Image/Image_UI_interfaz/Inconos/lupa.png"
-                                    width: 16
-                                    height: 16
+                                    source: "recursos/image/icons/lupa.png"
+                                    width: 18
+                                    height: 18
                                 }
                             }
                         }
                     }
                 }
-
+                
+                // Tabla de costos con borde simple
                 Rectangle {
                     width: parent.width
-                    height: gastosRoot.height - 360 // Ajustar según el espacio disponible
+                    height: parent.height - 120
                     color: "white"
-                    radius: 5
-                    border.color: "#EEEEEE"
-
+                    radius: 10
+                    border.color: "#E0E0E0"
+                    border.width: 1
+                    
                     ListView {
                         anchors.fill: parent
-                        anchors.margins: 1
+                        anchors.margins: 10
                         clip: true
-                        model: inventarioAgroquimicos
+                        model: costosProduccion
                         headerPositioning: ListView.OverlayHeader
-
+                        
                         header: Rectangle {
                             width: parent.width
-                            height: 40
-                            color: "#F5F5F5"
+                            height: 45
+                            color: "#F8F9FA"
+                            radius: 8
                             z: 2
-
+                            
                             Row {
                                 anchors.fill: parent
-                                Text { width: parent.width * 0.2; height: parent.height; text: "Producto"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.12; height: parent.height; text: "Categoría"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.12; height: parent.height; text: "Stock"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.1; height: parent.height; text: "Unidad"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.12; height: parent.height; text: "Precio Unit."; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.12; height: parent.height; text: "Valor Total"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.1; height: parent.height; text: "Estado"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.12; height: parent.height; text: "Acciones"; font.bold: true; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
+                                Text { width: parent.width * 0.08; height: parent.height; text: "Fecha"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.15; height: parent.height; text: "Ciclo"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.1; height: parent.height; text: "Parcela"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.1; height: parent.height; text: "Categoría"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.2; height: parent.height; text: "Concepto"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.08; height: parent.height; text: "Cantidad"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.08; height: parent.height; text: "Total"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.1; height: parent.height; text: "Comprobante"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.11; height: parent.height; text: "Acciones"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter; color: "#424242" }
                             }
                         }
-
+                        
                         delegate: Rectangle {
                             width: parent.width
                             height: 50
-                            color: index % 2 === 0 ? "#FFFFFF" : "#F9F9F9"
-
+                            color: index % 2 === 0 ? "#FFFFFF" : "#FAFAFA"
+                            
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onEntered: parent.color = "#F0F8FF"
+                                onExited: parent.color = index % 2 === 0 ? "#FFFFFF" : "#FAFAFA"
+                            }
+                            
                             Row {
                                 anchors.fill: parent
                                 spacing: 0
-
-                                Text { width: parent.width * 0.2; height: parent.height; text: modelData.producto; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                                Text { width: parent.width * 0.12; height: parent.height; text: modelData.categoria; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                                Text { width: parent.width * 0.12; height: parent.height; text: modelData.stock.toFixed(1); verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                                Text { width: parent.width * 0.1; height: parent.height; text: modelData.unidad; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                                Text { width: parent.width * 0.12; height: parent.height; text: modelData.precio_unitario.toFixed(2); verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                                Text { width: parent.width * 0.12; height: parent.height; text: modelData.valor_total.toFixed(2); verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
+                                
+                                Text { width: parent.width * 0.08; height: parent.height; text: modelData.fecha; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.15; height: parent.height; text: modelData.ciclo; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.1; height: parent.height; text: modelData.parcela; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                
+                                Rectangle {
+                                    width: parent.width * 0.1
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Rectangle {
+                                        width: 80
+                                        height: 24
+                                        radius: 12
+                                        anchors.centerIn: parent
+                                        color: {
+                                            switch(modelData.categoria) {
+                                                case "Semillas": return "#E8F5E8"
+                                                case "Fertilizantes": return "#FFF3E0"
+                                                case "Mano de Obra": return "#E3F2FD"
+                                                default: return "#F3E5F5"
+                                            }
+                                        }
+                                        
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: modelData.categoria
+                                            font.pixelSize: 11
+                                            color: {
+                                                switch(modelData.categoria) {
+                                                    case "Semillas": return "#2E7D32"
+                                                    case "Fertilizantes": return "#F57C00"
+                                                    case "Mano de Obra": return "#1976D2"
+                                                    default: return "#7B1FA2"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                Text { width: parent.width * 0.2; height: parent.height; text: modelData.concepto; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.08; height: parent.height; text: modelData.cantidad + " " + modelData.unidad; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.08; height: parent.height; text: monedaSeleccionada + " " + modelData.total.toFixed(2); verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12; font.bold: true; color: "#2E7D32" }
+                                Text { width: parent.width * 0.1; height: parent.height; text: modelData.comprobante; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                
+                                Rectangle {
+                                    width: parent.width * 0.11
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Row {
+                                        spacing: 5
+                                        anchors.centerIn: parent
+                                        
+                                        Button {
+                                            width: 32; height: 32
+                                            background: Rectangle {
+                                                color: parent.hovered ? "#E3F2FD" : "transparent"
+                                                radius: 4
+                                            }
+                                            contentItem: Image {
+                                                source: "recursos/image/icons/editar.svg"
+                                                width: 16
+                                                height: 16
+                                                anchors.centerIn: parent
+                                                fillMode: Image.PreserveAspectFit
+                                            }
+                                            ToolTip.visible: hovered
+                                            ToolTip.text: "Editar"
+                                            onClicked: console.log("Editar costo", modelData.id)
+                                        }
+                                        
+                                        Button {
+                                            width: 32; height: 32
+                                            background: Rectangle {
+                                                color: parent.hovered ? "#FFEBEE" : "transparent"
+                                                radius: 4
+                                            }
+                                            contentItem: Image {
+                                                source: "recursos/image/icons/basura.svg"
+                                                width: 16
+                                                height: 16
+                                                anchors.centerIn: parent
+                                                fillMode: Image.PreserveAspectFit
+                                            }
+                                            ToolTip.visible: hovered
+                                            ToolTip.text: "Eliminar"
+                                            onClicked: console.log("Eliminar costo", modelData.id)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Paginador para Costos de Producción
+                Loader {
+                    sourceComponent: paginadorComponent
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    property int paginaActual: paginaActualCostos
+                    property int totalPaginas: totalPaginasCostos
+                    
+                    onPaginaActualChanged: {
+                        paginaActualCostos = paginaActual
+                    }
+                }
+            }
+        }
+        
+        // Contenido de Pagos a Agricultores
+        Item {
+            anchors.fill: parent
+            visible: tabActiva === 1
+            opacity: tabActiva === 1 ? 1 : 0
+            
+            Behavior on opacity {
+                NumberAnimation { duration: 300 }
+            }
+            
+            Column {
+                anchors.fill: parent
+                spacing: 15
+                
+                // Barra de herramientas
+                Rectangle {
+                    width: parent.width
+                    height: 50
+                    color: "white"
+                    radius: 10
+                    border.color: "#E0E0E0"
+                    border.width: 1
+                    
+                    Row {
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.leftMargin: 20
+                        spacing: 10
+                        
+                        Button {
+                            text: "Registrar Pago"
+                            implicitHeight: 36
+                            leftPadding: 15
+                            rightPadding: 15
+                            background: Rectangle {
+                                color: parent.hovered ? "#388E3C" : "#4CAF50"
+                                radius: 8
+                            }
+                            contentItem: Row {
+                                spacing: 8
+                                Image {
+                                    source: "recursos/image/icons/agregar.svg"
+                                    width: 16
+                                    height: 16
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                                Text {
+                                    text: parent.parent.text
+                                    color: "white"
+                                    font.pixelSize: 13
+                                    font.bold: true
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                            }
+                            onClicked: console.log("Registrar nuevo pago")
+                        }
+                        
+                        ComboBox {
+                            id: cmbEstadoPago
+                            width: 150
+                            height: 36
+                            model: ["Todos", "Pendiente", "Confirmado", "Rechazado"]
+                            currentIndex: 0
+                        }
+                        
+                        TextField {
+                            id: txtBuscarAgricultor
+                            placeholderText: "Buscar agricultor..."
+                            implicitWidth: 250
+                            implicitHeight: 36
+                            leftPadding: 35
+                            
+                            background: Rectangle {
+                                color: "#F5F5F5"
+                                radius: 8
+                                border.color: parent.focus ? "#4CAF50" : "transparent"
+                                border.width: 2
+                                
+                                Image {
+                                    anchors {
+                                        left: parent.left
+                                        leftMargin: 10
+                                        verticalCenter: parent.verticalCenter
+                                    }
+                                    source: "recursos/image/icons/lupa.png"
+                                    width: 18
+                                    height: 18
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Tabla de pagos
+                Rectangle {
+                    width: parent.width
+                    height: parent.height - 120
+                    color: "white"
+                    radius: 10
+                    border.color: "#E0E0E0"
+                    border.width: 1
+                    
+                    ListView {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        clip: true
+                        model: pagosAgricultores
+                        headerPositioning: ListView.OverlayHeader
+                        
+                        header: Rectangle {
+                            width: parent.width
+                            height: 45
+                            color: "#F8F9FA"
+                            radius: 8
+                            z: 2
+                            
+                            Row {
+                                anchors.fill: parent
+                                Text { width: parent.width * 0.1; height: parent.height; text: "Fecha"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.15; height: parent.height; text: "Agricultor"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.2; height: parent.height; text: "Concepto"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.12; height: parent.height; text: "Monto (" + monedaSeleccionada + ")"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.1; height: parent.height; text: "Método"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.1; height: parent.height; text: "Estado"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.1; height: parent.height; text: "Referencia"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.13; height: parent.height; text: "Acciones"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter; color: "#424242" }
+                            }
+                        }
+                        
+                        delegate: Rectangle {
+                            width: parent.width
+                            height: 50
+                            color: index % 2 === 0 ? "#FFFFFF" : "#FAFAFA"
+                            
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onEntered: parent.color = "#F0FFF0"
+                                onExited: parent.color = index % 2 === 0 ? "#FFFFFF" : "#FAFAFA"
+                            }
+                            
+                            Row {
+                                anchors.fill: parent
+                                spacing: 0
+                                
+                                Text { width: parent.width * 0.1; height: parent.height; text: modelData.fecha; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.15; height: parent.height; text: modelData.agricultor; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.2; height: parent.height; text: modelData.concepto; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.12; height: parent.height; text: modelData.monto.toFixed(2); verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12; font.bold: true; color: "#2E7D32" }
+                                Text { width: parent.width * 0.1; height: parent.height; text: modelData.metodo; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                
+                                Rectangle {
+                                    width: parent.width * 0.1
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Rectangle {
+                                        width: 75
+                                        height: 24
+                                        radius: 12
+                                        anchors.centerIn: parent
+                                        color: modelData.estado === "Confirmado" ? "#E8F5E8" : modelData.estado === "Pendiente" ? "#FFF3CD" : "#FFEBEE"
+                                        
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: modelData.estado
+                                            font.pixelSize: 11
+                                            color: modelData.estado === "Confirmado" ? "#2E7D32" : modelData.estado === "Pendiente" ? "#B8860B" : "#C62828"
+                                        }
+                                    }
+                                }
+                                
+                                Text { width: parent.width * 0.1; height: parent.height; text: modelData.referencia; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                
+                                Rectangle {
+                                    width: parent.width * 0.13
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Row {
+                                        spacing: 5
+                                        anchors.centerIn: parent
+                                        
+                                        Button {
+                                            width: 32; height: 32
+                                            background: Rectangle {
+                                                color: parent.hovered ? "#E3F2FD" : "transparent"
+                                                radius: 4
+                                            }
+                                            contentItem: Image {
+                                                source: "recursos/image/icons/editar.svg"
+                                                width: 16
+                                                height: 16
+                                                anchors.centerIn: parent
+                                                fillMode: Image.PreserveAspectFit
+                                            }
+                                            ToolTip.visible: hovered
+                                            ToolTip.text: "Editar"
+                                            onClicked: console.log("Editar pago", modelData.id)
+                                        }
+                                        
+                                        Button {
+                                            width: 32; height: 32
+                                            background: Rectangle {
+                                                color: parent.hovered ? "#FFEBEE" : "transparent"
+                                                radius: 4
+                                            }
+                                            contentItem: Image {
+                                                source: "recursos/image/icons/basura.svg"
+                                                width: 16
+                                                height: 16
+                                                anchors.centerIn: parent
+                                                fillMode: Image.PreserveAspectFit
+                                            }
+                                            ToolTip.visible: hovered
+                                            ToolTip.text: "Eliminar"
+                                            onClicked: console.log("Eliminar pago", modelData.id)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Paginador para Pagos a Agricultores
+                Loader {
+                    sourceComponent: paginadorComponent
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    property int paginaActual: paginaActualPagos
+                    property int totalPaginas: totalPaginasPagos
+                    
+                    onPaginaActualChanged: {
+                        paginaActualPagos = paginaActual
+                    }
+                }
+            }
+        }
+        
+        // Contenido de Combustible y Maquinaria
+        Item {
+            anchors.fill: parent
+            visible: tabActiva === 2
+            opacity: tabActiva === 2 ? 1 : 0
+            
+            Behavior on opacity {
+                NumberAnimation { duration: 300 }
+            }
+            
+            Column {
+                anchors.fill: parent
+                spacing: 15
+                
+                // Barra de herramientas
+                Rectangle {
+                    width: parent.width
+                    height: 50
+                    color: "white"
+                    radius: 10
+                    border.color: "#E0E0E0"
+                    border.width: 1
+                    
+                    Row {
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.leftMargin: 20
+                        spacing: 10
+                        
+                        Button {
+                            text: "Registrar Combustible"
+                            implicitHeight: 36
+                            leftPadding: 15
+                            rightPadding: 15
+                            background: Rectangle {
+                                color: parent.hovered ? "#1976D2" : "#2196F3"
+                                radius: 8
+                            }
+                            contentItem: Row {
+                                spacing: 8
+                                Image {
+                                    source: "recursos/image/icons/agregar.svg"
+                                    width: 16
+                                    height: 16
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                                Text {
+                                    text: parent.parent.text
+                                    color: "white"
+                                    font.pixelSize: 13
+                                    font.bold: true
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                            }
+                            onClicked: console.log("Registrar combustible")
+                        }
+                        
+                        Button {
+                            text: "Uso de Maquinaria"
+                            implicitHeight: 36
+                            leftPadding: 15
+                            rightPadding: 15
+                            background: Rectangle {
+                                color: parent.hovered ? "#00897B" : "#00ACC1"
+                                radius: 8
+                            }
+                            contentItem: Row {
+                                spacing: 8
+                                Image {
+                                    source: "recursos/image/icons/maquinaria.png"
+                                    width: 16
+                                    height: 16
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                                Text {
+                                    text: parent.parent.text
+                                    color: "white"
+                                    font.pixelSize: 13
+                                    font.bold: true
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                            }
+                            onClicked: console.log("Registrar uso maquinaria")
+                        }
+                        
+                        Button {
+                            text: "Mantenimiento"
+                            implicitHeight: 36
+                            leftPadding: 15
+                            rightPadding: 15
+                            background: Rectangle {
+                                color: parent.hovered ? "#5E35B1" : "#673AB7"
+                                radius: 8
+                            }
+                            contentItem: Row {
+                                spacing: 8
+                                Image {
+                                    source: "recursos/image/icons/mantenimiento.png"
+                                    width: 16
+                                    height: 16
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                                Text {
+                                    text: parent.parent.text
+                                    color: "white"
+                                    font.pixelSize: 13
+                                    font.bold: true
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                            }
+                            onClicked: console.log("Registrar mantenimiento")
+                        }
+                        
+                        TextField {
+                            id: txtBuscarCombustible
+                            placeholderText: "Buscar..."
+                            implicitWidth: 250
+                            implicitHeight: 36
+                            leftPadding: 35
+                            
+                            background: Rectangle {
+                                color: "#F5F5F5"
+                                radius: 8
+                                border.color: parent.focus ? "#2196F3" : "transparent"
+                                border.width: 2
+                                
+                                Image {
+                                    anchors {
+                                        left: parent.left
+                                        leftMargin: 10
+                                        verticalCenter: parent.verticalCenter
+                                    }
+                                    source: "recursos/image/icons/lupa.png"
+                                    width: 18
+                                    height: 18
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Tabs secundarias para combustible
+                Row {
+                    width: parent.width
+                    height: 40
+                    spacing: 10
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    
+                    property int subTabActiva: 0
+                    
+                    Repeater {
+                        model: ["Compras de Combustible", "Uso de Maquinaria", "Mantenimientos"]
+                        
+                        Rectangle {
+                            width: 180
+                            height: 40
+                            radius: 20
+                            color: parent.parent.subTabActiva === index ? "#2196F3" : "white"
+                            border.color: parent.parent.subTabActiva === index ? "#2196F3" : "#E0E0E0"
+                            border.width: 1
+                            
+                            Behavior on color {
+                                ColorAnimation { duration: 200 }
+                            }
+                            
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: parent.parent.parent.subTabActiva = index
+                            }
+                            
+                            Text {
+                                anchors.centerIn: parent
+                                text: modelData
+                                font.pixelSize: 13
+                                color: parent.parent.parent.subTabActiva === index ? "white" : "#616161"
+                            }
+                        }
+                    }
+                }
+                
+                // Contenido de combustible
+                Rectangle {
+                    width: parent.width
+                    height: parent.height - 175
+                    color: "white"
+                    radius: 10
+                    border.color: "#E0E0E0"
+                    border.width: 1
+                    
+                    ListView {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        clip: true
+                        model: parent.parent.subTabActiva === 0 ? comprasCombustible : parent.parent.subTabActiva === 1 ? usoMaquinaria : mantenimientos
+                        headerPositioning: ListView.OverlayHeader
+                        
+                        header: Rectangle {
+                            width: parent.width
+                            height: 45
+                            color: "#F8F9FA"
+                            radius: 8
+                            z: 2
+                            
+                            Row {
+                                anchors.fill: parent
+                                visible: parent.parent.parent.parent.parent.subTabActiva === 0
+                                Text { width: parent.width * 0.12; height: parent.height; text: "Fecha"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.12; height: parent.height; text: "Tipo"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.12; height: parent.height; text: "Cantidad"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.12; height: parent.height; text: "Precio Unit."; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.12; height: parent.height; text: "Total"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.25; height: parent.height; text: "Proveedor"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.15; height: parent.height; text: "Acciones"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter; color: "#424242" }
+                            }
+                            
+                            Row {
+                                anchors.fill: parent
+                                visible: parent.parent.parent.parent.parent.subTabActiva === 1
+                                Text { width: parent.width * 0.1; height: parent.height; text: "Fecha"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.2; height: parent.height; text: "Maquinaria"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.15; height: parent.height; text: "Usuario"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.2; height: parent.height; text: "Actividad"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.12; height: parent.height; text: "Combustible (L)"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.1; height: parent.height; text: "Costo"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.13; height: parent.height; text: "Acciones"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter; color: "#424242" }
+                            }
+                            
+                            Row {
+                                anchors.fill: parent
+                                visible: parent.parent.parent.parent.parent.subTabActiva === 2
+                                Text { width: parent.width * 0.1; height: parent.height; text: "Fecha"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.2; height: parent.height; text: "Maquinaria"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.12; height: parent.height; text: "Tipo"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.25; height: parent.height; text: "Descripción"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.1; height: parent.height; text: "Costo"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.1; height: parent.height; text: "Estado"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.13; height: parent.height; text: "Acciones"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter; color: "#424242" }
+                            }
+                        }
+                        
+                        delegate: Rectangle {
+                            width: parent.width
+                            height: 50
+                            color: index % 2 === 0 ? "#FFFFFF" : "#FAFAFA"
+                            
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onEntered: parent.color = "#E3F2FD"
+                                onExited: parent.color = index % 2 === 0 ? "#FFFFFF" : "#FAFAFA"
+                            }
+                            
+                            Row {
+                                anchors.fill: parent
+                                spacing: 0
+                                visible: parent.parent.parent.parent.parent.parent.subTabActiva === 0
+                                
+                                Text { width: parent.width * 0.12; height: parent.height; text: modelData.fecha || ""; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.12; height: parent.height; text: modelData.tipo || ""; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.12; height: parent.height; text: (modelData.cantidad || 0) + " " + (modelData.unidad || ""); verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.12; height: parent.height; text: monedaSeleccionada + " " + (modelData.precio_unitario || 0).toFixed(2); verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.12; height: parent.height; text: monedaSeleccionada + " " + (modelData.total || 0).toFixed(2); verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12; font.bold: true; color: "#2E7D32" }
+                                Text { width: parent.width * 0.25; height: parent.height; text: modelData.proveedor || ""; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                
+                                Rectangle {
+                                    width: parent.width * 0.15
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Row {
+                                        spacing: 5
+                                        anchors.centerIn: parent
+                                        
+                                        Button {
+                                            width: 32; height: 32
+                                            background: Rectangle {
+                                                color: parent.hovered ? "#E3F2FD" : "transparent"
+                                                radius: 4
+                                            }
+                                            contentItem: Image {
+                                                source: "recursos/image/icons/editar.svg"
+                                                width: 16
+                                                height: 16
+                                                anchors.centerIn: parent
+                                                fillMode: Image.PreserveAspectFit
+                                            }
+                                            ToolTip.visible: hovered
+                                            ToolTip.text: "Editar"
+                                            onClicked: console.log("Editar combustible", modelData.id)
+                                        }
+                                        
+                                        Button {
+                                            width: 32; height: 32
+                                            background: Rectangle {
+                                                color: parent.hovered ? "#FFEBEE" : "transparent"
+                                                radius: 4
+                                            }
+                                            contentItem: Image {
+                                                source: "recursos/image/icons/basura.svg"
+                                                width: 16
+                                                height: 16
+                                                anchors.centerIn: parent
+                                                fillMode: Image.PreserveAspectFit
+                                            }
+                                            ToolTip.visible: hovered
+                                            ToolTip.text: "Eliminar"
+                                            onClicked: console.log("Eliminar combustible", modelData.id)
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            Row {
+                                anchors.fill: parent
+                                spacing: 0
+                                visible: parent.parent.parent.parent.parent.parent.subTabActiva === 1
+                                
+                                Text { width: parent.width * 0.1; height: parent.height; text: modelData.fecha || ""; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.2; height: parent.height; text: modelData.maquinaria || ""; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.15; height: parent.height; text: modelData.usuario || ""; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.2; height: parent.height; text: modelData.actividad || ""; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.12; height: parent.height; text: (modelData.combustible || 0).toFixed(1); verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.1; height: parent.height; text: monedaSeleccionada + " " + (modelData.costo || 0).toFixed(2); verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12; font.bold: true; color: "#2E7D32" }
+                                
+                                Rectangle {
+                                    width: parent.width * 0.13
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Row {
+                                        spacing: 5
+                                        anchors.centerIn: parent
+                                        
+                                        Button {
+                                            width: 32; height: 32
+                                            background: Rectangle {
+                                                color: parent.hovered ? "#E3F2FD" : "transparent"
+                                                radius: 4
+                                            }
+                                            contentItem: Image {
+                                                source: "recursos/image/icons/editar.svg"
+                                                width: 16
+                                                height: 16
+                                                anchors.centerIn: parent
+                                                fillMode: Image.PreserveAspectFit
+                                            }
+                                            ToolTip.visible: hovered
+                                            ToolTip.text: "Editar"
+                                            onClicked: console.log("Editar uso", modelData.id)
+                                        }
+                                        
+                                        Button {
+                                            width: 32; height: 32
+                                            background: Rectangle {
+                                                color: parent.hovered ? "#FFEBEE" : "transparent"
+                                                radius: 4
+                                            }
+                                            contentItem: Image {
+                                                source: "recursos/image/icons/basura.svg"
+                                                width: 16
+                                                height: 16
+                                                anchors.centerIn: parent
+                                                fillMode: Image.PreserveAspectFit
+                                            }
+                                            ToolTip.visible: hovered
+                                            ToolTip.text: "Eliminar"
+                                            onClicked: console.log("Eliminar uso", modelData.id)
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            Row {
+                                anchors.fill: parent
+                                spacing: 0
+                                visible: parent.parent.parent.parent.parent.parent.subTabActiva === 2
+                                
+                                Text { width: parent.width * 0.1; height: parent.height; text: modelData.fecha || ""; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.2; height: parent.height; text: modelData.maquinaria || ""; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.12; height: parent.height; text: modelData.tipo || ""; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.25; height: parent.height; text: modelData.descripcion || ""; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.1; height: parent.height; text: monedaSeleccionada + " " + (modelData.costo || 0).toFixed(2); verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12; font.bold: true; color: "#2E7D32" }
+                                
+                                Rectangle {
+                                    width: parent.width * 0.1
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Rectangle {
+                                        width: 75
+                                        height: 24
+                                        radius: 12
+                                        anchors.centerIn: parent
+                                        color: modelData.estado === "Completado" ? "#E8F5E8" : "#FFF3CD"
+                                        
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: modelData.estado || ""
+                                            font.pixelSize: 11
+                                            color: modelData.estado === "Completado" ? "#2E7D32" : "#B8860B"
+                                        }
+                                    }
+                                }
+                                
+                                Rectangle {
+                                    width: parent.width * 0.13
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Row {
+                                        spacing: 5
+                                        anchors.centerIn: parent
+                                        
+                                        Button {
+                                            width: 32; height: 32
+                                            background: Rectangle {
+                                                color: parent.hovered ? "#E3F2FD" : "transparent"
+                                                radius: 4
+                                            }
+                                            contentItem: Image {
+                                                source: "recursos/image/icons/editar.svg"
+                                                width: 16
+                                                height: 16
+                                                anchors.centerIn: parent
+                                                fillMode: Image.PreserveAspectFit
+                                            }
+                                            ToolTip.visible: hovered
+                                            ToolTip.text: "Editar"
+                                            onClicked: console.log("Editar mantenimiento", modelData.id)
+                                        }
+                                        
+                                        Button {
+                                            width: 32; height: 32
+                                            background: Rectangle {
+                                                color: parent.hovered ? "#FFEBEE" : "transparent"
+                                                radius: 4
+                                            }
+                                            contentItem: Image {
+                                                source: "recursos/image/icons/basura.svg"
+                                                width: 16
+                                                height: 16
+                                                anchors.centerIn: parent
+                                                fillMode: Image.PreserveAspectFit
+                                            }
+                                            ToolTip.visible: hovered
+                                            ToolTip.text: "Eliminar"
+                                            onClicked: console.log("Eliminar mantenimiento", modelData.id)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Paginador para Combustible y Maquinaria
+                Loader {
+                    sourceComponent: paginadorComponent
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    property int paginaActual: paginaActualCombustible
+                    property int totalPaginas: totalPaginasCombustible
+                    
+                    onPaginaActualChanged: {
+                        paginaActualCombustible = paginaActual
+                    }
+                }
+            }
+        }
+        
+        // Contenido de Inventario Agroquímicos
+        Item {
+            anchors.fill: parent
+            visible: tabActiva === 3
+            opacity: tabActiva === 3 ? 1 : 0
+            
+            Behavior on opacity {
+                NumberAnimation { duration: 300 }
+            }
+            
+            Column {
+                anchors.fill: parent
+                spacing: 15
+                
+                // Barra de herramientas
+                Rectangle {
+                    width: parent.width
+                    height: 50
+                    color: "white"
+                    radius: 10
+                    border.color: "#E0E0E0"
+                    border.width: 1
+                    
+                    Row {
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.leftMargin: 20
+                        spacing: 10
+                        
+                        Button {
+                            text: "Agregar Producto"
+                            implicitHeight: 36
+                            leftPadding: 15
+                            rightPadding: 15
+                            background: Rectangle {
+                                color: parent.hovered ? "#7B1FA2" : "#9C27B0"
+                                radius: 8
+                            }
+                            contentItem: Row {
+                                spacing: 8
+                                Image {
+                                    source: "recursos/image/icons/agregar.svg"
+                                    width: 16
+                                    height: 16
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                                Text {
+                                    text: parent.parent.text
+                                    color: "white"
+                                    font.pixelSize: 13
+                                    font.bold: true
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                            }
+                            onClicked: console.log("Agregar producto agroquímico")
+                        }
+                        
+                        Button {
+                            text: "Registrar Movimiento"
+                            implicitHeight: 36
+                            leftPadding: 15
+                            rightPadding: 15
+                            background: Rectangle {
+                                color: parent.hovered ? "#1976D2" : "#2196F3"
+                                radius: 8
+                            }
+                            contentItem: Row {
+                                spacing: 8
+                                Image {
+                                    source: "recursos/image/icons/telefono-inteligente-para-transferir-dinero.svg"
+                                    width: 16
+                                    height: 16
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                                Text {
+                                    text: parent.parent.text
+                                    color: "white"
+                                    font.pixelSize: 13
+                                    font.bold: true
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                            }
+                            onClicked: console.log("Registrar movimiento de inventario")
+                        }
+                        
+                        TextField {
+                            id: txtBuscarInventario
+                            placeholderText: "Buscar producto..."
+                            implicitWidth: 250
+                            implicitHeight: 36
+                            leftPadding: 35
+                            
+                            background: Rectangle {
+                                color: "#F5F5F5"
+                                radius: 8
+                                border.color: parent.focus ? "#9C27B0" : "transparent"
+                                border.width: 2
+                                
+                                Image {
+                                    anchors {
+                                        left: parent.left
+                                        leftMargin: 10
+                                        verticalCenter: parent.verticalCenter
+                                    }
+                                    source: "recursos/image/icons/lupa.png"
+                                    width: 18
+                                    height: 18
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Tabla de inventario
+                Rectangle {
+                    width: parent.width
+                    height: parent.height - 120
+                    color: "white"
+                    radius: 10
+                    border.color: "#E0E0E0"
+                    border.width: 1
+                    
+                    ListView {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        clip: true
+                        model: inventarioAgroquimicos
+                        headerPositioning: ListView.OverlayHeader
+                        
+                        header: Rectangle {
+                            width: parent.width
+                            height: 45
+                            color: "#F8F9FA"
+                            radius: 8
+                            z: 2
+                            
+                            Row {
+                                anchors.fill: parent
+                                Text { width: parent.width * 0.2; height: parent.height; text: "Producto"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.12; height: parent.height; text: "Categoría"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.12; height: parent.height; text: "Stock"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.1; height: parent.height; text: "Unidad"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.12; height: parent.height; text: "Precio Unit."; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.12; height: parent.height; text: "Valor Total"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.1; height: parent.height; text: "Estado"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.12; height: parent.height; text: "Acciones"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter; color: "#424242" }
+                            }
+                        }
+                        
+                        delegate: Rectangle {
+                            width: parent.width
+                            height: 50
+                            color: index % 2 === 0 ? "#FFFFFF" : "#FAFAFA"
+                            
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onEntered: parent.color = "#F3E5F5"
+                                onExited: parent.color = index % 2 === 0 ? "#FFFFFF" : "#FAFAFA"
+                            }
+                            
+                            Row {
+                                anchors.fill: parent
+                                spacing: 0
+                                
+                                Text { width: parent.width * 0.2; height: parent.height; text: modelData.producto; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.12; height: parent.height; text: modelData.categoria; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.12; height: parent.height; text: modelData.stock.toFixed(1); verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.1; height: parent.height; text: modelData.unidad; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.12; height: parent.height; text: monedaSeleccionada + " " + modelData.precio_unitario.toFixed(2); verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.12; height: parent.height; text: monedaSeleccionada + " " + modelData.valor_total.toFixed(2); verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12; font.bold: true; color: "#2E7D32" }
                                 
                                 Rectangle {
                                     width: parent.width * 0.1
@@ -1236,29 +1600,47 @@ Rectangle {
                                         }
                                     }
                                 }
-
+                                
                                 Rectangle {
                                     width: parent.width * 0.12
                                     height: parent.height
                                     color: "transparent"
-
+                                    
                                     Row {
                                         spacing: 5
                                         anchors.centerIn: parent
-
+                                        
                                         Button {
                                             width: 32; height: 32
-                                            icon.source: "recursos/image/icons/editar.svg"
-                                            flat: true
+                                            background: Rectangle {
+                                                color: parent.hovered ? "#E3F2FD" : "transparent"
+                                                radius: 4
+                                            }
+                                            contentItem: Image {
+                                                source: "recursos/image/icons/editar.svg"
+                                                width: 16
+                                                height: 16
+                                                anchors.centerIn: parent
+                                                fillMode: Image.PreserveAspectFit
+                                            }
                                             ToolTip.visible: hovered
                                             ToolTip.text: "Editar"
                                             onClicked: console.log("Editar producto", modelData.id)
                                         }
-
+                                        
                                         Button {
                                             width: 32; height: 32
-                                            icon.source: "Image/Image_UI_interfaz/Inconos/ojo.svg"
-                                            flat: true
+                                            background: Rectangle {
+                                                color: parent.hovered ? "#F3E5F5" : "transparent"
+                                                radius: 4
+                                            }
+                                            contentItem: Image {
+                                                source: "recursos/image/icons/ojo.svg"
+                                                width: 16
+                                                height: 16
+                                                anchors.centerIn: parent
+                                                fillMode: Image.PreserveAspectFit
+                                            }
                                             ToolTip.visible: hovered
                                             ToolTip.text: "Ver movimientos"
                                             onClicked: console.log("Ver movimientos", modelData.id)
@@ -1267,6 +1649,18 @@ Rectangle {
                                 }
                             }
                         }
+                    }
+                }
+                
+                // Paginador para Inventario Agroquímicos
+                Loader {
+                    sourceComponent: paginadorComponent
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    property int paginaActual: paginaActualInventario
+                    property int totalPaginas: totalPaginasInventario
+                    
+                    onPaginaActualChanged: {
+                        paginaActualInventario = paginaActual
                     }
                 }
             }
