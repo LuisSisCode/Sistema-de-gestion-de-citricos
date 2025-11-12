@@ -48,7 +48,7 @@ C:\AgroIchilo\
 │   ├── CustomButton.qml #Sin nada
 │   ├── CustomTextField.qml #Sin nada
 │   ├── NotificationPopup.qml #Sin nada
-│   └──
+│   └──TabBarComponent #pestañas
 │
 ├── 📁 controllers/                      # ✅ Controladores Python para QML
 │   ├── __init__.py                      # ✅ Sprint 1.2

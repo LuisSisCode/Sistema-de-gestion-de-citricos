@@ -285,95 +285,34 @@ Rectangle {
                 anchors.fill: parent
                 spacing: 15
                 
-                // Barra de herramientas con borde simple
-                Rectangle {
-                    width: parent.width
-                    height: 50
-                    color: "white"
-                    radius: 10
-                    border.color: "#E0E0E0"
-                    border.width: 1
-                    
-                    Row {
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.leftMargin: 20
-                        spacing: 10
-                        
-                        Button {
-                            text: "Registrar Costo"
-                            icon.source: "recursos/image/icons/agregar.svg"
-                            icon.color: "white"
-                            implicitHeight: 36
-                            leftPadding: 15
-                            rightPadding: 15
-                            background: Rectangle {
-                                color: parent.hovered ? "#E65A00" : "#FF9800"
-                                radius: 8
-                            }
-                            contentItem: Row {
-                                spacing: 8
-                                Image {
-                                    source: "recursos/image/icons/agregar.svg"
-                                    width: 16
-                                    height: 16
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                                Text {
-                                    text: parent.parent.text
-                                    color: "white"
-                                    font.pixelSize: 13
-                                    font.bold: true
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                            }
-                            onClicked: console.log("Registrar nuevo costo de producción")
-                        }
-                        
-                        ComboBox {
-                            id: cmbCiclo
-                            width: 200
-                            height: 36
-                            model: ["Todos los ciclos", "Ciclo Naranja 2025-A", "Ciclo Mandarina 2025-B"]
-                            currentIndex: 0
-                        }
-                        
-                        ComboBox {
-                            id: cmbCategoriaCosto
-                            width: 150
-                            height: 36
-                            model: ["Todas", "Semillas", "Fertilizantes", "Agroquímicos", "Mano de Obra"]
-                            currentIndex: 0
-                        }
-                        
-                        TextField {
-                            id: txtBuscarCosto
-                            placeholderText: "Buscar costo..."
-                            implicitWidth: 250
-                            implicitHeight: 36
-                            leftPadding: 35
-                            
-                            background: Rectangle {
-                                color: "#F5F5F5"
-                                radius: 8
-                                border.color: parent.focus ? "#FF9800" : "transparent"
-                                border.width: 2
+                // Barra de herramientas con FilterHeaderComponent
                                 
-                                Image {
-                                    anchors {
-                                        left: parent.left
-                                        leftMargin: 10
-                                        verticalCenter: parent.verticalCenter
-                                    }
-                                    source: "recursos/image/icons/lupa.png"
-                                    width: 18
-                                    height: 18
-                                }
-                            }
-                        }
+                FilterHeaderComponent {
+                    id: filterHeaderCostos
+                    width: parent.width
+                    height: 60
+                    buttonText: "Registrar Costo"
+                    buttonIcon: "recursos/image/icons/agregar.svg"
+                    buttonColor: "#FF9800"
+                    searchPlaceholder: "Buscar costo..."
+                    searchIcon: "recursos/image/icons/lupa.png"  // Asegúrate de que esta ruta sea correcta
+                    filterOptions: ["Todos los ciclos", "Ciclo Naranja 2025-A", "Ciclo Mandarina 2025-B"]
+                    filterPlaceholder: "Ciclo..."
+                    filterWidth: 200
+                    
+                    onButtonClicked: {
+                        console.log("Registrar nuevo costo de producción")
+                    }
+                    
+                    onSearchTextChanged: function(text) {
+                        console.log("Buscar costo:", text)
+                    }
+                    
+                    onFilterChanged: function(index) {
+                        console.log("Ciclo seleccionado:", filterOptions[index])
                     }
                 }
-                
+                                
                 // Tabla de costos con borde simple
                 Rectangle {
                     width: parent.width
@@ -550,82 +489,30 @@ Rectangle {
                 anchors.fill: parent
                 spacing: 15
                 
-                // Barra de herramientas
-                Rectangle {
+                // Barra de herramientas con FilterHeaderComponent
+               FilterHeaderComponent {
+                    id: filterHeaderPagos
                     width: parent.width
-                    height: 50
-                    color: "white"
-                    radius: 10
-                    border.color: "#E0E0E0"
-                    border.width: 1
+                    height: 60
+                    buttonText: "Registrar Pago"
+                    buttonIcon: "recursos/image/icons/agregar.svg"
+                    buttonColor: "#4CAF50"
+                    searchPlaceholder: "Buscar agricultor..."
+                    searchIcon: "recursos/image/icons/lupa.png"
+                    filterOptions: ["Todos", "Pendiente", "Confirmado", "Rechazado"]
+                    filterPlaceholder: "Estado..."
+                    filterWidth: 140
                     
-                    Row {
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.leftMargin: 20
-                        spacing: 10
-                        
-                        Button {
-                            text: "Registrar Pago"
-                            implicitHeight: 36
-                            leftPadding: 15
-                            rightPadding: 15
-                            background: Rectangle {
-                                color: parent.hovered ? "#388E3C" : "#4CAF50"
-                                radius: 8
-                            }
-                            contentItem: Row {
-                                spacing: 8
-                                Image {
-                                    source: "recursos/image/icons/agregar.svg"
-                                    width: 16
-                                    height: 16
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                                Text {
-                                    text: parent.parent.text
-                                    color: "white"
-                                    font.pixelSize: 13
-                                    font.bold: true
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                            }
-                            onClicked: console.log("Registrar nuevo pago")
-                        }
-                        
-                        ComboBox {
-                            id: cmbEstadoPago
-                            width: 150
-                            height: 36
-                            model: ["Todos", "Pendiente", "Confirmado", "Rechazado"]
-                            currentIndex: 0
-                        }
-                        
-                        TextField {
-                            id: txtBuscarAgricultor
-                            placeholderText: "Buscar agricultor..."
-                            implicitWidth: 250
-                            implicitHeight: 36
-                            leftPadding: 35
-                            
-                            background: Rectangle {
-                                color: "#F5F5F5"
-                                radius: 8
-                                border.color: parent.focus ? "#4CAF50" : "transparent"
-                                border.width: 2
-                                
-                                Image {
-                                    anchors {
-                                        left: parent.left
-                                        leftMargin: 10
-                                        verticalCenter: parent.verticalCenter
-                                    }
-                                    source: "recursos/image/icons/lupa.png"
-                                    width: 18
-                                    height: 18
-                                }
-                            }
-                        }
+                    onButtonClicked: {
+                        console.log("Registrar nuevo pago")
+                    }
+                    
+                    onSearchTextChanged: function(text) {
+                        console.log("Buscar agricultor:", text)
+                    }
+                    
+                    onFilterChanged: function(index) {
+                        console.log("Estado seleccionado:", filterOptions[index])
                     }
                 }
                 
@@ -789,7 +676,7 @@ Rectangle {
                 anchors.fill: parent
                 spacing: 15
                 
-                // Barra de herramientas
+                // Barra de herramientas con botones personalizados
                 Rectangle {
                     width: parent.width
                     height: 50
@@ -888,29 +775,55 @@ Rectangle {
                             onClicked: console.log("Registrar mantenimiento")
                         }
                         
-                        TextField {
-                            id: txtBuscarCombustible
-                            placeholderText: "Buscar..."
-                            implicitWidth: 250
-                            implicitHeight: 36
-                            leftPadding: 35
+                        Item { Layout.fillWidth: true }
+                        
+                        Rectangle {
+                            id: searchBoxCombustible
+                            width: 250
+                            height: 36
+                            radius: 8
+                            color: "#F5F5F5"
+                            border.color: "#DDDDDD"
+                            border.width: 1
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.rightMargin: 20
                             
-                            background: Rectangle {
-                                color: "#F5F5F5"
-                                radius: 8
-                                border.color: parent.focus ? "#2196F3" : "transparent"
-                                border.width: 2
+                            Row {
+                                anchors.fill: parent
+                                anchors.leftMargin: 10
+                                anchors.rightMargin: 10
+                                spacing: 8
                                 
                                 Image {
-                                    anchors {
-                                        left: parent.left
-                                        leftMargin: 10
-                                        verticalCenter: parent.verticalCenter
-                                    }
+                                    width: 16
+                                    height: 16
+                                    anchors.verticalCenter: parent.verticalCenter
                                     source: "recursos/image/icons/lupa.png"
-                                    width: 18
-                                    height: 18
+                                    fillMode: Image.PreserveAspectFit
+                                    sourceSize: Qt.size(32, 32)
                                 }
+                                
+                                TextInput {
+                                    id: txtBuscarCombustible
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: parent.width - 40
+                                    color: "#333333"
+                                    font.pixelSize: 12
+                                    
+                                    Text {
+                                        text: "Buscar..."
+                                        color: "#999999"
+                                        font.pixelSize: 12
+                                        visible: !parent.text
+                                    }
+                                }
+                            }
+                            
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onEntered: parent.border.color = "#CCCCCC"
+                                onExited: parent.border.color = "#DDDDDD"
                             }
                         }
                     }
@@ -1330,29 +1243,55 @@ Rectangle {
                             onClicked: console.log("Registrar movimiento de inventario")
                         }
                         
-                        TextField {
-                            id: txtBuscarInventario
-                            placeholderText: "Buscar producto..."
-                            implicitWidth: 250
-                            implicitHeight: 36
-                            leftPadding: 35
+                        Item { Layout.fillWidth: true }
+                        
+                        Rectangle {
+                            id: searchBoxInventario
+                            width: 250
+                            height: 36
+                            radius: 8
+                            color: "#F5F5F5"
+                            border.color: "#DDDDDD"
+                            border.width: 1
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.rightMargin: 20
                             
-                            background: Rectangle {
-                                color: "#F5F5F5"
-                                radius: 8
-                                border.color: parent.focus ? "#9C27B0" : "transparent"
-                                border.width: 2
+                            Row {
+                                anchors.fill: parent
+                                anchors.leftMargin: 10
+                                anchors.rightMargin: 10
+                                spacing: 8
                                 
                                 Image {
-                                    anchors {
-                                        left: parent.left
-                                        leftMargin: 10
-                                        verticalCenter: parent.verticalCenter
-                                    }
+                                    width: 16
+                                    height: 16
+                                    anchors.verticalCenter: parent.verticalCenter
                                     source: "recursos/image/icons/lupa.png"
-                                    width: 18
-                                    height: 18
+                                    fillMode: Image.PreserveAspectFit
+                                    sourceSize: Qt.size(32, 32)
                                 }
+                                
+                                TextInput {
+                                    id: txtBuscarInventario
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: parent.width - 40
+                                    color: "#333333"
+                                    font.pixelSize: 12
+                                    
+                                    Text {
+                                        text: "Buscar producto..."
+                                        color: "#999999"
+                                        font.pixelSize: 12
+                                        visible: !parent.text
+                                    }
+                                }
+                            }
+                            
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onEntered: parent.border.color = "#CCCCCC"
+                                onExited: parent.border.color = "#DDDDDD"
                             }
                         }
                     }
