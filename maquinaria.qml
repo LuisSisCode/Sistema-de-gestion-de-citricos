@@ -15,6 +15,51 @@ Rectangle {
         {"text": "Combustible", "icon": "recursos/image/icons/combustiblemaq.png", "color": "#0288D1"}
     ]
     
+    // Propiedades para datos dinámicos
+    property var equiposData: [
+        {
+            "id": 1, "codigo": "TR-001", "nombre": "Tractor John Deere", "tipo": "Tractor", 
+            "marca": "John Deere", "tipo_combustible": "Diésel", "estado": "Activo"
+        },
+        {
+            "id": 2, "codigo": "FU-001", "nombre": "Fumigadora XYZ", "tipo": "Fumigadora", 
+            "marca": "XYZ Agro", "tipo_combustible": "Gasolina", "estado": "En mantenimiento"
+        },
+        {
+            "id": 3, "codigo": "BR-001", "nombre": "Bomba de Riego", "tipo": "Bomba de riego", 
+            "marca": "HidroMax", "tipo_combustible": "Eléctrico", "estado": "Activo"
+        }
+    ]
+    
+    property var mantenimientoData: [
+        {
+            "id": 1, "equipo": "Tractor John Deere", "tipo": "Preventivo", 
+            "fecha": "15/07/2025", "costo": "450.00", "descripcion": "Cambio de aceite y filtros"
+        },
+        {
+            "id": 2, "equipo": "Fumigadora XYZ", "tipo": "Correctivo", 
+            "fecha": "10/07/2025", "costo": "320.00", "descripcion": "Reparación de bomba"
+        }
+    ]
+    
+    property var combustibleData: [
+        {
+            "id": 1, "equipo": "Tractor John Deere", "fecha": "12/07/2025", 
+            "litros": "45.5", "costo_unitario": "3.74", "total": "170.17", "observaciones": "Tanque lleno"
+        },
+        {
+            "id": 2, "equipo": "Fumigadora XYZ", "fecha": "14/07/2025", 
+            "litros": "12.0", "costo_unitario": "3.72", "total": "44.64", "observaciones": "Medio tanque"
+        }
+    ]
+    
+    // Propiedades para filtros
+    property var tiposEquipo: ["Todos los tipos", "Tractor", "Fumigadora", "Bomba de riego", "Pulverizadora", "Cosechadora", "Otro"]
+    property var estadosEquipo: ["Todos", "Activo", "En mantenimiento", "Inactivo"]
+    property var tiposMantenimiento: ["Todos", "Preventivo", "Correctivo", "Predictivo"]
+    property var tiposCombustible: ["Todos", "Diésel", "Gasolina", "Gas"]
+    
+    // Propiedades para paginación
     property int paginaEquipos: 1
     property int totalPaginasEquipos: 5
     property int paginaMantenimiento: 1
@@ -97,180 +142,158 @@ Rectangle {
                 NumberAnimation { duration: 300 }
             }
             
-            Column {
+            ColumnLayout {
                 anchors.fill: parent
                 spacing: 15
                 
-                // Barra de herramientas
-                Rectangle {
-                    width: parent.width
-                    height: 50
-                    color: "white"
-                    radius: 10
-                    border.color: "#E0E0E0"
-                    border.width: 1
+                // Barra de herramientas con FilterHeaderComponent
+                FilterHeaderComponent {
+                    id: filterHeaderEquipos
+                    Layout.fillWidth: true
+                    height: 60
+                    buttonText: "Nuevo Equipo"
+                    buttonIcon: "recursos/image/icons/agregar.svg"
+                    buttonColor: "#2E7D32"
+                    searchPlaceholder: "Buscar equipo..."
+                    searchIcon: "recursos/image/icons/lupa.png"
+                    filterOptions: tiposEquipo
+                    filterPlaceholder: "Tipo de equipo..."
+                    filterWidth: 180
                     
-                    Row {
-                        anchors.fill: parent
-                        anchors.margins: 10
-                        spacing: 10
-                        
-                        Button {
-                            width: 140
-                            height: 36
-                            background: Rectangle {
-                                color: parent.hovered ? "#E65A00" : "#f5922f"
-                                radius: 8
-                            }
-                            
-                            contentItem: Row {
-                                anchors.centerIn: parent
-                                spacing: 8
-                                
-                                Image {
-                                    source: Qt.resolvedUrl("recursos/image/icons/agregar.svg")
-                                    width: 16
-                                    height: 16
-                                    fillMode: Image.PreserveAspectFit
-                                }
-                                
-                                Text {
-                                    text: "Nuevo Equipo"
-                                    color: "white"
-                                    font.bold: true
-                                    font.pixelSize: 12
-                                }
-                            }
-                            
-                            onClicked: {
-                                console.log("Nuevo equipo")
-                            }
-                        }
-                        
-                        TextField {
-                            id: txtBuscarEquipo
-                            width: 250
-                            height: 36
-                            placeholderText: "Buscar equipo..."
-                        }
-                        
-                        ComboBox {
-                            id: cmbFiltroEquipo
-                            width: 200
-                            height: 36
-                            model: ["Todos los tipos", "Tractor", "Fumigadora", "Bomba de riego", "Pulverizadora", "Cosechadora", "Otro"]
-                        }
-                        
-                        Item { Layout.fillWidth: true }
+                    onButtonClicked: {
+                        console.log("Nuevo equipo")
+                    }
+                    
+                    onSearchTextChanged: function(text) {
+                        console.log("Buscar equipo:", text)
+                    }
+                    
+                    onFilterChanged: function(index) {
+                        console.log("Filtrar por tipo:", tiposEquipo[index])
                     }
                 }
                 
-                // ListView Equipos
+                // Tabla de Equipos
                 Rectangle {
-                    width: parent.width
-                    height: parent.height - 150
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
                     color: "white"
                     radius: 10
                     border.color: "#E0E0E0"
                     border.width: 1
                     
-                    ListView {
-                        id: equiposListView
+                    ColumnLayout {
                         anchors.fill: parent
                         anchors.margins: 1
-                        clip: true
-                        model: ListModel {
-                            id: equiposModel
-                        }
+                        spacing: 0
                         
-                        headerPositioning: ListView.OverlayHeader
-                        
-                        header: Rectangle {
-                            width: parent.width
+                        // Header de la tabla
+                        Rectangle {
+                            Layout.fillWidth: true
                             height: 40
                             color: "#F5F5F5"
-                            z: 2
                             
                             Row {
                                 anchors.fill: parent
+                                anchors.leftMargin: 10
+                                anchors.rightMargin: 10
                                 
-                                Text { width: parent.width * 0.11; text: "Código"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.24; text: "Nombre"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.14; text: "Tipo"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.14; text: "Marca"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.12; text: "Combustible"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.15; text: "Estado"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.1; text: "Acciones"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
+                                Text { width: parent.width * 0.11; height: parent.height; text: "Código"; font.bold: true; verticalAlignment: Text.AlignVCenter; font.pixelSize: 13 }
+                                Text { width: parent.width * 0.24; height: parent.height; text: "Nombre"; font.bold: true; verticalAlignment: Text.AlignVCenter; font.pixelSize: 13 }
+                                Text { width: parent.width * 0.14; height: parent.height; text: "Tipo"; font.bold: true; verticalAlignment: Text.AlignVCenter; font.pixelSize: 13 }
+                                Text { width: parent.width * 0.14; height: parent.height; text: "Marca"; font.bold: true; verticalAlignment: Text.AlignVCenter; font.pixelSize: 13 }
+                                Text { width: parent.width * 0.12; height: parent.height; text: "Combustible"; font.bold: true; verticalAlignment: Text.AlignVCenter; font.pixelSize: 13 }
+                                Text { width: parent.width * 0.15; height: parent.height; text: "Estado"; font.bold: true; verticalAlignment: Text.AlignVCenter; font.pixelSize: 13 }
+                                Text { width: parent.width * 0.1; height: parent.height; text: "Acciones"; font.bold: true; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter; font.pixelSize: 13 }
                             }
                         }
                         
-                        delegate: Rectangle {
-                            width: parent.width
-                            height: 45
-                            color: index % 2 === 0 ? "#FAFAFA" : "white"
-                            border.color: "#EEEEEE"
-                            border.width: 1
+                        // Lista de equipos
+                        ListView {
+                            id: equiposListView
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            clip: true
+                            model: equiposData
                             
-                            Row {
-                                anchors.fill: parent
-                                
-                                Text { width: parent.width * 0.11; text: model.codigo; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.24; text: model.nombre; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.14; text: model.tipo; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.14; text: model.marca; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.12; text: model.tipo_combustible; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.15; text: model.estado; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
+                            delegate: Rectangle {
+                                width: equiposListView.width
+                                height: 45
+                                color: index % 2 === 0 ? "#FAFAFA" : "white"
+                                border.color: "#EEEEEE"
+                                border.width: 1
                                 
                                 Row {
-                                    width: parent.width * 0.1
-                                    height: parent.height
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    spacing: 5
-                                    leftPadding: 10
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 10
+                                    anchors.rightMargin: 10
                                     
-                                    MouseArea {
-                                        width: 20
-                                        height: 20
+                                    Text { width: parent.width * 0.11; height: parent.height; text: modelData.codigo; verticalAlignment: Text.AlignVCenter; font.pixelSize: 12; elide: Text.ElideRight }
+                                    Text { width: parent.width * 0.24; height: parent.height; text: modelData.nombre; verticalAlignment: Text.AlignVCenter; font.pixelSize: 12; elide: Text.ElideRight }
+                                    Text { width: parent.width * 0.14; height: parent.height; text: modelData.tipo; verticalAlignment: Text.AlignVCenter; font.pixelSize: 12; elide: Text.ElideRight }
+                                    Text { width: parent.width * 0.14; height: parent.height; text: modelData.marca; verticalAlignment: Text.AlignVCenter; font.pixelSize: 12; elide: Text.ElideRight }
+                                    Text { width: parent.width * 0.12; height: parent.height; text: modelData.tipo_combustible; verticalAlignment: Text.AlignVCenter; font.pixelSize: 12; elide: Text.ElideRight }
+                                    Text { width: parent.width * 0.15; height: parent.height; text: modelData.estado; verticalAlignment: Text.AlignVCenter; font.pixelSize: 12; elide: Text.ElideRight }
+                                    
+                                    Row {
+                                        width: parent.width * 0.1
+                                        height: parent.height
                                         anchors.verticalCenter: parent.verticalCenter
-                                        cursorShape: Qt.PointingHandCursor
+                                        spacing: 5
                                         
-                                        Image {
-                                            anchors.fill: parent
-                                            source: Qt.resolvedUrl("recursos/image/icons/ojo.svg")
-                                            fillMode: Image.PreserveAspectFit
+                                        Button {
+                                            width: 28; height: 28
+                                            background: Rectangle {
+                                                color: parent.hovered ? "#E3F2FD" : "transparent"
+                                                radius: 4
+                                            }
+                                            contentItem: Image {
+                                                source: "recursos/image/icons/ojo.svg"
+                                                width: 14
+                                                height: 14
+                                                anchors.centerIn: parent
+                                                fillMode: Image.PreserveAspectFit
+                                            }
+                                            ToolTip.visible: hovered
+                                            ToolTip.text: "Ver detalles"
+                                            onClicked: console.log("Ver", modelData.id)
                                         }
                                         
-                                        onClicked: console.log("Ver", model.id)
-                                    }
-                                    
-                                    MouseArea {
-                                        width: 20
-                                        height: 20
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        cursorShape: Qt.PointingHandCursor
-                                        
-                                        Image {
-                                            anchors.fill: parent
-                                            source: Qt.resolvedUrl("recursos/image/icons/editar.svg")
-                                            fillMode: Image.PreserveAspectFit
+                                        Button {
+                                            width: 28; height: 28
+                                            background: Rectangle {
+                                                color: parent.hovered ? "#E3F2FD" : "transparent"
+                                                radius: 4
+                                            }
+                                            contentItem: Image {
+                                                source: "recursos/image/icons/editar.svg"
+                                                width: 14
+                                                height: 14
+                                                anchors.centerIn: parent
+                                                fillMode: Image.PreserveAspectFit
+                                            }
+                                            ToolTip.visible: hovered
+                                            ToolTip.text: "Editar"
+                                            onClicked: console.log("Editar", modelData.id)
                                         }
                                         
-                                        onClicked: console.log("Editar", model.id)
-                                    }
-                                    
-                                    MouseArea {
-                                        width: 20
-                                        height: 20
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        cursorShape: Qt.PointingHandCursor
-                                        
-                                        Image {
-                                            anchors.fill: parent
-                                            source: Qt.resolvedUrl("recursos/image/icons/basura.svg")
-                                            fillMode: Image.PreserveAspectFit
+                                        Button {
+                                            width: 28; height: 28
+                                            background: Rectangle {
+                                                color: parent.hovered ? "#FFEBEE" : "transparent"
+                                                radius: 4
+                                            }
+                                            contentItem: Image {
+                                                source: "recursos/image/icons/basura.svg"
+                                                width: 14
+                                                height: 14
+                                                anchors.centerIn: parent
+                                                fillMode: Image.PreserveAspectFit
+                                            }
+                                            ToolTip.visible: hovered
+                                            ToolTip.text: "Eliminar"
+                                            onClicked: console.log("Eliminar", modelData.id)
                                         }
-                                        
-                                        onClicked: console.log("Eliminar", model.id)
                                     }
                                 }
                             }
@@ -278,16 +301,22 @@ Rectangle {
                     }
                 }
                 
-                // Paginador Equipos
-                Paginator {
-                    id: paginadorEquipos
-                    width: parent.width
+                // Paginador Equipos - CENTRADO
+                Item {
+                    Layout.fillWidth: true
                     height: 50
-                    currentPage: paginaEquipos
-                    totalPages: totalPaginasEquipos
                     
-                    onPageChanged: {
-                        paginaEquipos = newPage
+                    Paginator {
+                        id: paginadorEquipos
+                        width: Math.min(parent.width * 0.6, 400)
+                        height: 40
+                        anchors.centerIn: parent
+                        currentPage: paginaEquipos
+                        totalPages: totalPaginasEquipos
+                        
+                        onPageChanged: {
+                            paginaEquipos = newPage
+                        }
                     }
                 }
             }
@@ -303,151 +332,138 @@ Rectangle {
                 NumberAnimation { duration: 300 }
             }
             
-            Column {
+            ColumnLayout {
                 anchors.fill: parent
                 spacing: 15
                 
-                Rectangle {
-                    width: parent.width
-                    height: 50
-                    color: "white"
-                    radius: 10
-                    border.color: "#E0E0E0"
-                    border.width: 1
+                // Barra de herramientas con FilterHeaderComponent
+                FilterHeaderComponent {
+                    id: filterHeaderMantenimiento
+                    Layout.fillWidth: true
+                    height: 60
+                    buttonText: "Nuevo Mantenimiento"
+                    buttonIcon: "recursos/image/icons/agregar.svg"
+                    buttonColor: "#F57C00"
+                    searchPlaceholder: "Buscar mantenimiento..."
+                    searchIcon: "recursos/image/icons/lupa.png"
+                    filterOptions: tiposMantenimiento
+                    filterPlaceholder: "Tipo de mantenimiento..."
+                    filterWidth: 200
                     
-                    Row {
-                        anchors.fill: parent
-                        anchors.margins: 10
-                        spacing: 10
-                        
-                        Button {
-                            width: 160
-                            height: 36
-                            background: Rectangle {
-                                color: parent.hovered ? "#E65A00" : "#f5922f"
-                                radius: 8
-                            }
-                            
-                            contentItem: Row {
-                                anchors.centerIn: parent
-                                spacing: 8
-                                
-                                Image {
-                                    source: Qt.resolvedUrl("recursos/image/icons/agregar.svg")
-                                    width: 16
-                                    height: 16
-                                    fillMode: Image.PreserveAspectFit
-                                }
-                                
-                                Text {
-                                    text: "Nuevo Mantenimiento"
-                                    color: "white"
-                                    font.bold: true
-                                    font.pixelSize: 12
-                                }
-                            }
-                            
-                            onClicked: console.log("Nuevo mantenimiento")
-                        }
-                        
-                        TextField {
-                            width: 250
-                            height: 36
-                            placeholderText: "Buscar mantenimiento..."
-                        }
-                        
-                        Item { Layout.fillWidth: true }
+                    onButtonClicked: {
+                        console.log("Nuevo mantenimiento")
+                    }
+                    
+                    onSearchTextChanged: function(text) {
+                        console.log("Buscar mantenimiento:", text)
+                    }
+                    
+                    onFilterChanged: function(index) {
+                        console.log("Filtrar por tipo:", tiposMantenimiento[index])
                     }
                 }
                 
+                // Tabla de Mantenimiento
                 Rectangle {
-                    width: parent.width
-                    height: parent.height - 150
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
                     color: "white"
                     radius: 10
                     border.color: "#E0E0E0"
                     border.width: 1
                     
-                    ListView {
-                        id: mantenimientoListView
+                    ColumnLayout {
                         anchors.fill: parent
                         anchors.margins: 1
-                        clip: true
-                        model: ListModel {
-                            id: mantenimientoModel
-                        }
+                        spacing: 0
                         
-                        headerPositioning: ListView.OverlayHeader
-                        
-                        header: Rectangle {
-                            width: parent.width
+                        // Header de la tabla
+                        Rectangle {
+                            Layout.fillWidth: true
                             height: 40
                             color: "#F5F5F5"
-                            z: 2
                             
                             Row {
                                 anchors.fill: parent
+                                anchors.leftMargin: 10
+                                anchors.rightMargin: 10
                                 
-                                Text { width: parent.width * 0.15; text: "Equipo"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.20; text: "Tipo"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.20; text: "Fecha"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.20; text: "Costo"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.15; text: "Descripción"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.1; text: "Acciones"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
+                                Text { width: parent.width * 0.15; height: parent.height; text: "Equipo"; font.bold: true; verticalAlignment: Text.AlignVCenter; font.pixelSize: 13 }
+                                Text { width: parent.width * 0.20; height: parent.height; text: "Tipo"; font.bold: true; verticalAlignment: Text.AlignVCenter; font.pixelSize: 13 }
+                                Text { width: parent.width * 0.20; height: parent.height; text: "Fecha"; font.bold: true; verticalAlignment: Text.AlignVCenter; font.pixelSize: 13 }
+                                Text { width: parent.width * 0.20; height: parent.height; text: "Costo"; font.bold: true; verticalAlignment: Text.AlignVCenter; font.pixelSize: 13 }
+                                Text { width: parent.width * 0.15; height: parent.height; text: "Descripción"; font.bold: true; verticalAlignment: Text.AlignVCenter; font.pixelSize: 13 }
+                                Text { width: parent.width * 0.1; height: parent.height; text: "Acciones"; font.bold: true; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter; font.pixelSize: 13 }
                             }
                         }
                         
-                        delegate: Rectangle {
-                            width: parent.width
-                            height: 45
-                            color: index % 2 === 0 ? "#FAFAFA" : "white"
-                            border.color: "#EEEEEE"
-                            border.width: 1
+                        // Lista de mantenimientos
+                        ListView {
+                            id: mantenimientoListView
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            clip: true
+                            model: mantenimientoData
                             
-                            Row {
-                                anchors.fill: parent
-                                
-                                Text { width: parent.width * 0.15; text: model.equipo; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.20; text: model.tipo; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.20; text: model.fecha; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.20; text: model.costo; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.15; text: model.descripcion; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
+                            delegate: Rectangle {
+                                width: mantenimientoListView.width
+                                height: 45
+                                color: index % 2 === 0 ? "#FAFAFA" : "white"
+                                border.color: "#EEEEEE"
+                                border.width: 1
                                 
                                 Row {
-                                    width: parent.width * 0.1
-                                    height: parent.height
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    spacing: 5
-                                    leftPadding: 10
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 10
+                                    anchors.rightMargin: 10
                                     
-                                    MouseArea {
-                                        width: 20
-                                        height: 20
+                                    Text { width: parent.width * 0.15; height: parent.height; text: modelData.equipo; verticalAlignment: Text.AlignVCenter; font.pixelSize: 12; elide: Text.ElideRight }
+                                    Text { width: parent.width * 0.20; height: parent.height; text: modelData.tipo; verticalAlignment: Text.AlignVCenter; font.pixelSize: 12; elide: Text.ElideRight }
+                                    Text { width: parent.width * 0.20; height: parent.height; text: modelData.fecha; verticalAlignment: Text.AlignVCenter; font.pixelSize: 12; elide: Text.ElideRight }
+                                    Text { width: parent.width * 0.20; height: parent.height; text: "Bs. " + modelData.costo; verticalAlignment: Text.AlignVCenter; font.pixelSize: 12; elide: Text.ElideRight }
+                                    Text { width: parent.width * 0.15; height: parent.height; text: modelData.descripcion; verticalAlignment: Text.AlignVCenter; font.pixelSize: 12; elide: Text.ElideRight }
+                                    
+                                    Row {
+                                        width: parent.width * 0.1
+                                        height: parent.height
                                         anchors.verticalCenter: parent.verticalCenter
-                                        cursorShape: Qt.PointingHandCursor
+                                        spacing: 5
                                         
-                                        Image {
-                                            anchors.fill: parent
-                                            source: Qt.resolvedUrl("recursos/image/icons/editar.svg")
-                                            fillMode: Image.PreserveAspectFit
+                                        Button {
+                                            width: 28; height: 28
+                                            background: Rectangle {
+                                                color: parent.hovered ? "#E3F2FD" : "transparent"
+                                                radius: 4
+                                            }
+                                            contentItem: Image {
+                                                source: "recursos/image/icons/editar.svg"
+                                                width: 14
+                                                height: 14
+                                                anchors.centerIn: parent
+                                                fillMode: Image.PreserveAspectFit
+                                            }
+                                            ToolTip.visible: hovered
+                                            ToolTip.text: "Editar"
+                                            onClicked: console.log("Editar", modelData.id)
                                         }
                                         
-                                        onClicked: console.log("Editar", model.id)
-                                    }
-                                    
-                                    MouseArea {
-                                        width: 20
-                                        height: 20
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        cursorShape: Qt.PointingHandCursor
-                                        
-                                        Image {
-                                            anchors.fill: parent
-                                            source: Qt.resolvedUrl("recursos/image/icons/basura.svg")
-                                            fillMode: Image.PreserveAspectFit
+                                        Button {
+                                            width: 28; height: 28
+                                            background: Rectangle {
+                                                color: parent.hovered ? "#FFEBEE" : "transparent"
+                                                radius: 4
+                                            }
+                                            contentItem: Image {
+                                                source: "recursos/image/icons/basura.svg"
+                                                width: 14
+                                                height: 14
+                                                anchors.centerIn: parent
+                                                fillMode: Image.PreserveAspectFit
+                                            }
+                                            ToolTip.visible: hovered
+                                            ToolTip.text: "Eliminar"
+                                            onClicked: console.log("Eliminar", modelData.id)
                                         }
-                                        
-                                        onClicked: console.log("Eliminar", model.id)
                                     }
                                 }
                             }
@@ -455,15 +471,22 @@ Rectangle {
                     }
                 }
                 
-                Paginator {
-                    id: paginadorMantenimiento
-                    width: parent.width
+                // Paginador Mantenimiento - CENTRADO
+                Item {
+                    Layout.fillWidth: true
                     height: 50
-                    currentPage: paginaMantenimiento
-                    totalPages: totalPaginasMantenimiento
                     
-                    onPageChanged: {
-                        paginaMantenimiento = newPage
+                    Paginator {
+                        id: paginadorMantenimiento
+                        width: Math.min(parent.width * 0.6, 400)
+                        height: 40
+                        anchors.centerIn: parent
+                        currentPage: paginaMantenimiento
+                        totalPages: totalPaginasMantenimiento
+                        
+                        onPageChanged: {
+                            paginaMantenimiento = newPage
+                        }
                     }
                 }
             }
@@ -479,153 +502,140 @@ Rectangle {
                 NumberAnimation { duration: 300 }
             }
             
-            Column {
+            ColumnLayout {
                 anchors.fill: parent
                 spacing: 15
                 
-                Rectangle {
-                    width: parent.width
-                    height: 50
-                    color: "white"
-                    radius: 10
-                    border.color: "#E0E0E0"
-                    border.width: 1
+                // Barra de herramientas con FilterHeaderComponent
+                FilterHeaderComponent {
+                    id: filterHeaderCombustible
+                    Layout.fillWidth: true
+                    height: 60
+                    buttonText: "Nuevo Registro"
+                    buttonIcon: "recursos/image/icons/agregar.svg"
+                    buttonColor: "#0288D1"
+                    searchPlaceholder: "Buscar combustible..."
+                    searchIcon: "recursos/image/icons/lupa.png"
+                    filterOptions: tiposCombustible
+                    filterPlaceholder: "Tipo de combustible..."
+                    filterWidth: 180
                     
-                    Row {
-                        anchors.fill: parent
-                        anchors.margins: 10
-                        spacing: 10
-                        
-                        Button {
-                            width: 140
-                            height: 36
-                            background: Rectangle {
-                                color: parent.hovered ? "#E65A00" : "#f5922f"
-                                radius: 8
-                            }
-                            
-                            contentItem: Row {
-                                anchors.centerIn: parent
-                                spacing: 8
-                                
-                                Image {
-                                    source: Qt.resolvedUrl("recursos/image/icons/agregar.svg")
-                                    width: 16
-                                    height: 16
-                                    fillMode: Image.PreserveAspectFit
-                                }
-                                
-                                Text {
-                                    text: "Nuevo Registro"
-                                    color: "white"
-                                    font.bold: true
-                                    font.pixelSize: 12
-                                }
-                            }
-                            
-                            onClicked: console.log("Nuevo combustible")
-                        }
-                        
-                        TextField {
-                            width: 250
-                            height: 36
-                            placeholderText: "Buscar combustible..."
-                        }
-                        
-                        Item { Layout.fillWidth: true }
+                    onButtonClicked: {
+                        console.log("Nuevo combustible")
+                    }
+                    
+                    onSearchTextChanged: function(text) {
+                        console.log("Buscar combustible:", text)
+                    }
+                    
+                    onFilterChanged: function(index) {
+                        console.log("Filtrar por tipo:", tiposCombustible[index])
                     }
                 }
                 
+                // Tabla de Combustible
                 Rectangle {
-                    width: parent.width
-                    height: parent.height - 150
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
                     color: "white"
                     radius: 10
                     border.color: "#E0E0E0"
                     border.width: 1
                     
-                    ListView {
-                        id: combustibleListView
+                    ColumnLayout {
                         anchors.fill: parent
                         anchors.margins: 1
-                        clip: true
-                        model: ListModel {
-                            id: combustibleModel
-                        }
+                        spacing: 0
                         
-                        headerPositioning: ListView.OverlayHeader
-                        
-                        header: Rectangle {
-                            width: parent.width
+                        // Header de la tabla
+                        Rectangle {
+                            Layout.fillWidth: true
                             height: 40
                             color: "#F5F5F5"
-                            z: 2
                             
                             Row {
                                 anchors.fill: parent
+                                anchors.leftMargin: 10
+                                anchors.rightMargin: 10
                                 
-                                Text { width: parent.width * 0.15; text: "Equipo"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.15; text: "Fecha"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.15; text: "Litros"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.15; text: "Costo Unit."; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.15; text: "Total"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.15; text: "Observaciones"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.1; text: "Acciones"; font.bold: true; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
+                                Text { width: parent.width * 0.15; height: parent.height; text: "Equipo"; font.bold: true; verticalAlignment: Text.AlignVCenter; font.pixelSize: 13 }
+                                Text { width: parent.width * 0.15; height: parent.height; text: "Fecha"; font.bold: true; verticalAlignment: Text.AlignVCenter; font.pixelSize: 13 }
+                                Text { width: parent.width * 0.15; height: parent.height; text: "Litros"; font.bold: true; verticalAlignment: Text.AlignVCenter; font.pixelSize: 13 }
+                                Text { width: parent.width * 0.15; height: parent.height; text: "Costo Unit."; font.bold: true; verticalAlignment: Text.AlignVCenter; font.pixelSize: 13 }
+                                Text { width: parent.width * 0.15; height: parent.height; text: "Total"; font.bold: true; verticalAlignment: Text.AlignVCenter; font.pixelSize: 13 }
+                                Text { width: parent.width * 0.15; height: parent.height; text: "Observaciones"; font.bold: true; verticalAlignment: Text.AlignVCenter; font.pixelSize: 13 }
+                                Text { width: parent.width * 0.1; height: parent.height; text: "Acciones"; font.bold: true; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter; font.pixelSize: 13 }
                             }
                         }
                         
-                        delegate: Rectangle {
-                            width: parent.width
-                            height: 45
-                            color: index % 2 === 0 ? "#FAFAFA" : "white"
-                            border.color: "#EEEEEE"
-                            border.width: 1
+                        // Lista de combustible
+                        ListView {
+                            id: combustibleListView
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            clip: true
+                            model: combustibleData
                             
-                            Row {
-                                anchors.fill: parent
-                                
-                                Text { width: parent.width * 0.15; text: model.equipo; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.15; text: model.fecha; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.15; text: model.litros; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.15; text: model.costo_unitario; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.15; text: model.total; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
-                                Text { width: parent.width * 0.15; text: model.observaciones; verticalAlignment: Text.AlignVCenter; leftPadding: 10 }
+                            delegate: Rectangle {
+                                width: combustibleListView.width
+                                height: 45
+                                color: index % 2 === 0 ? "#FAFAFA" : "white"
+                                border.color: "#EEEEEE"
+                                border.width: 1
                                 
                                 Row {
-                                    width: parent.width * 0.1
-                                    height: parent.height
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    spacing: 5
-                                    leftPadding: 10
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 10
+                                    anchors.rightMargin: 10
                                     
-                                    MouseArea {
-                                        width: 20
-                                        height: 20
+                                    Text { width: parent.width * 0.15; height: parent.height; text: modelData.equipo; verticalAlignment: Text.AlignVCenter; font.pixelSize: 12; elide: Text.ElideRight }
+                                    Text { width: parent.width * 0.15; height: parent.height; text: modelData.fecha; verticalAlignment: Text.AlignVCenter; font.pixelSize: 12; elide: Text.ElideRight }
+                                    Text { width: parent.width * 0.15; height: parent.height; text: modelData.litros; verticalAlignment: Text.AlignVCenter; font.pixelSize: 12; elide: Text.ElideRight }
+                                    Text { width: parent.width * 0.15; height: parent.height; text: "Bs. " + modelData.costo_unitario; verticalAlignment: Text.AlignVCenter; font.pixelSize: 12; elide: Text.ElideRight }
+                                    Text { width: parent.width * 0.15; height: parent.height; text: "Bs. " + modelData.total; verticalAlignment: Text.AlignVCenter; font.pixelSize: 12; elide: Text.ElideRight }
+                                    Text { width: parent.width * 0.15; height: parent.height; text: modelData.observaciones; verticalAlignment: Text.AlignVCenter; font.pixelSize: 12; elide: Text.ElideRight }
+                                    
+                                    Row {
+                                        width: parent.width * 0.1
+                                        height: parent.height
                                         anchors.verticalCenter: parent.verticalCenter
-                                        cursorShape: Qt.PointingHandCursor
+                                        spacing: 5
                                         
-                                        Image {
-                                            anchors.fill: parent
-                                            source: Qt.resolvedUrl("recursos/image/icons/editar.svg")
-                                            fillMode: Image.PreserveAspectFit
+                                        Button {
+                                            width: 28; height: 28
+                                            background: Rectangle {
+                                                color: parent.hovered ? "#E3F2FD" : "transparent"
+                                                radius: 4
+                                            }
+                                            contentItem: Image {
+                                                source: "recursos/image/icons/editar.svg"
+                                                width: 14
+                                                height: 14
+                                                anchors.centerIn: parent
+                                                fillMode: Image.PreserveAspectFit
+                                            }
+                                            ToolTip.visible: hovered
+                                            ToolTip.text: "Editar"
+                                            onClicked: console.log("Editar", modelData.id)
                                         }
                                         
-                                        onClicked: console.log("Editar", model.id)
-                                    }
-                                    
-                                    MouseArea {
-                                        width: 20
-                                        height: 20
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        cursorShape: Qt.PointingHandCursor
-                                        
-                                        Image {
-                                            anchors.fill: parent
-                                            source: Qt.resolvedUrl("recursos/image/icons/basura.svg")
-                                            fillMode: Image.PreserveAspectFit
+                                        Button {
+                                            width: 28; height: 28
+                                            background: Rectangle {
+                                                color: parent.hovered ? "#FFEBEE" : "transparent"
+                                                radius: 4
+                                            }
+                                            contentItem: Image {
+                                                source: "recursos/image/icons/basura.svg"
+                                                width: 14
+                                                height: 14
+                                                anchors.centerIn: parent
+                                                fillMode: Image.PreserveAspectFit
+                                            }
+                                            ToolTip.visible: hovered
+                                            ToolTip.text: "Eliminar"
+                                            onClicked: console.log("Eliminar", modelData.id)
                                         }
-                                        
-                                        onClicked: console.log("Eliminar", model.id)
                                     }
                                 }
                             }
@@ -633,15 +643,22 @@ Rectangle {
                     }
                 }
                 
-                Paginator {
-                    id: paginadorCombustible
-                    width: parent.width
+                // Paginador Combustible - CENTRADO
+                Item {
+                    Layout.fillWidth: true
                     height: 50
-                    currentPage: paginaCombustible
-                    totalPages: totalPaginasCombustible
                     
-                    onPageChanged: {
-                        paginaCombustible = newPage
+                    Paginator {
+                        id: paginadorCombustible
+                        width: Math.min(parent.width * 0.6, 400)
+                        height: 40
+                        anchors.centerIn: parent
+                        currentPage: paginaCombustible
+                        totalPages: totalPaginasCombustible
+                        
+                        onPageChanged: {
+                            paginaCombustible = newPage
+                        }
                     }
                 }
             }

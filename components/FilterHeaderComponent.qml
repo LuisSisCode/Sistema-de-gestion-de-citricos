@@ -43,7 +43,7 @@ Rectangle {
         Rectangle {
             id: actionButton
             visible: showButton
-            width: 140
+            width: 180
             height: 40
             radius: 6
             color: buttonColor
@@ -67,7 +67,7 @@ Rectangle {
                     width: 18
                     height: 18
                     anchors.verticalCenter: parent.verticalCenter
-                    source: buttonIcon ? Qt.resolvedUrl("../../" + buttonIcon) : ""
+                    source: buttonIcon ? Qt.resolvedUrl("../" + buttonIcon) : ""
                     fillMode: Image.PreserveAspectFit
                     sourceSize: Qt.size(36, 36)
                     visible: buttonIcon !== ""
@@ -83,7 +83,7 @@ Rectangle {
             }
         }
         
-        Item { Layout.fillWidth: true }
+        Item { width: 1; height: 1 }
         
         // FILTRO/SELECTOR - ÍCONO CORREGIDO
         Rectangle {
@@ -130,7 +130,7 @@ Rectangle {
                     width: 14
                     height: 14
                     anchors.verticalCenter: parent.verticalCenter
-                    source: filterIcon ? Qt.resolvedUrl("../../" + filterIcon) : ""
+                    source: filterIcon ? Qt.resolvedUrl("../" + filterIcon) : ""
                     fillMode: Image.PreserveAspectFit
                     sourceSize: Qt.size(28, 28)
                     opacity: 0.7
@@ -272,7 +272,7 @@ Rectangle {
                     
                     Image {
                         anchors.fill: parent
-                        source: searchIcon ? Qt.resolvedUrl("../../" + searchIcon) : ""
+                        source: searchIcon ? Qt.resolvedUrl("../" + searchIcon) : ""
                         fillMode: Image.PreserveAspectFit
                         sourceSize: Qt.size(32, 32)
                         opacity: 0.7
