@@ -3,12 +3,21 @@ import QtQuick.Controls.Universal 2.15
 import QtQuick.Layouts 1.15
 import QtQml 2.15 
 import "." as Local 
+import "./components"
 
 
 Rectangle {
     id: cultivosRoot
     anchors.fill: parent
     color: "#F8F9FA"
+
+    property int tabActiva: 0
+    property var tabsInfo: [
+        {"text": "Tipos de Cultivo", "icon": "recursos/image/icons/tiposcultivo.png", "color": "#2E7D32"},
+        {"text": "Variedades", "icon": "recursos/image/icons/variedades.png", "color": "#F57C00"},
+        {"text": "Ciclos de Producción", "icon": "recursos/image/icons/cicloproduccion.png", "color": "#0288D1"},
+        {"text": "Calendario de Cultivos", "icon": "recursos/image/icons/calendariocultivo.png", "color": "#9C27B0"}
+    ]
 
     // Paginación para tipos de cultivo
     property int paginaActualTipos: 1
@@ -55,8 +64,8 @@ Rectangle {
         if (day <= 0) return [];
         
         // Filtrar por tipo de cultivo si está seleccionado
-        const filtroTipo = cmbFiltroCultivosCalendario.currentIndex > 0 ? 
-                        cmbFiltroCultivosCalendario.currentText : null;
+        const filtroTipo = filterCultivos.cmbFiltroCultivosCalendario > 0 ? 
+                        cultivosFiltroModel.get(filterCultivos.cmbFiltroCultivosCalendario).text : null;
         
         const key = year + "-" + (month + 1) + "-" + day;
         
@@ -80,7 +89,7 @@ Rectangle {
         console.log("- ciclosModel.count:", ciclosModel.count)
         
         // Preservar selección actual si existe
-        const seleccionActual = cmbFiltroCultivosCalendario.currentIndex > 0 ? cmbFiltroCultivosCalendario.currentText : null;
+        const seleccionActual = filterCultivos.cmbFiltroCultivosCalendario > 0 ? cultivosFiltroModel.get(filterCultivos.cmbFiltroCultivosCalendario).text : null;
         
         // Limpiar modelo excepto el primer elemento
         while (cultivosFiltroModel.count > 1) {
@@ -110,7 +119,7 @@ Rectangle {
             console.log("- DEBUG: Añadiendo al modelo:", nombreTipo)
             cultivosFiltroModel.append({
                 text: nombreTipo,
-                value: nombreTipo  // Usar string en lugar de number para consistencia
+                value: nombreTipo
             });
         }
         
@@ -121,7 +130,7 @@ Rectangle {
             console.log("=== DEBUG: Restaurando selección:", seleccionActual)
             for (let i = 0; i < cultivosFiltroModel.count; i++) {
                 if (cultivosFiltroModel.get(i).text === seleccionActual) {
-                    cmbFiltroCultivosCalendario.currentIndex = i;
+                    filterCultivos.cmbFiltroCultivosCalendario = i;
                     console.log("- DEBUG: Selección restaurada en índice:", i)
                     break;
                 }
@@ -329,10 +338,10 @@ Rectangle {
         console.log("- ciclosModel.count:", ciclosModel.count)
         
         // Si hay filtros activos, usar la versión con filtros
-        if (cmbFiltroCultivosCalendario.currentIndex > 0 ||
-            cmbFiltroEstadosCalendario.currentIndex > 0 ||
-            cmbFiltroParcelasCalendario.currentIndex > 0 ||
-            cmbFiltroTipoEvento.currentIndex > 0) {
+        if (filterCultivos.cmbFiltroCultivosCalendario > 0 ||
+            filterEstados.currentIndex > 0 ||
+            filterParcelas.currentIndex > 0 ||
+            filterTipoEvento.currentIndex > 0) {
             console.log("=== DEBUG: Usando cargarEventosCalendarioConFiltros ===")
             cargarEventosCalendarioConFiltros();
             return;
@@ -1422,7 +1431,19 @@ Rectangle {
     property var eventosPorFecha: ({})
     property var cicloSeleccionado: null
 
-    // Al iniciar, cargar datos desde el modelo Python
+    // ListModels para filtros
+    ListModel { id: cultivosFiltroModel }
+    ListModel { id: estadosCalendarioModel }
+    ListModel { id: parcelasCalendarioModel }
+    ListModel {
+        id: tipoEventoModel
+        ListElement { text: "Todos los eventos"; value: "todos" }
+        ListElement { text: "Solo Siembra"; value: "siembra" }
+        ListElement { text: "Solo Cosecha"; value: "cosecha" }
+        ListElement { text: "Solo Poda"; value: "poda" }
+        ListElement { text: "Solo Floración"; value: "floracion" }
+        ListElement { text: "Solo Limpieza"; value: "limpieza" }
+    }
     Component.onCompleted: {
         console.log("Cargando datos desde el modelo Python...")
         cargarDatosIniciales()
@@ -1485,98 +1506,37 @@ Rectangle {
             anchors.centerIn: parent
         }
     }
-    // Contenido principal con pestañas
-    TabBar {
-        id: tabBar
-        width: parent.width
+    
+    // Barra de pestañas - TabBarComponent
+    Item {
+        id: modernTabBar
+        width: parent.width - 40
+        height: 90
         anchors.top: titleBar.bottom
-        spacing: 20
-        background: Rectangle {
-            color: "white"
-            Rectangle {
-                width: parent.width
-                height: 1
-                color: "#EEEEEE"
-                anchors.bottom: parent.bottom
-            }
-        }
-
-        TabButton {
-            text: "Tipos de Cultivo"
-            width: implicitWidth + 40
-            height: 30
-            background: Rectangle {
-                color: parent.checked ? "#105f10":"#4CAF50"
-                radius: height / 2
-            }
-            contentItem: Text {
-                text: parent.text
-                color: "white"
-                font.bold: true
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
-        }
-
-        TabButton {
-            text: "Variedades"
-            width: implicitWidth + 40
-            height: 30
-            background: Rectangle {
-                color: parent.checked ?  "#105f10":"#4CAF50"
-                radius: height / 2
-            }
-            contentItem: Text {
-                text: parent.text
-                color: "white"
-                font.bold: true
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
-        }
-        TabButton {
-            text: "Ciclos de Producción"
-            width: implicitWidth + 40
-            height: 30
-            background: Rectangle {
-                color: parent.checked ?  "#105f10":"#4CAF50"
-                radius: height / 2
-            }
-            contentItem: Text {
-                text: parent.text
-                color: "white"
-                font.bold: true
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
-        }
-
-        TabButton {
-            text: "Calendario de Cultivos"
-            width: implicitWidth + 40
-            height: 30
-            background: Rectangle {
-                color: parent.checked ?  "#105f10":"#4CAF50"
-                radius: height / 2
-            }
-            contentItem: Text {
-                text: parent.text
-                color: "white"
-                font.bold: true
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
-        }
+        anchors.topMargin: 10
+        anchors.horizontalCenter: parent.horizontalCenter
         
+        TabBarComponent {
+            id: tabBar
+            anchors.centerIn: parent
+            width: parent.width
+            height: parent.height
+            tabsData: cultivosRoot.tabsInfo
+            tabActiva: cultivosRoot.tabActiva
+            
+            onTabChanged: function(index) {
+                cultivosRoot.tabActiva = index
+            }
+        }
     }
 
     // Contenedor de páginas de pestañas
     StackLayout {
         width: parent.width
-        anchors.top: tabBar.bottom
+        anchors.top: modernTabBar.bottom
         anchors.bottom: parent.bottom
         anchors.topMargin: 20
-        currentIndex: tabBar.currentIndex
+        currentIndex: cultivosRoot.tabActiva
 
         // Página de Tipos de Cultivo
         Item {
@@ -1612,19 +1572,29 @@ Rectangle {
                             
                             Button {
                                 text: "Nuevo Cultivo"
-                                icon.source: "Image//Image_UI_interfaz//Inconos//agregar.svg"
+                                icon.source: "recursos/image/icons/agregar.png"
                                 implicitHeight: 36
                                 background: Rectangle {
                                     color: parent.hovered ? "#E65A00" : "#f5922f"
                                     radius: height / 2
                                 }
-                                contentItem: Text {
-                                    text: parent.text
-                                    color: "white"
-                                    font.bold: true
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
-                                    leftPadding: 10
+                                contentItem: Row {
+                                    anchors.centerIn: parent
+                                    spacing: 8
+                                    
+                                    Image {
+                                        width: 18
+                                        height: 18
+                                        source: "recursos/image/icons/agregar.png"
+                                        fillMode: Image.PreserveAspectFit
+                                    }
+                                    
+                                    Text {
+                                        text: "Nuevo Cultivo"
+                                        color: "white"
+                                        font.bold: true
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
                                 }
                                 onClicked: {
                                     nuevoTipoCultivo = {
@@ -1667,7 +1637,7 @@ Rectangle {
                                         leftMargin: 10
                                         verticalCenter: parent.verticalCenter
                                     }
-                                    source: "Image/Image_UI_interfaz/Inconos/lupa.png"
+                                    source: "recursos/image/icons/lupa.png"
                                     width: 16
                                     height: 16
                                 }
@@ -1734,51 +1704,17 @@ Rectangle {
                             Layout.preferredHeight: 50
                             color: "transparent"
                             
-                            Row {
+                            Paginator {
+                                id: paginadorTipos
+                                width: Math.min(parent.width * 0.6, 400)
+                                height: 40
                                 anchors.centerIn: parent
-                                spacing: 10
+                                currentPage: paginaActualTipos
+                                totalPages: totalPaginasTipos
                                 
-                                Button {
-                                    text: "← Anterior"
-                                    enabled: paginaActualTipos > 1
-                                    implicitHeight: 32
-                                    background: Rectangle {
-                                        color: parent.enabled ? (parent.hovered ? "#2E7D32" : "#4CAF50") : "#CCCCCC"
-                                        radius: height / 2
-                                    }
-                                    contentItem: Text {
-                                        text: parent.text
-                                        color: "white"
-                                        font.bold: true
-                                        horizontalAlignment: Text.AlignHCenter
-                                        verticalAlignment: Text.AlignVCenter
-                                    }
-                                    onClicked: irPaginaAnteriorTipos()
-                                }
-                                
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: "Página " + paginaActualTipos + " de " + totalPaginasTipos
-                                    font.pixelSize: 14
-                                    color: "#2E7D32"
-                                }
-                                
-                                Button {
-                                    text: "Siguiente →"
-                                    enabled: paginaActualTipos < totalPaginasTipos
-                                    implicitHeight: 32
-                                    background: Rectangle {
-                                        color: parent.enabled ? (parent.hovered ? "#2E7D32" : "#4CAF50") : "#CCCCCC"
-                                        radius: height / 2
-                                    }
-                                    contentItem: Text {
-                                        text: parent.text
-                                        color: "white"
-                                        font.bold: true
-                                        horizontalAlignment: Text.AlignHCenter
-                                        verticalAlignment: Text.AlignVCenter
-                                    }
-                                    onClicked: irPaginaSiguienteTipos()
+                                onPageChanged: {
+                                    paginaActualTipos = newPage
+                                    cargarTiposCultivo()
                                 }
                             }
                         }
@@ -2145,7 +2081,7 @@ Rectangle {
                         
                         Button {
                             text: "Nueva Variedad"
-                            icon.source: "Image/Image_UI_interfaz/Inconos/agregar.svg"
+                            icon.source: "recursos/image/icons/agregar.svg"
                             implicitHeight: 36
                             background: Rectangle {
                                 color: parent.hovered ? "#E65A00" : "#f5922f"
@@ -2187,7 +2123,7 @@ Rectangle {
                                         leftMargin: 10
                                         verticalCenter: parent.verticalCenter
                                     }
-                                    source: "Image/Image_UI_interfaz/Inconos/lupa.png" // Cambia por tu ruta
+                                    source: "recursos/image/icons/lupa.png" // Cambia por tu ruta
                                     width: 16
                                     height: 16
                                 }
@@ -2217,7 +2153,7 @@ Rectangle {
                         
                         Button {
                             text: "Exportar"
-                            icon.source: "Image/Image_UI_interfaz/Inconos/exportacion-de-archivos.svg"
+                            icon.source: "recursos/image/icons/exportacion-de-archivos.svg"
                             implicitHeight: 36
                             background: Rectangle {
                                 color: "#4CAF50"
@@ -2471,52 +2407,18 @@ Rectangle {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 50
                     color: "transparent"
-                        
-                    Row {
+                    
+                    Paginator {
+                        id: paginadorVariedades
+                        width: Math.min(parent.width * 0.6, 400)
+                        height: 40
                         anchors.centerIn: parent
-                        spacing: 10
-                            
-                        Button {
-                            text: "← Anterior"
-                            enabled: paginaActualVariedades > 1
-                            implicitHeight: 32
-                            background: Rectangle {
-                                color: parent.enabled ? (parent.hovered ? "#2E7D32" : "#4CAF50") : "#CCCCCC"
-                                radius: height / 2
-                            }
-                            contentItem: Text {
-                                text: parent.text
-                                color: "white"
-                                font.bold: true
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                            }
-                            onClicked: irPaginaAnteriorVariedades()
-                        }
-                            
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: "Página " + paginaActualVariedades + " de " + totalPaginasVariedades
-                            font.pixelSize: 14
-                            color: "#2E7D32"
-                        }
-                            
-                        Button {
-                            text: "Siguiente →"
-                            enabled: paginaActualVariedades < totalPaginasVariedades
-                            implicitHeight: 32
-                            background: Rectangle {
-                                color: parent.enabled ? (parent.hovered ? "#2E7D32" : "#4CAF50") : "#CCCCCC"
-                                radius: height / 2
-                            }
-                            contentItem: Text {
-                                text: parent.text
-                                color: "white"
-                                font.bold: true
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                            }
-                            onClicked: irPaginaSiguienteVariedades()
+                        currentPage: paginaActualVariedades
+                        totalPages: totalPaginasVariedades
+                        
+                        onPageChanged: {
+                            paginaActualVariedades = newPage
+                            cargarVariedades()
                         }
                     }
                 }
@@ -2544,7 +2446,7 @@ Rectangle {
                         
                         Button {
                             text: "Nuevo Ciclo"
-                            icon.source: "Image/Image_UI_interfaz/Inconos/agregar.svg"
+                            icon.source: "recursos/image/icons/agregar.svg"
                             implicitHeight: 36
                             background: Rectangle {
                                 color: parent.hovered ? "#E65A00" : "#f5922f"
@@ -2577,7 +2479,7 @@ Rectangle {
                                         leftMargin: 10
                                         verticalCenter: parent.verticalCenter
                                     }
-                                    source: "Image/Image_UI_interfaz/Inconos/lupa.png" // Cambia por tu ruta
+                                    source: "recursos/image/icons/lupa.png" // Cambia por tu ruta
                                     width: 16
                                     height: 16
                                 }
@@ -2608,7 +2510,7 @@ Rectangle {
                         
                         Button {
                             text: "Exportar"
-                            icon.source: "Image/Image_UI_interfaz/Inconos/exportacion-de-archivos.svg"
+                            icon.source: "recursos/image/icons/exportacion-de-archivos.svg"
                             implicitHeight: 36
                             background: Rectangle {
                                 color: parent.hovered ? "#00e654" : "#4CAF50"
@@ -2934,52 +2836,18 @@ Rectangle {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 50
                     color: "transparent"
-                        
-                    Row {
+                    
+                    Paginator {
+                        id: paginadorCiclos
+                        width: Math.min(parent.width * 0.6, 400)
+                        height: 40
                         anchors.centerIn: parent
-                        spacing: 10
-                            
-                        Button {
-                            text: "← Anterior"
-                            enabled: paginaActualCiclos > 1
-                            implicitHeight: 32
-                            background: Rectangle {
-                                color: parent.enabled ? (parent.hovered ? "#2E7D32" : "#4CAF50") : "#CCCCCC"
-                                radius: height / 2
-                            }
-                            contentItem: Text {
-                                text: parent.text
-                                color: "white"
-                                font.bold: true
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                            }
-                            onClicked: irPaginaAnteriorCiclos()
-                        }
-                            
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: "Página " + paginaActualCiclos + " de " + totalPaginasCiclos
-                            font.pixelSize: 14
-                            color: "#2E7D32"
-                        }
-                            
-                        Button {
-                            text: "Siguiente →"
-                            enabled: paginaActualCiclos < totalPaginasCiclos
-                            implicitHeight: 32
-                            background: Rectangle {
-                                color: parent.enabled ? (parent.hovered ? "#2E7D32" : "#4CAF50") : "#CCCCCC"
-                                radius: height / 2
-                            }
-                            contentItem: Text {
-                                text: parent.text
-                                color: "white"
-                                font.bold: true
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                            }
-                            onClicked: irPaginaSiguienteCiclos()
+                        currentPage: paginaActualCiclos
+                        totalPages: totalPaginasCiclos
+                        
+                        onPageChanged: {
+                            paginaActualCiclos = newPage
+                            cargarCiclosProduccion()
                         }
                     }
                 }
@@ -3020,83 +2888,485 @@ Rectangle {
                             font.bold: true
                             color: "#9A6829"
                         }
-                        ComboBox {
-                            id: cmbFiltroCultivosCalendario
+                        
+                        // Filtro Cultivos
+                        Rectangle {
+                            id: filterCultivos
                             Layout.preferredWidth: 180
-                            model: ListModel { id: cultivosFiltroModel }
-                            textRole: "text"
-                            valueRole: "value"
+                            height: 40
+                            radius: 6
+                            color: "#FAFAFA"
+                            border.color: "#CCCCCC"
+                            border.width: 1
+                            
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                
+                                onClicked: {
+                                    if (popupCultivos.visible) popupCultivos.close()
+                                    else popupCultivos.open()
+                                }
+                                onEntered: parent.border.color = "#999999"
+                                onExited: {
+                                    if (!popupCultivos.visible) parent.border.color = "#CCCCCC"
+                                }
+                            }
+                            
+                            Row {
+                                anchors.fill: parent
+                                anchors.leftMargin: 12
+                                anchors.rightMargin: 12
+                                spacing: 8
+                                
+                                Text {
+                                    id: textCultivos
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: cultivosFiltroModel.count > 0 ? cultivosFiltroModel.get(filterCultivos.cmbFiltroCultivosCalendario).text : "Todos los cultivos"
+                                    color: "#333333"
+                                    font.pixelSize: 12
+                                    elide: Text.ElideRight
+                                    width: parent.width - 40
+                                }
+                                
+                                Item { Layout.fillWidth: true }
+                                
+                                Text {
+                                    text: popupCultivos.visible ? "▲" : "▼"
+                                    color: "#666666"
+                                    font.pixelSize: 10
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                            }
+                            
+                            property int cmbFiltroCultivosCalendario: 0
+                            
+                            Popup {
+                                id: popupCultivos
+                                width: filterCultivos.width
+                                height: Math.min(cultivosFiltroModel.count * 38, 300)
+                                y: filterCultivos.height + 2
+                                x: 0
+                                padding: 0
+                                closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+                                
+                                background: Rectangle {
+                                    color: "white"
+                                    radius: 6
+                                    border.color: "#E0E0E0"
+                                    border.width: 1
+                                }
+                                
+                                contentItem: ListView {
+                                    anchors.fill: parent
+                                    clip: true
+                                    model: cultivosFiltroModel
+                                    
+                                    delegate: Rectangle {
+                                        width: parent.width
+                                        height: 38
+                                        color: index === filterCultivos.cmbFiltroCultivosCalendario ? "#5C6BC0" : 
+                                              (delegateMA.containsMouse ? "#E8EAF6" : "white")
+                                        
+                                        MouseArea {
+                                            id: delegateMA
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            
+                                            onClicked: {
+                                                filterCultivos.cmbFiltroCultivosCalendario = index
+                                                aplicarFiltrosCalendario()
+                                                popupCultivos.close()
+                                            }
+                                        }
+                                        
+                                        Text {
+                                            anchors.fill: parent
+                                            anchors.leftMargin: 12
+                                            text: model.text
+                                            color: index === filterCultivos.cmbFiltroCultivosCalendario ? "white" : "#333333"
+                                            font.pixelSize: 12
+                                            font.bold: index === filterCultivos.cmbFiltroCultivosCalendario
+                                            verticalAlignment: Text.AlignVCenter
+                                        }
+                                    }
+                                    
+                                    ScrollBar.vertical: ScrollBar {
+                                        width: 6
+                                        policy: cultivosFiltroModel.count * 38 > 300 ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff
+                                        background: Rectangle { color: "transparent" }
+                                        contentItem: Rectangle {
+                                            color: "#C0C0C0"
+                                            radius: 3
+                                        }
+                                    }
+                                }
+                            }
+                            
                             Component.onCompleted: {
                                 cultivosFiltroModel.clear()
                                 cultivosFiltroModel.append({text: "Todos los cultivos", value: "todos"})
                                 actualizarCultivosFiltro()
                             }
-                            onCurrentIndexChanged: {
-                                aplicarFiltrosCalendario()
-                            }
                         }
-                        ComboBox {
-                            id: cmbFiltroEstadosCalendario
+                        
+                        // Filtro Estados
+                        Rectangle {
+                            id: filterEstados
                             Layout.preferredWidth: 150
-                            model: ListModel { id: estadosCalendarioModel }
-                            textRole: "text"
-                            valueRole: "value"
+                            height: 40
+                            radius: 6
+                            color: "#FAFAFA"
+                            border.color: "#CCCCCC"
+                            border.width: 1
+                            
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                
+                                onClicked: {
+                                    if (popupEstados.visible) popupEstados.close()
+                                    else popupEstados.open()
+                                }
+                                onEntered: parent.border.color = "#999999"
+                                onExited: {
+                                    if (!popupEstados.visible) parent.border.color = "#CCCCCC"
+                                }
+                            }
+                            
+                            Row {
+                                anchors.fill: parent
+                                anchors.leftMargin: 12
+                                anchors.rightMargin: 12
+                                spacing: 8
+                                
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: estadosCalendarioModel.count > 0 ? estadosCalendarioModel.get(filterEstados.currentIndex).text : "Todos los estados"
+                                    color: "#333333"
+                                    font.pixelSize: 12
+                                    elide: Text.ElideRight
+                                    width: parent.width - 40
+                                }
+                                
+                                Item { Layout.fillWidth: true }
+                                
+                                Text {
+                                    text: popupEstados.visible ? "▲" : "▼"
+                                    color: "#666666"
+                                    font.pixelSize: 10
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                            }
+                            
+                            property int currentIndex: 0
+                            
+                            Popup {
+                                id: popupEstados
+                                width: filterEstados.width
+                                height: Math.min(estadosCalendarioModel.count * 38, 300)
+                                y: filterEstados.height + 2
+                                x: 0
+                                padding: 0
+                                closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+                                
+                                background: Rectangle {
+                                    color: "white"
+                                    radius: 6
+                                    border.color: "#E0E0E0"
+                                    border.width: 1
+                                }
+                                
+                                contentItem: ListView {
+                                    anchors.fill: parent
+                                    clip: true
+                                    model: estadosCalendarioModel
+                                    
+                                    delegate: Rectangle {
+                                        width: parent.width
+                                        height: 38
+                                        color: index === filterEstados.currentIndex ? "#5C6BC0" : 
+                                              (delegateMA2.containsMouse ? "#E8EAF6" : "white")
+                                        
+                                        MouseArea {
+                                            id: delegateMA2
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            
+                                            onClicked: {
+                                                filterEstados.currentIndex = index
+                                                aplicarFiltrosCalendario()
+                                                popupEstados.close()
+                                            }
+                                        }
+                                        
+                                        Text {
+                                            anchors.fill: parent
+                                            anchors.leftMargin: 12
+                                            text: model.text
+                                            color: index === filterEstados.currentIndex ? "white" : "#333333"
+                                            font.pixelSize: 12
+                                            font.bold: index === filterEstados.currentIndex
+                                            verticalAlignment: Text.AlignVCenter
+                                        }
+                                    }
+                                }
+                            }
+                            
                             Component.onCompleted: {
                                 estadosCalendarioModel.clear()
                                 estadosCalendarioModel.append({text: "Todos los estados", value: "todos"})
                                 actualizarEstadosCalendario()
                             }
-                            onCurrentIndexChanged: {
-                                aplicarFiltrosCalendario()
-                            }
                         }
-                        ComboBox {
-                            id: cmbFiltroParcelasCalendario
+                        
+                        // Filtro Parcelas
+                        Rectangle {
+                            id: filterParcelas
                             Layout.preferredWidth: 150
-                            model: ListModel { id: parcelasCalendarioModel }
-                            textRole: "text"
-                            valueRole: "value"
+                            height: 40
+                            radius: 6
+                            color: "#FAFAFA"
+                            border.color: "#CCCCCC"
+                            border.width: 1
+                            
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                
+                                onClicked: {
+                                    if (popupParcelas.visible) popupParcelas.close()
+                                    else popupParcelas.open()
+                                }
+                                onEntered: parent.border.color = "#999999"
+                                onExited: {
+                                    if (!popupParcelas.visible) parent.border.color = "#CCCCCC"
+                                }
+                            }
+                            
+                            Row {
+                                anchors.fill: parent
+                                anchors.leftMargin: 12
+                                anchors.rightMargin: 12
+                                spacing: 8
+                                
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: parcelasCalendarioModel.count > 0 ? parcelasCalendarioModel.get(filterParcelas.currentIndex).text : "Todas las parcelas"
+                                    color: "#333333"
+                                    font.pixelSize: 12
+                                    elide: Text.ElideRight
+                                    width: parent.width - 40
+                                }
+                                
+                                Item { Layout.fillWidth: true }
+                                
+                                Text {
+                                    text: popupParcelas.visible ? "▲" : "▼"
+                                    color: "#666666"
+                                    font.pixelSize: 10
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                            }
+                            
+                            property int currentIndex: 0
+                            
+                            Popup {
+                                id: popupParcelas
+                                width: filterParcelas.width
+                                height: Math.min(parcelasCalendarioModel.count * 38, 300)
+                                y: filterParcelas.height + 2
+                                x: 0
+                                padding: 0
+                                closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+                                
+                                background: Rectangle {
+                                    color: "white"
+                                    radius: 6
+                                    border.color: "#E0E0E0"
+                                    border.width: 1
+                                }
+                                
+                                contentItem: ListView {
+                                    anchors.fill: parent
+                                    clip: true
+                                    model: parcelasCalendarioModel
+                                    
+                                    delegate: Rectangle {
+                                        width: parent.width
+                                        height: 38
+                                        color: index === filterParcelas.currentIndex ? "#5C6BC0" : 
+                                              (delegateMA3.containsMouse ? "#E8EAF6" : "white")
+                                        
+                                        MouseArea {
+                                            id: delegateMA3
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            
+                                            onClicked: {
+                                                filterParcelas.currentIndex = index
+                                                aplicarFiltrosCalendario()
+                                                popupParcelas.close()
+                                            }
+                                        }
+                                        
+                                        Text {
+                                            anchors.fill: parent
+                                            anchors.leftMargin: 12
+                                            text: model.text
+                                            color: index === filterParcelas.currentIndex ? "white" : "#333333"
+                                            font.pixelSize: 12
+                                            font.bold: index === filterParcelas.currentIndex
+                                            verticalAlignment: Text.AlignVCenter
+                                        }
+                                    }
+                                }
+                            }
+                            
                             Component.onCompleted: {
                                 parcelasCalendarioModel.clear()
                                 parcelasCalendarioModel.append({text: "Todas las parcelas", value: "todas"})
                                 actualizarParcelasCalendario()
                             }
-                            onCurrentIndexChanged: {
-                                aplicarFiltrosCalendario()
-                            }
                         }
-                        ComboBox {
-                            id: cmbFiltroTipoEvento
+                        
+                        // Filtro Tipo Evento
+                        Rectangle {
+                            id: filterTipoEvento
                             Layout.preferredWidth: 150
-                            model: ListModel {
-                                id: tipoEventoModel
-                                ListElement { text: "Todos los eventos"; value: "todos" }
-                                ListElement { text: "Solo Siembra"; value: "siembra" }
-                                ListElement { text: "Solo Cosecha"; value: "cosecha" }
-                                ListElement { text: "Solo Poda"; value: "poda" }
-                                ListElement { text: "Solo Floración"; value: "floracion" }
-                                ListElement { text: "Solo Limpieza"; value: "limpieza" }
+                            height: 40
+                            radius: 6
+                            color: "#FAFAFA"
+                            border.color: "#CCCCCC"
+                            border.width: 1
+                            
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                
+                                onClicked: {
+                                    if (popupTipoEvento.visible) popupTipoEvento.close()
+                                    else popupTipoEvento.open()
+                                }
+                                onEntered: parent.border.color = "#999999"
+                                onExited: {
+                                    if (!popupTipoEvento.visible) parent.border.color = "#CCCCCC"
+                                }
                             }
-                            textRole: "text"
-                            valueRole: "value"
-                            onCurrentIndexChanged: {
-                                aplicarFiltrosCalendario()
+                            
+                            Row {
+                                anchors.fill: parent
+                                anchors.leftMargin: 12
+                                anchors.rightMargin: 12
+                                spacing: 8
+                                
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: filterTipoEvento.currentIndex < tipoEventoModel.count ? tipoEventoModel.get(filterTipoEvento.currentIndex).text : "Todos los eventos"
+                                    color: "#333333"
+                                    font.pixelSize: 12
+                                    elide: Text.ElideRight
+                                    width: parent.width - 40
+                                }
+                                
+                                Item { Layout.fillWidth: true }
+                                
+                                Text {
+                                    text: popupTipoEvento.visible ? "▲" : "▼"
+                                    color: "#666666"
+                                    font.pixelSize: 10
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                            }
+                            
+                            property int currentIndex: 0
+                            
+                            Popup {
+                                id: popupTipoEvento
+                                width: filterTipoEvento.width
+                                height: Math.min(tipoEventoModel.count * 38, 300)
+                                y: filterTipoEvento.height + 2
+                                x: 0
+                                padding: 0
+                                closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+                                
+                                background: Rectangle {
+                                    color: "white"
+                                    radius: 6
+                                    border.color: "#E0E0E0"
+                                    border.width: 1
+                                }
+                                
+                                contentItem: ListView {
+                                    anchors.fill: parent
+                                    clip: true
+                                    model: tipoEventoModel
+                                    
+                                    delegate: Rectangle {
+                                        width: parent.width
+                                        height: 38
+                                        color: index === filterTipoEvento.currentIndex ? "#5C6BC0" : 
+                                              (delegateMA4.containsMouse ? "#E8EAF6" : "white")
+                                        
+                                        MouseArea {
+                                            id: delegateMA4
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            
+                                            onClicked: {
+                                                filterTipoEvento.currentIndex = index
+                                                aplicarFiltrosCalendario()
+                                                popupTipoEvento.close()
+                                            }
+                                        }
+                                        
+                                        Text {
+                                            anchors.fill: parent
+                                            anchors.leftMargin: 12
+                                            text: model.text
+                                            color: index === filterTipoEvento.currentIndex ? "white" : "#333333"
+                                            font.pixelSize: 12
+                                            font.bold: index === filterTipoEvento.currentIndex
+                                            verticalAlignment: Text.AlignVCenter
+                                        }
+                                    }
+                                }
                             }
                         }
                         Item { Layout.fillWidth: true }
                         Button {
                             text: "Limpiar Filtros"
+                            icon.source: "recursos/image/icons/restaurar.png"
                             implicitHeight: 32
                             background: Rectangle {
                                 color: parent.hovered ? "#E65A00" : "#FF9800"
                                 radius: height / 2
                             }
-                            contentItem: Text {
-                                text: parent.text
-                                color: "white"
-                                font.bold: true
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
+                            contentItem: Row {
+                                anchors.centerIn: parent
+                                spacing: 6
+                                
+                                Image {
+                                    width: 16
+                                    height: 16
+                                    source: "recursos/image/icons/restaurar.png"
+                                    fillMode: Image.PreserveAspectFit
+                                }
+                                
+                                Text {
+                                    text: "Limpiar Filtros"
+                                    color: "white"
+                                    font.bold: true
+                                    verticalAlignment: Text.AlignVCenter
+                                }
                             }
                             onClicked: limpiarFiltrosCalendario()
                         }
@@ -3116,19 +3386,20 @@ Rectangle {
                             spacing: 15
                             
                             Button {
-                                text: "<<"
+                                text: ""
+                                icon.source: "recursos/image/icons/flechaizquierda.png"
                                 implicitHeight: 30
                                 implicitWidth: 40
                                 background: Rectangle {
                                     color: parent.hovered ? "#7A5020" : "#9A6829"
                                     radius: height / 2
                                 }
-                                contentItem: Text {
-                                    text: parent.text
-                                    color: "white"
-                                    font.bold: true
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
+                                contentItem: Image {
+                                    anchors.centerIn: parent
+                                    width: 18
+                                    height: 18
+                                    source: "recursos/image/icons/flechaizquierda.png"
+                                    fillMode: Image.PreserveAspectFit
                                 }
                                 onClicked: {
                                     // Restar un año
@@ -3151,19 +3422,20 @@ Rectangle {
                             Item { Layout.fillWidth: true }
                             
                             Button {
-                                text: ">>"
+                                text: ""
+                                icon.source: "recursos/image/icons/flechaderecha.png"
                                 implicitHeight: 30
                                 implicitWidth: 40
                                 background: Rectangle {
                                     color: parent.hovered ? "#7A5020" : "#9A6829"
                                     radius: height / 2
                                 }
-                                contentItem: Text {
-                                    text: parent.text
-                                    color: "white"
-                                    font.bold: true
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
+                                contentItem: Image {
+                                    anchors.centerIn: parent
+                                    width: 18
+                                    height: 18
+                                    source: "recursos/image/icons/flechaderecha.png"
+                                    fillMode: Image.PreserveAspectFit
                                 }
                                 onClicked: {
                                     // Sumar un año
@@ -4859,14 +5131,14 @@ Rectangle {
         eventosPorFecha = {}
         
         // Obtener valores de filtros
-        const filtroCultivo = cmbFiltroCultivosCalendario.currentIndex > 0 ? 
-                            cmbFiltroCultivosCalendario.currentText : null;
-        const filtroEstado = cmbFiltroEstadosCalendario.currentIndex > 0 ? 
-                            cmbFiltroEstadosCalendario.currentText : null;
-        const filtroParcela = cmbFiltroParcelasCalendario.currentIndex > 0 ? 
-                            cmbFiltroParcelasCalendario.currentText : null;
-        const filtroTipoEvento = cmbFiltroTipoEvento.currentIndex > 0 ? 
-                                cmbFiltroTipoEvento.currentText : null;
+        const filtroCultivo = filterCultivos.cmbFiltroCultivosCalendario > 0 ? 
+                            cultivosFiltroModel.get(filterCultivos.cmbFiltroCultivosCalendario).text : null;
+        const filtroEstado = filterEstados.currentIndex > 0 ? 
+                            estadosCalendarioModel.get(filterEstados.currentIndex).text : null;
+        const filtroParcela = filterParcelas.currentIndex > 0 ? 
+                            parcelasCalendarioModel.get(filterParcelas.currentIndex).text : null;
+        const filtroTipoEvento = filterTipoEvento.currentIndex > 0 ? 
+                                tipoEventoModel.get(filterTipoEvento.currentIndex).value : null;
         
         for (let i = 0; i < ciclosModel.count; i++) {
             const ciclo = ciclosModel.get(i)
@@ -4922,10 +5194,10 @@ Rectangle {
 
     // Función para limpiar todos los filtros
     function limpiarFiltrosCalendario() {
-        cmbFiltroCultivosCalendario.currentIndex = 0;
-        cmbFiltroEstadosCalendario.currentIndex = 0;
-        cmbFiltroParcelasCalendario.currentIndex = 0;
-        cmbFiltroTipoEvento.currentIndex = 0;
+        filterCultivos.cmbFiltroCultivosCalendario = 0;
+        filterEstados.currentIndex = 0;
+        filterParcelas.currentIndex = 0;
+        filterTipoEvento.currentIndex = 0;
         
         // Recargar eventos sin filtros
         cargarEventosCalendario();
