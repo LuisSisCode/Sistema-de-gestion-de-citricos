@@ -12,42 +12,22 @@ Window {
     // Propiedad para controlar qué vista mostrar
     property string currentView: "login"  // "login" o "main"
     
+    // En app_container.qml
+    // app_container.qml - VERIFICAR que tenga esto
     Loader {
         id: viewLoader
-        objectName: "viewLoader"  // ✅ AÑADIDO: objectName para encontrarlo desde Python
+        objectName: "viewLoader"  // ✅ CRÍTICO: debe tener este objectName
         anchors.fill: parent
         source: currentView === "login" ? "login.qml" : "main.qml"
-        
-        // ✅ MEJORADO: Asíncrono para mejor rendimiento
-        asynchronous: false
-        
-        onLoaded: {
-            console.log("✅ Vista cargada:", currentView)
-            
-            // Si es la vista de login, conectar la señal
-            if (currentView === "login" && item) {
-                // Conectar señal de login exitoso si existe
-                if (item.loginSuccessful !== undefined) {
-                    item.loginSuccessful.connect(function() {
-                        console.log("🔓 Login exitoso detectado en app_container")
-                        // No cambiamos aquí, dejamos que AppManager lo maneje
-                    })
-                }
-            }
-            
-            // Si es la vista main, notificar que está lista
-            if (currentView === "main" && item) {
-                console.log("✅ Vista main cargada y lista")
-            }
-        }
+        asynchronous: false  // ✅ Importante para timing
         
         onStatusChanged: {
-            if (status === Loader.Error) {
-                console.error("❌ Error cargando vista:", source)
+            if (status === Loader.Ready) {
+                console.log("✅ Vista completamente cargada:", source)
             } else if (status === Loader.Loading) {
                 console.log("⏳ Cargando vista:", source)
-            } else if (status === Loader.Ready) {
-                console.log("✅ Vista lista:", source)
+            } else if (status === Loader.Error) {
+                console.error("❌ Error cargando vista:", source)
             }
         }
     }
