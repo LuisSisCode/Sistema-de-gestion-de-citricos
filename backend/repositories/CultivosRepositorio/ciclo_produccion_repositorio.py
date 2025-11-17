@@ -29,7 +29,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         SELECT c.id_ciclo, c.id_parcela, c.id_variedad, c.fecha_siembra, 
                c.fecha_cosecha_estimada, c.area_sembrada,
                c.estado,
-               c.fecha_floracion, c.fecha_poda, c.fecha_limpieza, c.frecuencia_limpieza,
+               c.fecha_floracion, c.fecha_limpieza, c.frecuencia_limpieza,
                p.nombre AS nombre_parcela, 
                v.nombre AS nombre_variedad,
                t.nombre AS nombre_tipo_cultivo,
@@ -592,7 +592,6 @@ class CicloProduccionRepositorio(RepositorioBase):
             'fecha_siembra': self._formatear_fecha(row.fecha_siembra),
             'fecha_cosecha_estimada': self._formatear_fecha(row.fecha_cosecha_estimada),
             'fecha_floracion': self._formatear_fecha(row.fecha_floracion),
-            'fecha_poda': self._formatear_fecha(row.fecha_poda),
             'fecha_limpieza': self._formatear_fecha(row.fecha_limpieza),
             
             # Información relacionada
