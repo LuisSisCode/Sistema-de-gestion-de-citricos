@@ -14,7 +14,13 @@ Rectangle {
     property bool modelReady: false
     property bool productoresLoaded: false
     // Controlar cuando el modelo está disponible
-
+    onProductoresparcelasChanged: {
+        if (productoresparcelas) {
+            productoresparcelas.cargar_productores()
+            productoresparcelas.cargar_parcelas()
+            modelReady = true
+        }
+    }
 
     property double latitudSeleccionada: -17.4001
     property double longitudSeleccionada: -63.9260  
@@ -29,8 +35,6 @@ Rectangle {
         "esPropietario": false
 
     }
-
-    property var productoresModel: productoresparcelasModel
     
     // Propiedades para la edición de parcelas
     property var nuevaParcela: {
@@ -52,56 +56,58 @@ Rectangle {
     property int totalPaginasParcelas: 1
     property int parcelasPorPagina: 3
     
-    // productoresparcelasModel
-    property var productoresparcelasModel: contentContainer.productoresModel
+    // productoresparcelas
+    property var productoresparcelas: contentContainer.productoresModel
 
     Component.onCompleted: {
-        if (!productoresparcelasModel && contentContainer.productoresModel) {
-            productoresparcelasModel = contentContainer.productoresModel;
+        if (!productoresparcelas && contentContainer.productoresModel) {
+            productoresparcelas = contentContainer.productoresModel;
         }
-        //console.log("Modelo disponible:", productoresparcelasModel !== null)
-        if (productoresparcelasModel) {
-            console.log("Tipo de productoresparcelasModel.productores:", typeof productoresparcelasModel.productores)
-            console.log("Es array:", Array.isArray(productoresparcelasModel.productores))
+        //console.log("Modelo disponible:", productoresparcelas !== null)
+        if (productoresparcelas) {
+            console.log("Tipo de productoresparcelas.productores:", typeof productoresparcelas.productores)
+            console.log("Es array:", Array.isArray(productoresparcelas.productores))
             
-            if (productoresparcelasModel.productores) {
-                console.log("Número de productores:", productoresparcelasModel.productores.length)
-                if (productoresparcelasModel.productores.length > 0) {
-                    console.log("Primer productor:", JSON.stringify(productoresparcelasModel.productores[0]))
+            if (productoresparcelas.productores) {
+                console.log("Número de productores:", productoresparcelas.productores.length)
+                if (productoresparcelas.productores.length > 0) {
+                    console.log("Primer agricultor:", JSON.stringify(productoresparcelas.productores[0]))
                 }
             }
             
             // Cargar explícitamente los datos
-            productoresparcelasModel.cargar_productores_pagina(1)
-            productoresparcelasModel.cargar_parcelas_pagina(1)
-            inicializarDatos()
+            productoresparcelas.cargar_productores_pagina(1)
+            productoresparcelas.cargar_parcelas_pagina(1)
         }
     }
     
     Connections {
-        target: productoresparcelasModel ? productoresparcelasModel : null
+        target: productoresparcelas ? productoresparcelas : null
         ignoreUnknownSignals: true
         
         function onProductoresChanged() {
-            if (productoresparcelasModel) {
+            if (productoresparcelas) {
                 productoresLoaded = true
-                productoresListView.model = productoresparcelasModel.productores
-                paginaActualProductores = productoresparcelasModel.paginaActualProductores || 1
-                totalPaginasProductores = productoresparcelasModel.totalPaginasProductores || 1
-                console.log("Productores actualizados:", productoresparcelasModel.productores.length)
+                productoresListView.model = productoresparcelas.productores
+                paginaActualProductores = productoresparcelas.paginaActualProductores || 1
+                totalPaginasProductores = productoresparcelas.totalPaginasProductores || 1
+                console.log("Productores actualizados:", productoresparcelas.productores.length)
             }
         }
         
         function onParcelasChanged() {
-            if (productoresparcelasModel) {
-                parcelasGrid.model = productoresparcelasModel.parcelas
-                paginaActualParcelas = productoresparcelasModel.paginaActualParcelas || 1
-                totalPaginasParcelas = productoresparcelasModel.totalPaginasParcelas || 1
-                console.log("Parcelas actualizadas:", productoresparcelasModel.parcelas.length)
+            if (productoresparcelas) {
+                parcelasGrid.model = productoresparcelas.parcelas
+                paginaActualParcelas = productoresparcelas.paginaActualParcelas || 1
+                totalPaginasParcelas = productoresparcelas.totalPaginasParcelas || 1
+                console.log("Parcelas actualizadas:", productoresparcelas.parcelas.length)
                 console.log("Página parcelas:", paginaActualParcelas, "de", totalPaginasParcelas)
             }
         }
         
+        function onPropietariosChanged() {
+            console.log("Propietarios actualizados:", productoresparcelas.propietarios.length)
+        }
     }
     
     // Título de la página
@@ -223,7 +229,7 @@ Rectangle {
                             radius: height / 2
                         }
                         onClicked: {
-                            // Inicializa los valores para el nuevo productor
+                            // Inicializa los valores para el nuevo agricultor
                             nuevoProductor = {  
                                 "nombre": "", 
                                 "apellido": "", 
@@ -234,14 +240,14 @@ Rectangle {
                                 "esPropietario": false 
                             }
                             
-                            // Mostrar el diálogo de nuevo productor
-                            dialogNuevoProductor.open()
+                            // Mostrar el diálogo de nuevo agricultor
+                            dialogNuevoAgricultor.open()
                         }
                     }
 
                     TextField {
                         id: txtBuscarAgricultor
-                        placeholderText: "Buscar productor..."
+                        placeholderText: "Buscar agricultor..."
                         implicitWidth: 400
                         implicitHeight: 28
                         leftPadding: 30
@@ -266,11 +272,11 @@ Rectangle {
                         }
                         onTextChanged: {
                             if (text.length > 2) {
-                                var resultados = productoresparcelasModel.filtrar_productores_por_nombre(text)
+                                var resultados = productoresparcelas.filtrar_productores_por_nombre(text)
                                 productoresListView.model = resultados
                             } else if (text.length === 0) {
                                 // Restaurar la lista completa
-                                productoresListView.model = productoresparcelasModel.productores
+                                productoresListView.model = productoresparcelas.productores
                             }
                         }
                     }
@@ -300,7 +306,7 @@ Rectangle {
                     anchors.fill: parent
                     anchors.margins: 1
                     clip: true
-                    model: productoresparcelasModel ? productoresparcelasModel.productores : []
+                    model: productoresparcelas ? productoresparcelas.productores : []
                     onModelChanged: {
                         console.log("Modelo de productores cambiado, elementos:", model ? model.length : 0)
                     }        
@@ -505,7 +511,7 @@ Rectangle {
                                         ToolTip.visible: hovered
                                         ToolTip.text: "Editar"
                                         onClicked:{
-                                            // Cargar datos del productor a editar
+                                            // Cargar datos del agricultor a editar
                                             nuevoProductor = {
                                                 "id_productor": modelData.id_productor,
                                                 "nombre": modelData.nombre,
@@ -523,11 +529,12 @@ Rectangle {
                                             txtTelefono.text = modelData.telefono
                                             txtCorreo.text = modelData.correo
                                             txtDireccion.text = modelData.direccion
+                                            chkPropietario.checked = Boolean(modelData.esPropietario) || false // modificado
                                             
                                             // Configurar el diálogo para modo edición
-                                            dialogNuevoProductor.isEditMode = true
-                                            dialogNuevoProductor.title = "Editar Agricultor"
-                                            dialogNuevoProductor.open()
+                                            dialogNuevoAgricultor.isEditMode = true
+                                            dialogNuevoAgricultor.title = "Editar Agricultor"
+                                            dialogNuevoAgricultor.open()
                                         }
                                     }
                                     
@@ -540,7 +547,7 @@ Rectangle {
                                         ToolTip.text: "Eliminar"
                                         onClicked: {
                                             // Mostrar diálogo de confirmación de eliminación
-                                            confirmDeleteProductorDialog.productorId = modelData.id_productor
+                                            confirmDeleteProductorDialog.agricultorId = modelData.id_productor
                                             confirmDeleteProductorDialog.nombreProductor = modelData.nombre + " " + modelData.apellido
                                             confirmDeleteProductorDialog.open()
                                         }
@@ -557,13 +564,7 @@ Rectangle {
                         color: "#757575"
                         font.pixelSize: 14
                         horizontalAlignment: Text.AlignHCenter
-                        visible: {
-                            if (!productoresparcelasModel) 
-                                return false;
-                            if (!productoresparcelasModel.productores) 
-                                return false;
-                            return productoresparcelasModel.productores.length === 0;
-                        }
+                        visible: productoresarcelas && productoresparcelas.productores && productoresparcelas.productores.length === 0
                     }
                 }
             }
@@ -582,7 +583,7 @@ Rectangle {
                     Button {
                         text: "← Anterior"
                         enabled: paginaActualProductores > 1
-                        onClicked: productoresparcelasModel.pagina_anterior_productores()
+                        onClicked: productoresparcelas.pagina_anterior_productores()
                     }
                     
                     Text {
@@ -594,7 +595,7 @@ Rectangle {
                     Button {
                         text: "Siguiente →"
                         enabled: paginaActualProductores < totalPaginasProductores
-                        onClicked: productoresparcelasModel.pagina_siguiente_productores()
+                        onClicked: productoresparcelas.pagina_siguiente_productores()
                     }
                 }
             }
@@ -667,11 +668,11 @@ Rectangle {
                         }
                         onTextChanged: {
                             if (text.length > 2) {
-                                var resultados = productoresparcelasModel.filtrar_parcelas_por_nombre(text)
+                                var resultados = productoresparcelas.filtrar_parcelas_por_nombre(text)
                                 parcelasGrid.model = resultados
                             } else if (text.length === 0) {
                                 // Restaurar la lista completa
-                                parcelasGrid.model = productoresparcelasModel.parcelas
+                                parcelasGrid.model = productoresparcelas.parcelas
                             }
                         }
                     }
@@ -684,6 +685,10 @@ Rectangle {
                         // Modelo inicial con la opción "Todos los productores"
                         model: {
                             var items = [{ id: 0, nombre: "Todos los productores" }];
+                            if (productoresparcelas && productoresparcelas.propietarios) {
+                                // Agregar los propietarios de la lista
+                                items = items.concat(productoresparcelas.propietarios);
+                            }
                             return items;
                         }
                         
@@ -695,17 +700,23 @@ Rectangle {
                         onActivated: {
                             var selectedId = cmbFiltroAgricultores.currentValue;
                             if (selectedId === 0) {
-                                parcelasGrid.model = productoresparcelasModel.parcelas;
+                                parcelasGrid.model = productoresparcelas.parcelas;
+                            } else {
+                                parcelasGrid.model = productoresparcelas.obtener_parcelas_por_propietario(selectedId);
                             }
+
                         }
                         
                         // Actualizar cuando cambien los datos
                         Connections {
-                            target: productoresparcelasModel ? productoresparcelasModel : null
+                            target: productoresparcelas ? productoresparcelas : null
                             
                             function onPropietariosChanged() {
                                 // Recrear el modelo con la opción "Todos" + la lista de propietarios
                                 var items = [{ id: 0, nombre: "Todos los productores" }];
+                                if (productoresparcelas && productoresparcelas.propietarios) {
+                                    items = items.concat(productoresparcelas.propietarios);
+                                }
                                 cmbFiltroAgricultores.model = items;
                             }
                             
@@ -713,9 +724,9 @@ Rectangle {
                                 // Si está seleccionado un propietario específico, actualizar el filtro
                                 var selectedId = cmbFiltroAgricultores.currentValue;
                                 if (selectedId === 0) {
-                                    parcelasGrid.model = productoresparcelasModel.parcelas;
+                                    parcelasGrid.model = productoresparcelas.parcelas;
                                 } else {
-                                    parcelasGrid.model = productoresparcelasModel.obtener_parcelas_por_propietario(selectedId);
+                                    parcelasGrid.model = productoresparcelas.obtener_parcelas_por_propietario(selectedId);
                                 }
                             }
                         }
@@ -733,7 +744,7 @@ Rectangle {
                 anchors.bottom: navegacionParcelas.top
                 anchors.bottomMargin: 10
                 clip: true
-                model: productoresparcelasModel ? productoresparcelasModel.parcelas : []
+                model: productoresparcelas ? productoresparcelas.parcelas : []
                 onModelChanged: {
                     console.log("Modelo de parcelas cambiado, elementos:", model ? model.length : 0)
                 }
@@ -747,13 +758,7 @@ Rectangle {
                     color: "#757575"
                     font.pixelSize: 14
                     horizontalAlignment: Text.AlignHCenter
-                    visible: {
-                        if (!productoresparcelasModel) 
-                            return false;
-                        if (!productoresparcelasModel.parcelas) 
-                            return false;
-                        return productoresparcelasModel.parcelas.length === 0;
-                    }
+                    visible: productoresparcelas && productoresparcelas.parcelas && productoresparcelas.parcelas.length === 0
                 }
 
                 delegate: Rectangle {
@@ -895,7 +900,7 @@ Rectangle {
                     Button {
                         text: "← Anterior"
                         enabled: paginaActualParcelas > 1
-                        onClicked: productoresparcelasModel.pagina_anterior_parcelas()
+                        onClicked: productoresparcelas.pagina_anterior_parcelas()
                     }
                     
                     Text {
@@ -907,18 +912,28 @@ Rectangle {
                     Button {
                         text: "Siguiente →"
                         enabled: paginaActualParcelas < totalPaginasParcelas
-                        onClicked: productoresparcelasModel.pagina_siguiente_parcelas()
+                        onClicked: productoresparcelas.pagina_siguiente_parcelas()
                     }
                 }
             } 
         }
 
+
+        // Página de Mapa
+        Item {
+            anchors.fill: parent
+            MapaInteractivo {
+                id: mapaInteractivo
+                anchors.fill: parent
+                anchors.margins: 10
+            }
+        }
     }
     
-    // DIÁLOGO DE NUEVO PRODUCTOR
+    // DIÁLOGO DE NUEVO AGRICULTOR
     Dialog {
-        id: dialogNuevoProductor
-        title: "Nuevo Productor"
+        id: dialogNuevoAgricultor
+        title: "Nuevo Agricultor"
         modal: true
         width: 500
         height: 600
@@ -1071,7 +1086,7 @@ Rectangle {
             Button {
                 text: "Cancelar"
                 DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
-                onClicked: dialogNuevoProductor.close()
+                onClicked: dialogNuevoAgricultor.close()
             }
             
             Button {
@@ -1104,7 +1119,7 @@ Rectangle {
                         }
                     }
                     // Verificar si está en modo edición o creación
-                    if (dialogNuevoProductor.isEditMode) {
+                    if (dialogNuevoAgricultor.isEditMode) {
                         editarProductor();
                     } else {
                         guardarNuevoProductor();
@@ -1121,6 +1136,7 @@ Rectangle {
             txtTelefono.text = ""
             txtCorreo.text = ""
             txtDireccion.text = ""
+            chkPropietario.checked = false
             mensajeValidacionAgricultor.text = ""
             isEditMode = false
             title = "Nuevo Productor"  // Restaurar el título original
@@ -1172,6 +1188,33 @@ Rectangle {
                         placeholderText: "Ingrese nombre de la parcela"
                         Layout.fillWidth: true
                         onTextChanged: nuevaParcela.nombre = text
+                    }
+                    
+                    // Propietario
+                    Text {
+                        text: "Propietario:"
+                        Layout.alignment: Qt.AlignRight
+                    }
+                    
+                    ComboBox {
+                        id: cmbPropietario
+                        Layout.fillWidth: true
+                        model: productoresparcelas ? productoresparcelas.propietarios : []
+                        textRole: "nombre"
+                        valueRole: "id"
+
+                        // Actualizar cuando cambien los propietarios
+                        Connections {
+                            target: productoresparcelas ? productoresparcelas : null
+                            function onPropietariosChanged() {
+                                cmbPropietario.model = productoresparcelas ? productoresparcelas.propietarios : [];
+                            }
+                        }
+                        
+                        onActivated: {
+                            var selectedId = cmbPropietario.currentValue
+                            nuevaParcela.propietarioId = selectedId
+                        }
                     }
                     
                     // Ubicación
@@ -1459,7 +1502,7 @@ Rectangle {
         width: 400  
         height: 200
         
-        property int productorId: -1
+        property int agricultorId: -1
         property string nombreAgricultor: ""
         
         contentItem: Item {
@@ -1473,7 +1516,7 @@ Rectangle {
                 
                 Text {
                     width: parent.width
-                    text: "¿Está seguro que desea eliminar al productor '" + confirmDeleteAgricultorDialog.nombreAgricultor + "'?"
+                    text: "¿Está seguro que desea eliminar al agricultor '" + confirmDeleteAgricultorDialog.nombreAgricultor + "'?"
                     font.pixelSize: 14
                     wrapMode: Text.WordWrap
                 }
@@ -1513,11 +1556,11 @@ Rectangle {
         }
         
         onAccepted: {
-            var exito = productoresparcelasModel.eliminar_productor(confirmDeleteAgricultorDialog.productorId);
+            var exito = productoresparcelas.eliminar_agricultor(confirmDeleteAgricultorDialog.agricultorId);
             if (exito) {
                 showMessage("Agricultor eliminado correctamente")
             } else {
-                showMessage("No se pudo eliminar el productor")
+                showMessage("No se pudo eliminar el agricultor")
             }
         }     
     }
@@ -1845,24 +1888,33 @@ Rectangle {
         return contentContainer.obtenerUrlMapa()
     }
 
-    function guardarNuevoProductor() {
-        // Validar que el modelo esté disponible
-        if (!productoresparcelasModel) {
-            console.error("❌ productoresparcelasModel no esta definido :(");
-            return;
+    function obtenerPropietariosModel() {
+            var propietariosArray = [];
+            if (productoresparcelas && productoresparcelas.propietarios) {
+                for (var i = 0; i < productoresparcelas.propietarios.length; i++) {
+                    propietariosArray.push({
+                    id: productoresparcelas.propietarios[i].id,
+                    text: productoresparcelas.propietarios[i].nombre
+                    });
+                }
+            }
+            return propietariosArray;
         }
-        
-        nuevoProductor.fecha_registro = getFormattedDate();
-        var productor_json = JSON.stringify(nuevoProductor);
-        
-        // Llamar al método solo una vez
-        var exito = productoresparcelasModel.agregar_productor(productor_json);
-        
-        if (exito) {
-            showMessage("Productor guardado correctamente");
-            dialogNuevoProductor.close();
-        } else {
-            mensajeValidacionAgricultor.text = "Error al guardar el productor";
+
+        function guardarNuevoProductor() {
+            // Asegúrate de que nuevoProductor tenga todos los campos requeridos
+            nuevoProductor.fecha_registro = getFormattedDate();
+            // Asegúrate de que esPropietario sea booleano
+            nuevoProductor.esPropietario = nuevoProductor.esPropietario ? true : false;
+            
+            var agricultor_json = JSON.stringify(nuevoProductor);
+            var exito = productoresparcelas.agregar_agricultor(agricultor_json);
+            
+            if (exito) {
+                showMessage("Agricultor guardado correctamente");
+                dialogNuevoAgricultor.close();
+            } else {
+                mensajeValidacionAgricultor.text = "Error al guardar el agricultor";
         }
     }
     
@@ -1875,7 +1927,7 @@ Rectangle {
         nuevaParcela.longitud = parseFloat(txtLongitud.text) || null;
         
         var parcela_json = JSON.stringify(nuevaParcela);
-        var exito = productoresparcelasModel.agregar_parcela(parcela_json);
+        var exito = productoresparcelas.agregar_parcela(parcela_json);
         
         if (exito) {
             showMessage("Parcela guardada correctamente");
@@ -1903,7 +1955,7 @@ Rectangle {
     }
     function editarProductor() {
         // Crear objeto con los datos actualizados
-        var productor_actualizado = {
+        var agricultor_actualizado = {
             "nombre": nuevoProductor.nombre,
             "apellido": nuevoProductor.apellido,
             "identificacion": nuevoProductor.identificacion,
@@ -1914,13 +1966,13 @@ Rectangle {
         }
         
         // Enviar al modelo para actualizar
-        var exito = productoresparcelasModel.actualizar_productor(nuevoProductor.id_productor, JSON.stringify(productor_actualizado))
+        var exito = productoresparcelas.actualizar_productor(nuevoProductor.id_productor, JSON.stringify(agricultor_actualizado))
         
         if (exito) {
             showMessage("Productor actualizado correctamente")
             dialogNuevoProductor.close()
         } else {
-            mensajeValidacionProductor.text = "Error al actualizar el productor"
+            mensajeValidacionProductor.text = "Error al actualizar el agricultor"
         }
     }
     function abrirEdicionParcela(parcela) {
@@ -1970,123 +2022,13 @@ Rectangle {
         }
         
         // Enviar al modelo para actualizar (necesitarás agregar este método en productores_parcelas_model.py)
-        var exito = productoresparcelasModel.actualizar_parcela(nuevaParcela.parcelaId, JSON.stringify(parcela_actualizada))
+        var exito = productoresparcelas.actualizar_parcela(nuevaParcela.parcelaId, JSON.stringify(parcela_actualizada))
         
         if (exito) {
             showMessage("Parcela actualizada correctamente")
             dialogNuevaParcela.close()
         } else {
             mensajeValidacionParcela.text = "Error al actualizar la parcela"
-        }
-    }
-
-    function inicializarDatos() {
-        console.log("✅ Modelo disponible, inicializando datos...")
-        if (productoresparcelasModel) {
-            // Cargar datos iniciales
-            productoresparcelasModel.cargar_productores_pagina(1)
-            productoresparcelasModel.cargar_parcelas_pagina(1)
-            productoresparcelasModel.cargar_propietarios()
-            
-            console.log("✅ Datos iniciales cargados")
-        }
-    }
-}rcentajeUso.value = parcela.porcentajeUso
-        
-        // Seleccionar el propietario en el combobox
-        for(var i = 0; i < cmbPropietario.count; i++) {
-            if(cmbPropietario.model[i].id === parcela.propietarioId) {
-                cmbPropietario.currentIndex = i
-                break
-            }
-        }
-        
-        // Configurar el diálogo para modo edición
-        dialogNuevaParcela.isEditMode = true
-        dialogNuevaParcela.title = "Editar Parcela"
-        dialogNuevaParcela.open()
-    }
-    function editarParcela() {
-        // Crear objeto con los datos actualizados
-        var parcela_actualizada = {
-            "nombre": nuevaParcela.nombre,
-            "propietarioId": nuevaParcela.propietarioId,
-            "ubicacion": nuevaParcela.ubicacion,
-            "area": parseFloat(txtArea.text),
-            "porcentajeUso": sliderPorcentajeUso.value,
-            "latitud": parseFloat(txtLatitud.text),
-            "longitud": parseFloat(txtLongitud.text)
-        }
-        
-        // Enviar al modelo para actualizar (necesitarás agregar este método en productores_parcelas_model.py)
-        var exito = productoresparcelasModel.actualizar_parcela(nuevaParcela.parcelaId, JSON.stringify(parcela_actualizada))
-        
-        if (exito) {
-            showMessage("Parcela actualizada correctamente")
-            dialogNuevaParcela.close()
-        } else {
-            mensajeValidacionParcela.text = "Error al actualizar la parcela"
-        }
-    }
-
-    function inicializarDatos() {
-        console.log("✅ Modelo disponible, inicializando datos...")
-        if (productoresparcelasModel) {
-            // Cargar datos iniciales
-            productoresparcelasModel.cargar_productores_pagina(1)
-            productoresparcelasModel.cargar_parcelas_pagina(1)
-            productoresparcelasModel.cargar_propietarios()
-            
-            console.log("✅ Datos iniciales cargados")
-        }
-    }
-}centajeUso.value = parcela.porcentajeUso
-        
-        // Seleccionar el propietario en el combobox
-        for(var i = 0; i < cmbPropietario.count; i++) {
-            if(cmbPropietario.model[i].id === parcela.propietarioId) {
-                cmbPropietario.currentIndex = i
-                break
-            }
-        }
-        
-        // Configurar el diálogo para modo edición
-        dialogNuevaParcela.isEditMode = true
-        dialogNuevaParcela.title = "Editar Parcela"
-        dialogNuevaParcela.open()
-    }
-    function editarParcela() {
-        // Crear objeto con los datos actualizados
-        var parcela_actualizada = {
-            "nombre": nuevaParcela.nombre,
-            "propietarioId": nuevaParcela.propietarioId,
-            "ubicacion": nuevaParcela.ubicacion,
-            "area": parseFloat(txtArea.text),
-            "porcentajeUso": sliderPorcentajeUso.value,
-            "latitud": parseFloat(txtLatitud.text),
-            "longitud": parseFloat(txtLongitud.text)
-        }
-        
-        // Enviar al modelo para actualizar (necesitarás agregar este método en productores_parcelas_model.py)
-        var exito = productoresparcelasModel.actualizar_parcela(nuevaParcela.parcelaId, JSON.stringify(parcela_actualizada))
-        
-        if (exito) {
-            showMessage("Parcela actualizada correctamente")
-            dialogNuevaParcela.close()
-        } else {
-            mensajeValidacionParcela.text = "Error al actualizar la parcela"
-        }
-    }
-
-    function inicializarDatos() {
-        console.log("✅ Modelo disponible, inicializando datos...")
-        if (productoresparcelasModel) {
-            // Cargar datos iniciales
-            productoresparcelasModel.cargar_productores_pagina(1)
-            productoresparcelasModel.cargar_parcelas_pagina(1)
-            productoresparcelasModel.cargar_propietarios()
-            
-            console.log("✅ Datos iniciales cargados")
         }
     }
 }
