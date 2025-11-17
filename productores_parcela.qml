@@ -1991,4 +1991,102 @@ Rectangle {
             console.log("✅ Datos iniciales cargados")
         }
     }
+}rcentajeUso.value = parcela.porcentajeUso
+        
+        // Seleccionar el propietario en el combobox
+        for(var i = 0; i < cmbPropietario.count; i++) {
+            if(cmbPropietario.model[i].id === parcela.propietarioId) {
+                cmbPropietario.currentIndex = i
+                break
+            }
+        }
+        
+        // Configurar el diálogo para modo edición
+        dialogNuevaParcela.isEditMode = true
+        dialogNuevaParcela.title = "Editar Parcela"
+        dialogNuevaParcela.open()
+    }
+    function editarParcela() {
+        // Crear objeto con los datos actualizados
+        var parcela_actualizada = {
+            "nombre": nuevaParcela.nombre,
+            "propietarioId": nuevaParcela.propietarioId,
+            "ubicacion": nuevaParcela.ubicacion,
+            "area": parseFloat(txtArea.text),
+            "porcentajeUso": sliderPorcentajeUso.value,
+            "latitud": parseFloat(txtLatitud.text),
+            "longitud": parseFloat(txtLongitud.text)
+        }
+        
+        // Enviar al modelo para actualizar (necesitarás agregar este método en productores_parcelas_model.py)
+        var exito = productoresparcelasModel.actualizar_parcela(nuevaParcela.parcelaId, JSON.stringify(parcela_actualizada))
+        
+        if (exito) {
+            showMessage("Parcela actualizada correctamente")
+            dialogNuevaParcela.close()
+        } else {
+            mensajeValidacionParcela.text = "Error al actualizar la parcela"
+        }
+    }
+
+    function inicializarDatos() {
+        console.log("✅ Modelo disponible, inicializando datos...")
+        if (productoresparcelasModel) {
+            // Cargar datos iniciales
+            productoresparcelasModel.cargar_productores_pagina(1)
+            productoresparcelasModel.cargar_parcelas_pagina(1)
+            productoresparcelasModel.cargar_propietarios()
+            
+            console.log("✅ Datos iniciales cargados")
+        }
+    }
+}centajeUso.value = parcela.porcentajeUso
+        
+        // Seleccionar el propietario en el combobox
+        for(var i = 0; i < cmbPropietario.count; i++) {
+            if(cmbPropietario.model[i].id === parcela.propietarioId) {
+                cmbPropietario.currentIndex = i
+                break
+            }
+        }
+        
+        // Configurar el diálogo para modo edición
+        dialogNuevaParcela.isEditMode = true
+        dialogNuevaParcela.title = "Editar Parcela"
+        dialogNuevaParcela.open()
+    }
+    function editarParcela() {
+        // Crear objeto con los datos actualizados
+        var parcela_actualizada = {
+            "nombre": nuevaParcela.nombre,
+            "propietarioId": nuevaParcela.propietarioId,
+            "ubicacion": nuevaParcela.ubicacion,
+            "area": parseFloat(txtArea.text),
+            "porcentajeUso": sliderPorcentajeUso.value,
+            "latitud": parseFloat(txtLatitud.text),
+            "longitud": parseFloat(txtLongitud.text)
+        }
+        
+        // Enviar al modelo para actualizar (necesitarás agregar este método en productores_parcelas_model.py)
+        var exito = productoresparcelasModel.actualizar_parcela(nuevaParcela.parcelaId, JSON.stringify(parcela_actualizada))
+        
+        if (exito) {
+            showMessage("Parcela actualizada correctamente")
+            dialogNuevaParcela.close()
+        } else {
+            mensajeValidacionParcela.text = "Error al actualizar la parcela"
+        }
+    }
+
+    function inicializarDatos() {
+        console.log("✅ Modelo disponible, inicializando datos...")
+        if (productoresparcelasModel) {
+            // Cargar datos iniciales
+            productoresparcelasModel.cargar_productores_pagina(1)
+            productoresparcelasModel.cargar_parcelas_pagina(1)
+            productoresparcelasModel.cargar_propietarios()
+            
+            console.log("✅ Datos iniciales cargados")
+        }
+    }
 }
