@@ -1572,7 +1572,7 @@ Rectangle {
                             
                             Button {
                                 text: "Nuevo Cultivo"
-                                icon.source: "recursos/image/icons/agregar.png"
+                                icon.source: "recursos/image/icons/agregar.svg"
                                 implicitHeight: 36
                                 background: Rectangle {
                                     color: parent.hovered ? "#E65A00" : "#f5922f"
@@ -1585,7 +1585,7 @@ Rectangle {
                                     Image {
                                         width: 18
                                         height: 18
-                                        source: "recursos/image/icons/agregar.png"
+                                        source: "recursos/image/icons/agregar.svg"
                                         fillMode: Image.PreserveAspectFit
                                     }
                                     
@@ -1804,12 +1804,25 @@ Rectangle {
                                     color: "#4CAF50"
                                     radius: height / 2
                                 }
-                                contentItem: Text {
-                                    text: parent.text
-                                    color: "white"
-                                    font.bold: true
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
+                                contentItem: Row {
+                                    anchors.centerIn: parent
+                                    spacing: 6
+                                    
+                                    Image {
+                                        width: 16
+                                        height: 16
+                                        source: mostrarFilaEdicionTipo ? "" : "recursos/image/icons/editar.svg"
+                                        fillMode: Image.PreserveAspectFit
+                                        visible: !mostrarFilaEdicionTipo
+                                    }
+                                    
+                                    Text {
+                                        text: parent.parent.text
+                                        color: "white"
+                                        font.bold: true
+                                        horizontalAlignment: Text.AlignHCenter
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
                                 }
                                 onClicked: {
                                     if (mostrarFilaEdicionTipo) {
