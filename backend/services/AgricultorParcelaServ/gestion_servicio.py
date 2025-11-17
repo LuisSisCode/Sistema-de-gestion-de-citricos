@@ -78,7 +78,7 @@ class GestionServicio:
     @cache_invalidator('dashboard_gestion')                # Invalidar dashboard principal
     @cache_invalidator('operaciones_gestion')             # Invalidar operaciones
     @cache_invalidator('analisis_propietarios')           # Invalidar análisis
-    def procesar_operacion_agricultor(self, operacion, datos):
+    def procesar_operacion_productor(self, operacion, datos):
         """
         Procesa operaciones de productores con manejo unificado.
         OPTIMIZADO: Invalidación automática del dashboard tras operaciones.
@@ -94,16 +94,16 @@ class GestionServicio:
             resultado = None
             
             if operacion == 'crear':
-                resultado = self.productor_servicio.crear_agricultor(datos['agricultor'])
+                resultado = self.productor_servicio.crear_productor(datos['productor'])
             
             elif operacion == 'actualizar':
-                resultado = self.productor_servicio.actualizar_agricultor(
+                resultado = self.productor_servicio.actualizar_productor(
                     datos['id_productor'], 
-                    datos['agricultor']
+                    datos['productor']
                 )
             
             elif operacion == 'eliminar':
-                resultado = self.productor_servicio.eliminar_agricultor(datos['id_productor'])
+                resultado = self.productor_servicio.eliminar_productor(datos['id_productor'])
             
             else:
                 resultado = {'exito': False, 'mensaje': f"Operación '{operacion}' no reconocida"}
@@ -117,7 +117,7 @@ class GestionServicio:
             return resultado
                 
         except Exception as e:
-            logger.error(f"Error en procesar_operacion_agricultor: {str(e)}")
+            logger.error(f"Error en procesar_operacion_productor: {str(e)}")
             return {'exito': False, 'mensaje': 'Error interno del sistema'}
 
     @cache_invalidator('dashboard_gestion')                # Invalidar dashboard principal
@@ -272,10 +272,10 @@ class GestionServicio:
             dict: Análisis completo del propietario.
         """
         try:
-            # Obtener estado del agricultor (ya cacheado en servicio)
-            estado_agricultor = self.productor_servicioverificar_estado_agricultor(id_propietario)
+            # Obtener estado del productor (ya cacheado en servicio)
+            estado_productor = self.productor_servicioverificar_estado_productor(id_propietario)
             
-            if not estado_agricultor:
+            if not estado_productor:
                 return {'error': 'Propietario no encontrado'}
             
             # Obtener sus parcelas (ya cacheado en servicio)
@@ -286,7 +286,7 @@ class GestionServicio:
             parcelas_con_coords = sum(1 for p in parcelas if p['tiene_coordenadas'])
             
             analisis = {
-                'propietario': estado_agricultor['agricultor'],
+                'propietario': estado_productor['productor'],
                 'estadisticas': {
                     'total_parcelas': len(parcelas),
                     'area_total': area_total,

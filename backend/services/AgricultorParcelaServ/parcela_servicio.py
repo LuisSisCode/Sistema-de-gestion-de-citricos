@@ -392,9 +392,9 @@ class ParcelaServicio:
             ErrorValidacion: Si no es válido.
         """
         try:
-            agricultor = self.productor_repo.obtener_por_id(propietario_id)
-            if not agricultor['esPropietario']:
-                raise ErrorValidacion("El agricultor seleccionado no está marcado como propietario")
+            productor = self.productor_repo.obtener_por_id(propietario_id)
+            if not productor['esPropietario']:
+                raise ErrorValidacion("El productor seleccionado no está marcado como propietario")
             return True
         except RegistroNoEncontrado:
             raise ErrorValidacion("El propietario seleccionado no existe")

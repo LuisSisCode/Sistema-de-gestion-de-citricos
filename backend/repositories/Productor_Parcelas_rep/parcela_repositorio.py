@@ -33,8 +33,8 @@ class ParcelaRepositorio(RepositorioBase):
             p.fecha_adquisicion, 
             p.activo, 
             p.id_productor,
-            a.nombre as nombre_agricultor,
-            a.apellido as apellido_agricultor,
+            a.nombre as nombre_productor,
+            a.apellido as apellido_productor,
             CONCAT(a.nombre, ' ', a.apellido) AS nombre_propietario
         FROM Parcelas p
         JOIN Productores a ON p.id_productor = a.id_productor
@@ -56,7 +56,7 @@ class ParcelaRepositorio(RepositorioBase):
                             f"nombre={getattr(row, 'nombre', 'N/A')}, "
                             f"coordenadas_gps={getattr(row, 'coordenadas_gps', 'N/A')}, "
                             f"area_total={getattr(row, 'area_total', 'N/A')}, "
-                            f"nombre_agricultor={getattr(row, 'nombre_agricultor', 'N/A')}")
+                            f"nombre_productor={getattr(row, 'nombre_productor', 'N/A')}")
                 
                 parcela = self._construir_objeto_parcela_cached(row)
                 
@@ -376,8 +376,8 @@ class ParcelaRepositorio(RepositorioBase):
             
             # Información del propietario
             'propietario': row.nombre_propietario or 'Propietario desconocido',
-            'nombre_agricultor': getattr(row, 'nombre_agricultor', ''),
-            'apellido_agricultor': getattr(row, 'apellido_agricultor', ''),
+            'nombre_productor': getattr(row, 'nombre_productor', ''),
+            'apellido_productor': getattr(row, 'apellido_productor', ''),
             'propietarioId': row.id_productor,
             'id_productor': row.id_productor,
             

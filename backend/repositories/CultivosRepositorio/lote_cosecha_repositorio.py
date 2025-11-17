@@ -28,7 +28,7 @@ class LoteCosechaRepositorio(RepositorioBase):
                p.nombre AS nombre_parcela,
                v.nombre AS nombre_variedad,
                t.nombre AS nombre_tipo_cultivo,
-               a.nombre + ' ' + a.apellido AS nombre_agricultor,
+               a.nombre + ' ' + a.apellido AS nombre_productor,
                cc.nombre AS categoria_calidad,
                u.nombre + ' ' + u.apellido AS registrado_por_nombre
         FROM LotesCosecha l
@@ -76,7 +76,7 @@ class LoteCosechaRepositorio(RepositorioBase):
                p.nombre AS nombre_parcela,
                v.nombre AS nombre_variedad,
                t.nombre AS nombre_tipo_cultivo,
-               a.nombre + ' ' + a.apellido AS nombre_agricultor,
+               a.nombre + ' ' + a.apellido AS nombre_productor,
                cc.nombre AS categoria_calidad,
                u.nombre + ' ' + u.apellido AS registrado_por_nombre
         FROM LotesCosecha l
@@ -117,7 +117,7 @@ class LoteCosechaRepositorio(RepositorioBase):
                p.nombre AS nombre_parcela,
                v.nombre AS nombre_variedad,
                t.nombre AS nombre_tipo_cultivo,
-               a.nombre + ' ' + a.apellido AS nombre_agricultor,
+               a.nombre + ' ' + a.apellido AS nombre_productor,
                cc.nombre AS categoria_calidad,
                u.nombre + ' ' + u.apellido AS registrado_por_nombre
         FROM LotesCosecha l
@@ -163,7 +163,7 @@ class LoteCosechaRepositorio(RepositorioBase):
                p.nombre AS nombre_parcela,
                v.nombre AS nombre_variedad,
                t.nombre AS nombre_tipo_cultivo,
-               a.nombre + ' ' + a.apellido AS nombre_agricultor,
+               a.nombre + ' ' + a.apellido AS nombre_productor,
                cc.nombre AS categoria_calidad,
                u.nombre + ' ' + u.apellido AS registrado_por_nombre
         FROM LotesCosecha l
@@ -205,7 +205,7 @@ class LoteCosechaRepositorio(RepositorioBase):
                p.nombre AS nombre_parcela,
                v.nombre AS nombre_variedad,
                t.nombre AS nombre_tipo_cultivo,
-               a.nombre + ' ' + a.apellido AS nombre_agricultor,
+               a.nombre + ' ' + a.apellido AS nombre_productor,
                cc.nombre AS categoria_calidad,
                u.nombre + ' ' + u.apellido AS registrado_por_nombre,
                COALESCE(SUM(dv.cantidad), 0) AS cantidad_vendida,
@@ -474,7 +474,7 @@ class LoteCosechaRepositorio(RepositorioBase):
             'nombre_parcela': row.nombre_parcela or '',
             'nombre_variedad': row.nombre_variedad or '',
             'nombre_tipo_cultivo': row.nombre_tipo_cultivo or '',
-            'nombre_agricultor': row.nombre_agricultor or '',
+            'nombre_productor': row.nombre_productor or '',
             'categoria_calidad': row.categoria_calidad or '',
             'registrado_por_nombre': row.registrado_por_nombre or '',
             

@@ -499,7 +499,7 @@ class LoteCosechaServicio:
         return {
             'cultivo': lote['cultivo_completo'],
             'origen': lote['nombre_parcela'],
-            'agricultor': lote['nombre_agricultor']
+            'productor': lote['nombre_productor']
         }
     
     def _generar_alertas_venta(self, lote):

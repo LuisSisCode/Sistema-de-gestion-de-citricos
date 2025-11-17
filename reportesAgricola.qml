@@ -1262,10 +1262,10 @@ Item {
     
     function generarReporteParcelas() {
         var parcelasEjemplo = [
-            {fecha: "01/07/2025", parcela: "Finca Los Limones", agricultor: "Juan Carlos Mendoza", area: 10.5, cultivo: "Cítricos", estado: "En Producción", valor: 1575.00},
-            {fecha: "01/07/2025", parcela: "Parcela El Edén", agricultor: "María Elena Torres", area: 15.0, cultivo: "Arroz", estado: "Cosechado", valor: 2250.00},
-            {fecha: "01/07/2025", parcela: "Lote El Progreso", agricultor: "Pedro Antonio Silva", area: 30.0, cultivo: "Soya", estado: "En Desarrollo", valor: 4500.00},
-            {fecha: "01/07/2025", parcela: "Campo Dorado", agricultor: "Carmen Rosa López", area: 20.0, cultivo: "Maíz", estado: "Sembrado", valor: 3000.00}
+            {fecha: "01/07/2025", parcela: "Finca Los Limones", productor: "Juan Carlos Mendoza", area: 10.5, cultivo: "Cítricos", estado: "En Producción", valor: 1575.00},
+            {fecha: "01/07/2025", parcela: "Parcela El Edén", productor: "María Elena Torres", area: 15.0, cultivo: "Arroz", estado: "Cosechado", valor: 2250.00},
+            {fecha: "01/07/2025", parcela: "Lote El Progreso", productor: "Pedro Antonio Silva", area: 30.0, cultivo: "Soya", estado: "En Desarrollo", valor: 4500.00},
+            {fecha: "01/07/2025", parcela: "Campo Dorado", productor: "Carmen Rosa López", area: 20.0, cultivo: "Maíz", estado: "Sembrado", valor: 3000.00}
         ]
         
         datosReporte = parcelasEjemplo
@@ -1462,7 +1462,7 @@ Item {
                 return [
                     {titulo: "FECHA", campo: "fecha", width: 80},
                     {titulo: "PARCELA", campo: "parcela", width: 150},
-                    {titulo: "AGRICULTOR", campo: "agricultor", width: 150},
+                    {titulo: "AGRICULTOR", campo: "productor", width: 150},
                     {titulo: "ÁREA (Ha)", campo: "area", width: 80, align: Text.AlignRight},
                     {titulo: "CULTIVO", campo: "cultivo", width: 100},
                     {titulo: "ESTADO", campo: "estado", width: 100},
@@ -1572,8 +1572,8 @@ Item {
                 return registro.total ? registro.total.toFixed(2) : "0.00"
             case "parcela":
                 return registro.parcela || "---"
-            case "agricultor":
-                return registro.agricultor || "---"
+            case "productor":
+                return registro.productor || "---"
             case "cultivo":
                 return registro.cultivo || "---"
             case "estado":

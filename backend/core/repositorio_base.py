@@ -242,12 +242,12 @@ class RelacionRepositorio(RepositorioBase):
         print(f"Agricultor {id_productor} tiene {count} parcelas activas")
         return count
     
-    def verificar_dependencias_agricultor(self, id_productor):
+    def verificar_dependencias_productor(self, id_productor):
         """
-        Verifica todas las dependencias de un agricultor antes de eliminarlo.
+        Verifica todas las dependencias de un productor antes de eliminarlo.
         
         Args:
-            id_productor (int): ID del agricultor.
+            id_productor (int): ID del productor.
             
         Returns:
             dict: Información detallada de dependencias.
@@ -265,7 +265,7 @@ class RelacionRepositorio(RepositorioBase):
         }
         
         if not dependencias['puede_eliminar']:
-            mensaje = f"No se puede eliminar el agricultor. Tiene {parcelas} parcelas asociadas."
+            mensaje = f"No se puede eliminar el productor. Tiene {parcelas} parcelas asociadas."
             raise RegistroTieneDependencias(mensaje, parcelas)
         
         print(f"Agricultor {id_productor} puede ser eliminado - sin dependencias")

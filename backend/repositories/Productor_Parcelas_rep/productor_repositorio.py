@@ -1,4 +1,4 @@
-# bd_conecciones/repositorios/agricultor_repositorio.py
+# bd_conecciones/repositorios/productor_repositorio.py
 
 import logging
 from datetime import datetime
@@ -32,7 +32,7 @@ class ProductorRepositorio(RepositorioBase):
         productores = []
         
         for row in rows:
-            agricultor = {
+            productor = {
                 'id_productor': row.id_productor,
                 'nombre': row.nombre,
                 'apellido': row.apellido,
@@ -43,7 +43,7 @@ class ProductorRepositorio(RepositorioBase):
                 'fecha_registro': self._formatear_fecha(row.fecha_registro),
                 'activo': bool(row.activo)
             }
-            productores.append(agricultor)
+            productores.append(productor)
         
         logger.info(f"Se obtuvieron {len(productores)} productores")
         return productores
@@ -51,16 +51,16 @@ class ProductorRepositorio(RepositorioBase):
     @cacheable('productores', key_func=lambda id_agr: f"id_{id_agr}", ttl=3600)  # 1 hora - datos específicos
     def obtener_por_id(self, id_productor):
         """
-        Obtiene un agricultor por su ID.
+        Obtiene un productor por su ID.
         
         Args:
-            id_productor(int): ID del agricultor.
+            id_productor(int): ID del productor.
             
         Returns:
-            dict: Información del agricultor.
+            dict: Información del productor.
             
         Raises:
-            RegistroNoEncontrado: Si el agricultor no existe.
+            RegistroNoEncontrado: Si el productor no existe.
         """
         query = """
         SELECT id_productor nombre, apellido, identificacion, 
@@ -120,7 +120,7 @@ class ProductorRepositorio(RepositorioBase):
         productores = []
         
         for row in rows:
-            agricultor = {
+            productor = {
                 'id_productor': row.id_productor,
                 'nombre': row.nombre,
                 'apellido': row.apellido,
@@ -131,7 +131,7 @@ class ProductorRepositorio(RepositorioBase):
                 'fecha_registro': self._formatear_fecha(row.fecha_registro),
                 'activo': bool(row.activo)
             }
-            productores.append(agricultor)
+            productores.append(productor)
         
         total_paginas = self._calcular_total_paginas(total_registros, por_pagina)
         
@@ -171,7 +171,7 @@ class ProductorRepositorio(RepositorioBase):
         
         productores = []
         for row in rows:
-            agricultor = {
+            productor = {
                 'id_productor': row.id_productor,
                 'nombre': row.nombre,
                 'apellido': row.apellido,
@@ -182,7 +182,7 @@ class ProductorRepositorio(RepositorioBase):
                 'fecha_registro': self._formatear_fecha(row.fecha_registro),
                 'activo': bool(row.activo)
             }
-            productores.append(agricultor)
+            productores.append(productor)
         
         logger.info(f"Búsqueda '{texto_busqueda}': {len(productores)} resultados")
         return productores
@@ -203,13 +203,13 @@ class ProductorRepositorio(RepositorioBase):
     @cache_invalidator('productores', pattern='pagina_')    # Invalidar paginación
     @cache_invalidator('propietarios', key='lista_completa') # Invalidar propietarios si aplica
     @cache_invalidator('estadisticas')                       # Invalidar estadísticas
-    def crear(self, datos_agricultor):
+    def crear(self, datos_productor):
         """
-        Crea un nuevo agricultor.
+        Crea un nuevo productor.
         OPTIMIZADO: Invalidación granular por tipos de caché.
         
         Args:
-            datos_agricultor (dict): Datos del agricultor.
+            datos_productor (dict): Datos del productor.
             
         Returns:
             tuple: (True, id_productor) si fue exitoso.
@@ -218,11 +218,11 @@ class ProductorRepositorio(RepositorioBase):
             ErrorValidacion: Si los datos no son válidos.
             RegistroYaExiste: Si la identificación ya existe.
         """
-        self._validar_datos_agricultor(datos_agricultor)
+        self._validar_datos_productor(datos_productor)
         
         # Verificar si la identificación ya existe
-        if self._existe_identificacion(datos_agricultor['identificacion']):
-            raise RegistroYaExiste(f"Ya existe un agricultor con identificación {datos_agricultor['identificacion']}")
+        if self._existe_identificacion(datos_productor['identificacion']):
+            raise RegistroYaExiste(f"Ya existe un productor con identificación {datos_productor['identificacion']}")
         
         query = """
         INSERT INTO Productores (nombre, apellido, identificacion, telefono, 
@@ -232,14 +232,14 @@ class ProductorRepositorio(RepositorioBase):
         
         fecha_actual = datetime.now().date().strftime('%Y-%m-%d')
         valores = (
-            datos_agricultor['nombre'],
-            datos_agricultor['apellido'],
-            datos_agricultor['identificacion'],
-            datos_agricultor.get('telefono'),
-            datos_agricultor.get('correo'),
-            datos_agricultor.get('direccion'),
+            datos_productor['nombre'],
+            datos_productor['apellido'],
+            datos_productor['identificacion'],
+            datos_productor.get('telefono'),
+            datos_productor.get('correo'),
+            datos_productor.get('direccion'),
             fecha_actual,
-            1 if datos_agricultor.get('esPropietario', False) else 0,
+            1 if datos_productor.get('esPropietario', False) else 0,
             1  # activo por defecto
         )
         
@@ -254,55 +254,55 @@ class ProductorRepositorio(RepositorioBase):
     @cache_invalidator('productores', pattern='pagina_')    # Invalidar paginación
     @cache_invalidator('propietarios', key='lista_completa') # Invalidar propietarios si cambió
     @cache_invalidator('estadisticas')                       # Invalidar estadísticas
-    def actualizar(self, id_productor, datos_agricultor):
+    def actualizar(self, id_productor, datos_productor):
         """
-        Actualiza un agricultor existente.
-        OPTIMIZADO: Invalidación específica del agricultor y listas generales.
+        Actualiza un productor existente.
+        OPTIMIZADO: Invalidación específica del productor y listas generales.
         
         Args:
-            id_productor (int): ID del agricultor.
-            datos_agricultor (dict): Datos actualizados.
+            id_productor (int): ID del productor.
+            datos_productor (dict): Datos actualizados.
             
         Returns:
             bool: True si se actualizó correctamente.
             
         Raises:
-            RegistroNoEncontrado: Si el agricultor no existe.
+            RegistroNoEncontrado: Si el productor no existe.
             ErrorValidacion: Si los datos no son válidos.
         """
-        # Verificar que el agricultor existe
-        agricultor_actual = self.obtener_por_id(id_productor)
+        # Verificar que el productor existe
+        productor_actual = self.obtener_por_id(id_productor)
         
         # Construir consulta dinámicamente
         campos_actualizar = []
         valores = []
         
-        if 'nombre' in datos_agricultor:
+        if 'nombre' in datos_productor:
             campos_actualizar.append("nombre = ?")
-            valores.append(datos_agricultor['nombre'])
+            valores.append(datos_productor['nombre'])
             
-        if 'apellido' in datos_agricultor:
+        if 'apellido' in datos_productor:
             campos_actualizar.append("apellido = ?")
-            valores.append(datos_agricultor['apellido'])
+            valores.append(datos_productor['apellido'])
             
-        if 'identificacion' in datos_agricultor:
+        if 'identificacion' in datos_productor:
             # Verificar que la nueva identificación no exista (excluyendo el registro actual)
-            if self._existe_identificacion_excepto(datos_agricultor['identificacion'], id_productor):
-                raise RegistroYaExiste(f"Ya existe otro agricultor con identificación {datos_agricultor['identificacion']}")
+            if self._existe_identificacion_excepto(datos_productor['identificacion'], id_productor):
+                raise RegistroYaExiste(f"Ya existe otro productor con identificación {datos_productor['identificacion']}")
             campos_actualizar.append("identificacion = ?")
-            valores.append(datos_agricultor['identificacion'])
+            valores.append(datos_productor['identificacion'])
             
-        if 'telefono' in datos_agricultor:
+        if 'telefono' in datos_productor:
             campos_actualizar.append("telefono = ?")
-            valores.append(datos_agricultor['telefono'])
+            valores.append(datos_productor['telefono'])
             
-        if 'correo' in datos_agricultor:
+        if 'correo' in datos_productor:
             campos_actualizar.append("correo = ?")
-            valores.append(datos_agricultor['correo'])
+            valores.append(datos_productor['correo'])
             
-        if 'direccion' in datos_agricultor:
+        if 'direccion' in datos_productor:
             campos_actualizar.append("direccion = ?")
-            valores.append(datos_agricultor['direccion'])
+            valores.append(datos_productor['direccion'])
         
         if not campos_actualizar:
             logger.warning("No hay campos para actualizar")
@@ -322,19 +322,19 @@ class ProductorRepositorio(RepositorioBase):
     @cache_invalidator('estadisticas')                       # Invalidar estadísticas
     def desactivar(self, id_productor):
         """
-        Desactiva un agricultor (eliminación lógica).
+        Desactiva un productor (eliminación lógica).
         OPTIMIZADO: Invalidación completa ya que afecta todas las listas.
         
         Args:
-            id_productor (int): ID del agricultor.
+            id_productor (int): ID del productor.
             
         Returns:
             bool: True si se desactivó correctamente.
             
         Raises:
-            RegistroNoEncontrado: Si el agricultor no existe.
+            RegistroNoEncontrado: Si el productor no existe.
         """
-        # Verificar que el agricultor existe
+        # Verificar que el productor existe
         self.obtener_por_id(id_productor)
         
         query = "UPDATE Productores SET activo = 0 WHERE id_productor = ?"
@@ -345,9 +345,9 @@ class ProductorRepositorio(RepositorioBase):
 
     # ==================== MÉTODOS AUXILIARES ====================
     
-    def _validar_datos_agricultor(self, datos):
+    def _validar_datos_productor(self, datos):
         """
-        Valida los datos del agricultor.
+        Valida los datos del productor.
         
         Args:
             datos (dict): Datos a validar.

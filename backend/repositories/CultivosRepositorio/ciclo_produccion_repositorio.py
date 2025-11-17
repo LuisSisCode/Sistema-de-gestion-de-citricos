@@ -27,8 +27,8 @@ class CicloProduccionRepositorio(RepositorioBase):
         """
         query = """
         SELECT c.id_ciclo, c.id_parcela, c.id_variedad, c.fecha_siembra, 
-               c.fecha_cosecha_estimada, c.fecha_cosecha_real, c.area_sembrada,
-               c.densidad_siembra, c.estado,
+               c.fecha_cosecha_estimada, c.area_sembrada,
+               c.estado,
                c.fecha_floracion, c.fecha_poda, c.fecha_limpieza, c.frecuencia_limpieza,
                p.nombre AS nombre_parcela, 
                v.nombre AS nombre_variedad,
@@ -69,8 +69,8 @@ class CicloProduccionRepositorio(RepositorioBase):
         """
         query = """
         SELECT c.id_ciclo, c.id_parcela, c.id_variedad, c.fecha_siembra, 
-               c.fecha_cosecha_estimada, c.fecha_cosecha_real, c.area_sembrada,
-               c.densidad_siembra, c.estado,
+               c.fecha_cosecha_estimada, c.area_sembrada,
+               c.estado,
                c.fecha_floracion, c.fecha_poda, c.fecha_limpieza, c.frecuencia_limpieza,
                p.nombre AS nombre_parcela, 
                v.nombre AS nombre_variedad,
@@ -104,8 +104,8 @@ class CicloProduccionRepositorio(RepositorioBase):
         """
         query = """
         SELECT c.id_ciclo, c.id_parcela, c.id_variedad, c.fecha_siembra, 
-               c.fecha_cosecha_estimada, c.fecha_cosecha_real, c.area_sembrada,
-               c.densidad_siembra, c.estado,
+               c.fecha_cosecha_estimada, c.area_sembrada,
+               c.estado,
                c.fecha_floracion, c.fecha_poda, c.fecha_limpieza, c.frecuencia_limpieza,
                p.nombre AS nombre_parcela, 
                v.nombre AS nombre_variedad,
@@ -146,8 +146,8 @@ class CicloProduccionRepositorio(RepositorioBase):
         
         query = """
         SELECT c.id_ciclo, c.id_parcela, c.id_variedad, c.fecha_siembra, 
-               c.fecha_cosecha_estimada, c.fecha_cosecha_real, c.area_sembrada,
-               c.densidad_siembra, c.estado,
+               c.fecha_cosecha_estimada, c.area_sembrada,
+               c.estado,
                c.fecha_floracion, c.fecha_poda, c.fecha_limpieza, c.frecuencia_limpieza,
                p.nombre AS nombre_parcela, 
                v.nombre AS nombre_variedad,
@@ -221,8 +221,8 @@ class CicloProduccionRepositorio(RepositorioBase):
         # Obtener registros paginados
         data_query = f"""
         SELECT c.id_ciclo, c.id_parcela, c.id_variedad, c.fecha_siembra, 
-               c.fecha_cosecha_estimada, c.fecha_cosecha_real, c.area_sembrada,
-               c.densidad_siembra, c.estado,
+               c.fecha_cosecha_estimada, c.area_sembrada,
+               c.estado,
                c.fecha_floracion, c.fecha_poda, c.fecha_limpieza, c.frecuencia_limpieza,
                p.nombre AS nombre_parcela, 
                v.nombre AS nombre_variedad,
@@ -272,8 +272,8 @@ class CicloProduccionRepositorio(RepositorioBase):
         
         query = f"""
         SELECT c.id_ciclo, c.id_parcela, c.id_variedad, c.fecha_siembra, 
-               c.fecha_cosecha_estimada, c.fecha_cosecha_real, c.area_sembrada,
-               c.densidad_siembra, c.estado,
+               c.fecha_cosecha_estimada, c.area_sembrada,
+               c.estado,
                c.fecha_floracion, c.fecha_poda, c.fecha_limpieza, c.frecuencia_limpieza,
                p.nombre AS nombre_parcela, 
                v.nombre AS nombre_variedad,
@@ -429,10 +429,10 @@ class CicloProduccionRepositorio(RepositorioBase):
         query = """
         INSERT INTO CiclosProduccion (
             id_parcela, id_variedad, fecha_siembra, fecha_cosecha_estimada, 
-            fecha_cosecha_real, area_sembrada, densidad_siembra, estado, 
+            area_sembrada, estado, 
             fecha_floracion, fecha_poda, fecha_limpieza, frecuencia_limpieza, activo
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         
         valores = (
@@ -440,9 +440,7 @@ class CicloProduccionRepositorio(RepositorioBase):
             datos_ciclo['id_variedad'],
             datos_ciclo.get('fecha_siembra'),
             datos_ciclo.get('fecha_cosecha_estimada'),
-            datos_ciclo.get('fecha_cosecha_real'),
             datos_ciclo['area_sembrada'],
-            datos_ciclo.get('densidad_siembra'),
             datos_ciclo.get('estado', 'Planificado'),
             datos_ciclo.get('fecha_floracion'),
             datos_ciclo.get('fecha_poda'),
@@ -485,7 +483,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         
         campos_permitidos = [
             'id_parcela', 'id_variedad', 'fecha_siembra', 'fecha_cosecha_estimada',
-            'fecha_cosecha_real', 'area_sembrada', 'densidad_siembra', 'estado',
+            'area_sembrada', 'estado',
             'fecha_floracion', 'fecha_poda', 'fecha_limpieza', 'frecuencia_limpieza'
         ]
         
@@ -586,7 +584,6 @@ class CicloProduccionRepositorio(RepositorioBase):
             'id_parcela': row.id_parcela,
             'id_variedad': row.id_variedad,
             'area_sembrada': float(row.area_sembrada),
-            'densidad_siembra': row.densidad_siembra,
             'estado': row.estado,
             'activo': bool(row.activo),
             'frecuencia_limpieza': row.frecuencia_limpieza,
@@ -594,7 +591,6 @@ class CicloProduccionRepositorio(RepositorioBase):
             # Fechas formateadas
             'fecha_siembra': self._formatear_fecha(row.fecha_siembra),
             'fecha_cosecha_estimada': self._formatear_fecha(row.fecha_cosecha_estimada),
-            'fecha_cosecha_real': self._formatear_fecha(row.fecha_cosecha_real),
             'fecha_floracion': self._formatear_fecha(row.fecha_floracion),
             'fecha_poda': self._formatear_fecha(row.fecha_poda),
             'fecha_limpieza': self._formatear_fecha(row.fecha_limpieza),
@@ -641,11 +637,6 @@ class CicloProduccionRepositorio(RepositorioBase):
         
         # Validar fechas
         self._validar_fechas_ciclo(datos)
-        
-        # Validar densidad de siembra si se proporciona
-        densidad = datos.get('densidad_siembra')
-        if densidad is not None and densidad < 0:
-            raise ErrorValidacion("La densidad de siembra debe ser positiva")
     
     def _validar_fechas_ciclo(self, datos):
         """
@@ -659,7 +650,6 @@ class CicloProduccionRepositorio(RepositorioBase):
         """
         fecha_siembra = datos.get('fecha_siembra')
         fecha_cosecha_estimada = datos.get('fecha_cosecha_estimada')
-        fecha_cosecha_real = datos.get('fecha_cosecha_real')
         
         # La fecha de siembra no puede ser futura
         if fecha_siembra and isinstance(fecha_siembra, (date, datetime)):
@@ -673,12 +663,6 @@ class CicloProduccionRepositorio(RepositorioBase):
             if fecha_cosecha_estimada <= fecha_siembra:
                 raise ErrorValidacion("La fecha de cosecha estimada debe ser posterior a la siembra")
         
-        # La cosecha real debe ser posterior a la siembra
-        if (fecha_siembra and fecha_cosecha_real and 
-            isinstance(fecha_siembra, (date, datetime)) and 
-            isinstance(fecha_cosecha_real, (date, datetime))):
-            if fecha_cosecha_real <= fecha_siembra:
-                raise ErrorValidacion("La fecha de cosecha real debe ser posterior a la siembra")
     
     def _validar_transicion_estado(self, estado_actual, nuevo_estado):
         """
@@ -836,7 +820,6 @@ class CicloProduccionRepositorio(RepositorioBase):
                 c.id_variedad,
                 c.id_parcela,
                 c.area_sembrada,
-                c.fecha_cosecha_real,
                 v.nombre as variedad,
                 p.nombre as parcela,
                 
@@ -869,8 +852,8 @@ class CicloProduccionRepositorio(RepositorioBase):
             AND (c.id_variedad = ? OR c.id_parcela = ?)
             
             GROUP BY c.id_ciclo, c.id_variedad, c.id_parcela, c.area_sembrada, 
-                    c.fecha_cosecha_real, v.nombre, p.nombre
-            ORDER BY tipo_similitud, c.fecha_cosecha_real DESC
+                    v.nombre, p.nombre
+            ORDER BY tipo_similitud DESC
             """
             
             parametros = (
@@ -903,7 +886,6 @@ class CicloProduccionRepositorio(RepositorioBase):
                     'variedad': ciclo.variedad,
                     'parcela': ciclo.parcela,
                     'area_sembrada': float(ciclo.area_sembrada),
-                    'fecha_cosecha': ciclo.fecha_cosecha_real,
                     'ingresos': float(ciclo.ingresos),
                     'costos': float(ciclo.costos),
                     'ganancia': float(ciclo.ingresos) - float(ciclo.costos),

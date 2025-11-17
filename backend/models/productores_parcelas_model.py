@@ -32,16 +32,12 @@ class ProductoresParcelasModels(QObject):
     def parcelas(self):
         return self._parcelas
     
-    @Property(list, notify=propietariosChanged)
-    def propietarios(self):
-        return self._propietarios
-    
     @Property(int, notify=productoresChanged)
-    def paginaActualAgricultores(self):
+    def paginaActualProductores(self):
         return self._pagina_actual_productores
     
     @Property(int, notify=productoresChanged)
-    def totalPaginasAgricultores(self):
+    def totalPaginasProductores(self):
         return self._total_paginas_productores
     
     @Property(int, notify=parcelasChanged)
@@ -69,7 +65,8 @@ class ProductoresParcelasModels(QObject):
             print(f"Error al cargar productorespágina {pagina}: {str(e)}")
             self._productores = []
             self.productoresChanged.emit()
-    
+
+    @Slot(int)
     def cargar_parcelas_pagina(self, pagina, propietario_id=0):
         """Carga parcelas con paginación usando servicios."""
         try:
@@ -89,86 +86,86 @@ class ProductoresParcelasModels(QObject):
             self.parcelasChanged.emit()
     
     @Slot(str, result=bool)
-    def agregar_agricultor(self, agricultor_json):
-        """Agrega un nuevo agricultor usando servicios."""
+    def agregar_productor(self, productor_json):
+        """Agrega un nuevo productor usando servicios."""
         try:
-            datos_agricultor = json.loads(agricultor_json)
-            resultado = self.gestion.procesar_operacion_agricultor('crear', {'agricultor': datos_agricultor})
+            datos_productor = json.loads(productor_json)
+            resultado = self.gestion.procesar_operacion_productor('crear', {'productor': datos_productor})
             
             if resultado['exito']:
                 # Recargar página actual
                 self.cargar_productores_pagina(self._pagina_actual_productores)
                 
-                self.operacionCompleta.emit('crear_agricultor', True, resultado['mensaje'])
+                self.operacionCompleta.emit('crear_productor', True, resultado['mensaje'])
                 return True
             else:
-                self.operacionCompleta.emit('crear_agricultor', False, resultado['mensaje'])
+                self.operacionCompleta.emit('crear_productor', False, resultado['mensaje'])
                 return False
                 
         except Exception as e:
-            print(f"Error al agregar agricultor: {str(e)}")
-            self.operacionCompleta.emit('crear_agricultor', False, 'Error interno del sistema')
+            print(f"Error al agregar productor: {str(e)}")
+            self.operacionCompleta.emit('crear_productor', False, 'Error interno del sistema')
             return False
     
     @Slot(int, str, result=bool)
-    def actualizar_agricultor(self, id_productor, agricultor_json):
-        """Actualiza un agricultor usando servicios."""
+    def actualizar_productor(self, id_productor, productor_json):
+        """Actualiza un productor usando servicios."""
         try:
-            datos_agricultor = json.loads(agricultor_json)
-            resultado = self.gestion.procesar_operacion_agricultor('actualizar', {
+            datos_productor = json.loads(productor_json)
+            resultado = self.gestion.procesar_operacion_productor('actualizar', {
                 'id_productor': id_productor,
-                'agricultor': datos_agricultor
+                'productor': datos_productor
             })
             
             if resultado['exito']:
                 self.cargar_productores_pagina(self._pagina_actual_productores)
                 
-                self.operacionCompleta.emit('actualizar_agricultor', True, resultado['mensaje'])
+                self.operacionCompleta.emit('actualizar_productor', True, resultado['mensaje'])
                 return True
             else:
-                self.operacionCompleta.emit('actualizar_agricultor', False, resultado['mensaje'])
+                self.operacionCompleta.emit('actualizar_productor', False, resultado['mensaje'])
                 return False
                 
         except Exception as e:
-            print(f"Error al actualizar agricultor: {str(e)}")
-            self.operacionCompleta.emit('actualizar_agricultor', False, 'Error interno del sistema')
+            print(f"Error al actualizar productor: {str(e)}")
+            self.operacionCompleta.emit('actualizar_productor', False, 'Error interno del sistema')
             return False
     
     @Slot(int, result='QVariant')
-    def eliminar_agricultor(self, id_productor):
-        """Elimina un agricultor usando servicios - retorna resultado detallado."""
+    def eliminar_productor(self, id_productor):
+        """Elimina un productor usando servicios - retorna resultado detallado."""
         try:
-            resultado = self.gestion.procesar_operacion_agricultor('eliminar', {'id_productor': id_productor})
+            resultado = self.gestion.procesar_operacion_productor('eliminar', {'id_productor': id_productor})
             
             if resultado['exito']:
                 self.cargar_productores_pagina(self._pagina_actual_productores)
                 
-                self.operacionCompleta.emit('eliminar_agricultor', True, resultado['mensaje'])
+                self.operacionCompleta.emit('eliminar_productor', True, resultado['mensaje'])
             else:
-                self.operacionCompleta.emit('eliminar_agricultor', False, resultado['mensaje'])
+                self.operacionCompleta.emit('eliminar_productor', False, resultado['mensaje'])
             
             return resultado
             
         except Exception as e:
-            print(f"Error al eliminar agricultor: {str(e)}")
+            print(f"Error al eliminar productor: {str(e)}")
             resultado_error = {
                 'exito': False,
                 'mensaje': 'Error interno del sistema',
                 'tipo_error': 'interno'
             }
-            self.operacionCompleta.emit('eliminar_agricultor', False, resultado_error['mensaje'])
+            self.operacionCompleta.emit('eliminar_productor', False, resultado_error['mensaje'])
             return resultado_error
     
     @Slot(int, result=bool)
-    def desactivar_agricultor(self, id_productor):
-        """Desactiva un agricultor en lugar de eliminarlo físicamente"""
+    def desactivar_productor(self, id_productor):
+        """Desactiva un productor en lugar de eliminarlo físicamente"""
         try:
-            success = self._gestor.desactivar_agricultor(id_productor)
+            success = self._gestor.desactivar_productor(id_productor)
             if success:
                 self.cargar_productores()
             return success
         except Exception as e:
-            print(f"Error al desactivar agricultor: {str(e)}")
+            print(f"Error al desactivar productor: {str(e)}")
             return False
     
     @Slot(str, result=bool)

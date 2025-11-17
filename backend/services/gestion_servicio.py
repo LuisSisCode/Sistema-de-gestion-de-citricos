@@ -62,7 +62,7 @@ class GestionServicio:
                 'alertas': ['Error al cargar dashboard']
             }
     
-    def procesar_operacion_agricultor(self, operacion, datos):
+    def procesar_operacion_productor(self, operacion, datos):
         """
         Procesa operaciones de productores con manejo unificado.
         
@@ -75,22 +75,22 @@ class GestionServicio:
         """
         try:
             if operacion == 'crear':
-                return self.productor_servicio.crear_agricultor(datos['agricultor'])
+                return self.productor_servicio.crear_productor(datos['productor'])
             
             elif operacion == 'actualizar':
-                return self.productor_servicio.actualizar_agricultor(
+                return self.productor_servicio.actualizar_productor(
                     datos['id_productor'], 
-                    datos['agricultor']
+                    datos['productor']
                 )
             
             elif operacion == 'eliminar':
-                return self.productor_servicio.eliminar_agricultor(datos['id_productor'])
+                return self.productor_servicio.eliminar_productor(datos['id_productor'])
             
             else:
                 return {'exito': False, 'mensaje': f"Operación '{operacion}' no reconocida"}
                 
         except Exception as e:
-            logger.error(f"Error en procesar_operacion_agricultor: {str(e)}")
+            logger.error(f"Error en procesar_operacion_productor: {str(e)}")
             return {'exito': False, 'mensaje': 'Error interno del sistema'}
     
     def procesar_operacion_parcela(self, operacion, datos):
@@ -204,10 +204,10 @@ class GestionServicio:
             dict: Análisis completo del propietario.
         """
         try:
-            # Obtener estado del agricultor
-            estado_agricultor = self.productor_servicio.verificar_estado_agricultor(id_propietario)
+            # Obtener estado del productor
+            estado_productor = self.productor_servicio.verificar_estado_productor(id_propietario)
             
-            if not estado_agricultor:
+            if not estado_productor:
                 return {'error': 'Propietario no encontrado'}
             
             # Obtener sus parcelas
@@ -218,7 +218,7 @@ class GestionServicio:
             parcelas_con_coords = sum(1 for p in parcelas if p['tiene_coordenadas'])
             
             analisis = {
-                'propietario': estado_agricultor['agricultor'],
+                'propietario': estado_productor['productor'],
                 'estadisticas': {
                     'total_parcelas': len(parcelas),
                     'area_total': area_total,

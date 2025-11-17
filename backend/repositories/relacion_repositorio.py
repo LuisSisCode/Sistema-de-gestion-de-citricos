@@ -11,13 +11,13 @@ class RelacionRepositorio(RepositorioBase):
     
     def contar_parcelas_por_productor(self, id_productor):
         """
-        Cuenta las parcelas activas de un agricultor específico.
+        Cuenta las parcelas activas de un productorespecífico.
         
         Args:
-            id_productor (int): ID del agricultor.
+            id_productor (int): ID del productor
             
         Returns:
-            int: Número de parcelas activas del agricultor.
+            int: Número de parcelas activas del productor
         """
         count = self._contar_registros(
             "Parcelas", 
@@ -28,12 +28,12 @@ class RelacionRepositorio(RepositorioBase):
         logger.info(f"Agricultor {id_productor} tiene {count} parcelas activas")
         return count
     
-    def verificar_dependencias_agricultor(self, id_productor):
+    def verificar_dependencias_productorself, id_productor):
         """
-        Verifica todas las dependencias de un agricultor antes de eliminarlo.
+        Verifica todas las dependencias de un productorantes de eliminarlo.
         
         Args:
-            id_productor (int): ID del agricultor.
+            id_productor (int): ID del productor
             
         Returns:
             dict: Información detallada de dependencias.
@@ -56,7 +56,7 @@ class RelacionRepositorio(RepositorioBase):
         }
         
         if not dependencias['puede_eliminar']:
-            mensaje = f"No se puede eliminar el agricultor. Tiene {parcelas} parcelas asociadas."
+            mensaje = f"No se puede eliminar el productor Tiene {parcelas} parcelas asociadas."
             raise RegistroTieneDependencias(mensaje, parcelas)
         
         logger.info(f"Agricultor {id_productor} puede ser eliminado - sin dependencias")
@@ -197,7 +197,7 @@ class RelacionRepositorio(RepositorioBase):
         
         productores = []
         for row in rows:
-            agricultor = {
+            productor= {
                 'id_productor': row.id_productor,
                 'nombre': row.nombre,
                 'apellido': row.apellido,
@@ -205,7 +205,7 @@ class RelacionRepositorio(RepositorioBase):
                 'cantidad_parcelas': row.cantidad_parcelas,
                 'area_total': float(row.area_total)
             }
-            productores.append(agricultor)
+            productores.append(productor
         
         logger.info(f"Búsqueda '{texto_busqueda}' con parcelas: {len(productores)} resultados")
         return productores

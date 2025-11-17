@@ -301,7 +301,7 @@ def main():
     
     try:
         productores_parcelas_model = ProductoresParcelasModels()
-        engine.rootContext().setContextProperty("productoresparcelas", productores_parcelas_model)
+        engine.rootContext().setContextProperty("productoresparcelasModel", productores_parcelas_model)
         print("✅ ProductoresParcelasModels registrado en QML")
     except Exception as e:
         print(f"⚠️ No se pudo registrar ProductoresParcelasModels: {e}")

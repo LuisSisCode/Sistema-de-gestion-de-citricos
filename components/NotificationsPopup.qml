@@ -154,7 +154,7 @@ Popup {
                 NotificationItem {
                     width: parent.width
                     icon: "🧑‍🌾"
-                    title: "Nuevo agricultor registrado"
+                    title: "Nuevo productor registrado"
                     message: "Juan Pérez ha sido agregado al sistema"
                     time: "Hace 3 días"
                     isUnread: false

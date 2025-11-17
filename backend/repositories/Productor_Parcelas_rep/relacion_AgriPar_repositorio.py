@@ -13,14 +13,14 @@ class RelacionRepositorio(RepositorioBase):
     @cacheable('relaciones', key_func=lambda id_agr: f"parcelas_count_{id_agr}", ttl=1800)  # 30 min
     def contar_parcelas_por_productor(self, id_productor):
         """
-        Cuenta las parcelas activas de un agricultor específico.
+        Cuenta las parcelas activas de un productor específico.
         ⭐ MUY OPTIMIZADO: Era la consulta más repetida en logs (16+ veces)
         
         Args:
-            id_productor (int): ID del agricultor.
+            id_productor (int): ID del productor.
             
         Returns:
-            int: Número de parcelas activas del agricultor.
+            int: Número de parcelas activas del productor.
         """
         count = self._contar_registros(
             "Parcelas", 
@@ -32,12 +32,12 @@ class RelacionRepositorio(RepositorioBase):
         return count
     
     @cacheable('relaciones', key_func=lambda id_agr: f"dependencias_{id_agr}", ttl=1200)  # 20 min
-    def verificar_dependencias_agricultor(self, id_productor):
+    def verificar_dependencias_productor(self, id_productor):
         """
-        Verifica todas las dependencias de un agricultor antes de eliminarlo.
+        Verifica todas las dependencias de un productor antes de eliminarlo.
         
         Args:
-            id_productor(int): ID del agricultor.
+            id_productor(int): ID del productor.
             
         Returns:
             dict: Información detallada de dependencias.
@@ -60,7 +60,7 @@ class RelacionRepositorio(RepositorioBase):
         }
         
         if not dependencias['puede_eliminar']:
-            mensaje = f"No se puede eliminar el agricultor. Tiene {parcelas} parcelas asociadas."
+            mensaje = f"No se puede eliminar el productor. Tiene {parcelas} parcelas asociadas."
             raise RegistroTieneDependencias(mensaje, parcelas)
         
         logger.info(f"Agricultor {id_productor} puede ser eliminado - sin dependencias")
@@ -208,7 +208,7 @@ class RelacionRepositorio(RepositorioBase):
         
         productores = []
         for row in rows:
-            agricultor = {
+            productor = {
                 'id_productor': row.id_productor,
                 'nombre': row.nombre,
                 'apellido': row.apellido,
@@ -216,7 +216,7 @@ class RelacionRepositorio(RepositorioBase):
                 'cantidad_parcelas': row.cantidad_parcelas,
                 'area_total': float(row.area_total)
             }
-            productores.append(agricultor)
+            productores.append(productor)
         
         logger.info(f"Búsqueda '{texto_busqueda}' con parcelas: {len(productores)} resultados")
         return productores
@@ -352,7 +352,7 @@ class RelacionRepositorio(RepositorioBase):
         SELECT 
             COUNT(DISTINCT a.id_productor) as productores_con_parcelas,
             COUNT(p.id_parcela) as total_parcelas_activas,
-            AVG(parcelas_por_agricultor.cantidad) as promedio_parcelas_por_agricultor
+            AVG(parcelas_por_productor.cantidad) as promedio_parcelas_por_productor
         FROM Productores a
         JOIN Parcelas p ON a.id_productor= p.id_productorAND p.activo = 1
         JOIN (
@@ -360,7 +360,7 @@ class RelacionRepositorio(RepositorioBase):
             FROM Parcelas 
             WHERE activo = 1 
             GROUP BY id_productor
-        ) parcelas_por_agricultor ON a.id_productor = parcelas_por_agricultor.id_productor
+        ) parcelas_por_productor ON a.id_productor = parcelas_por_productor.id_productor
         WHERE a.activo = 1
         """
         
@@ -370,7 +370,7 @@ class RelacionRepositorio(RepositorioBase):
             'productores_con_parcelas': row.productores_con_parcelas,
             'propietarios_con_parcelas': row.propietarios_con_parcelas,
             'total_parcelas_activas': row.total_parcelas_activas,
-            'promedio_parcelas_por_agricultor': float(row.promedio_parcelas_por_agricultor) if row.promedio_parcelas_por_agricultor else 0
+            'promedio_parcelas_por_productor': float(row.promedio_parcelas_por_productor) if row.promedio_parcelas_por_productor else 0
         }
         
         logger.info(f"Métricas de uso calculadas: {metricas}")

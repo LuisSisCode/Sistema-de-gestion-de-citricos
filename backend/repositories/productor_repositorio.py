@@ -147,7 +147,7 @@ class ProductorRepositorio(RepositorioBase):
         Crea un nuevo productor.
         
         Args:
-            datos_agricultor (dict): Datos del productor .
+            datos_productor (dict): Datos del productor .
             
         Returns:
             tuple: (True, id_productor) si fue exitoso.
@@ -160,7 +160,7 @@ class ProductorRepositorio(RepositorioBase):
         
         # Verificar si la identificación ya existe
         if self._existe_identificacion(datos_productor['identificacion']):
-            raise RegistroYaExiste(f"Ya existe un agricultor con identificación {datos_productor['identificacion']}")
+            raise RegistroYaExiste(f"Ya existe un productor con identificación {datos_productor['identificacion']}")
         
         query = """
         INSERT INTO Productores (nombre, apellido, identificacion, telefono, 
@@ -187,54 +187,54 @@ class ProductorRepositorio(RepositorioBase):
         logger.info(f"Agricultor creado con ID: {id_productor}")
         return True, id_productor
     
-    def actualizar(self, id_productor, datos_agricultor):
+    def actualizar(self, id_productor, datos_productor):
         """
-        Actualiza un agricultor existente.
+        Actualiza un productor existente.
         
         Args:
-            id_productor (int): ID del agricultor.
-            datos_agricultor (dict): Datos actualizados.
+            id_productor (int): ID del productor.
+            datos_productor (dict): Datos actualizados.
             
         Returns:
             bool: True si se actualizó correctamente.
             
         Raises:
-            RegistroNoEncontrado: Si el agricultor no existe.
+            RegistroNoEncontrado: Si el productor no existe.
             ErrorValidacion: Si los datos no son válidos.
         """
-        # Verificar que el agricultor existe
+        # Verificar que el productor existe
         self.obtener_por_id(id_productor)
         
         # Construir consulta dinámicamente
         campos_actualizar = []
         valores = []
         
-        if 'nombre' in datos_agricultor:
+        if 'nombre' in datos_productor:
             campos_actualizar.append("nombre = ?")
-            valores.append(datos_agricultor['nombre'])
+            valores.append(datos_productor['nombre'])
             
-        if 'apellido' in datos_agricultor:
+        if 'apellido' in datos_productor:
             campos_actualizar.append("apellido = ?")
-            valores.append(datos_agricultor['apellido'])
+            valores.append(datos_productor['apellido'])
             
-        if 'identificacion' in datos_agricultor:
+        if 'identificacion' in datos_productor:
             # Verificar que la nueva identificación no exista (excluyendo el registro actual)
-            if self._existe_identificacion_excepto(datos_agricultor['identificacion'], id_productor):
-                raise RegistroYaExiste(f"Ya existe otro agricultor con identificación {datos_agricultor['identificacion']}")
+            if self._existe_identificacion_excepto(datos_productor['identificacion'], id_productor):
+                raise RegistroYaExiste(f"Ya existe otro productor con identificación {datos_productor['identificacion']}")
             campos_actualizar.append("identificacion = ?")
-            valores.append(datos_agricultor['identificacion'])
+            valores.append(datos_productor['identificacion'])
             
-        if 'telefono' in datos_agricultor:
+        if 'telefono' in datos_productor:
             campos_actualizar.append("telefono = ?")
-            valores.append(datos_agricultor['telefono'])
+            valores.append(datos_productor['telefono'])
             
-        if 'correo' in datos_agricultor:
+        if 'correo' in datos_productor:
             campos_actualizar.append("correo = ?")
-            valores.append(datos_agricultor['correo'])
+            valores.append(datos_productor['correo'])
             
-        if 'direccion' in datos_agricultor:
+        if 'direccion' in datos_productor:
             campos_actualizar.append("direccion = ?")
-            valores.append(datos_agricultor['direccion'])
+            valores.append(datos_productor['direccion'])
         
         if not campos_actualizar:
             logger.warning("No hay campos para actualizar")
@@ -250,18 +250,18 @@ class ProductorRepositorio(RepositorioBase):
     
     def desactivar(self, id_productor):
         """
-        Desactiva un agricultor (eliminación lógica).
+        Desactiva un productor (eliminación lógica).
         
         Args:
-            id_productor (int): ID del agricultor.
+            id_productor (int): ID del productor.
             
         Returns:
             bool: True si se desactivó correctamente.
             
         Raises:
-            RegistroNoEncontrado: Si el agricultor no existe.
+            RegistroNoEncontrado: Si el productor no existe.
         """
-        # Verificar que el agricultor existe
+        # Verificar que el productor existe
         self.obtener_por_id(id_productor)
         
         query = "UPDATE Productores SET activo = 0 WHERE id_productor = ?"
