@@ -20,16 +20,14 @@ class LoteCosechaRepositorio(RepositorioBase):
             list: Lista de diccionarios con información de lotes de cosecha.
         """
         query = """
-        SELECT l.id_lote, l.id_ciclo, l.id_categoria_calidad, l.codigo_lote,
+        SELECT l.id_lote, l.id_ciclo, l.codigo_lote,
                l.fecha_cosecha, l.cantidad_cosechada, l.unidad_medida,
-               l.precio_unitario_sugerido, l.costo_produccion_unitario,
                l.registrado_por, l.observaciones, l.activo,
                c.id_parcela, c.id_variedad, c.area_sembrada,
                p.nombre AS nombre_parcela,
                v.nombre AS nombre_variedad,
                t.nombre AS nombre_tipo_cultivo,
                a.nombre + ' ' + a.apellido AS nombre_productor,
-               cc.nombre AS categoria_calidad,
                u.nombre + ' ' + u.apellido AS registrado_por_nombre
         FROM LotesCosecha l
         JOIN CiclosProduccion c ON l.id_ciclo = c.id_ciclo
@@ -37,9 +35,8 @@ class LoteCosechaRepositorio(RepositorioBase):
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
         JOIN Productores a ON p.id_productor = a.id_productor
-        JOIN CategoriasCalidad cc ON l.id_categoria_calidad = cc.id_categoria
         JOIN Usuarios u ON l.registrado_por = u.id_usuario
-        WHERE l.activo = 1 AND c.activo = 1 AND p.activo = 1 AND v.activo = 1 AND t.activo = 1
+        WHERE l.activo = 1 AND p.activo = 1 AND v.activo = 1 AND t.activo = 1
         ORDER BY l.fecha_cosecha DESC
         """
         
@@ -68,16 +65,14 @@ class LoteCosechaRepositorio(RepositorioBase):
             RegistroNoEncontrado: Si el lote no existe.
         """
         query = """
-        SELECT l.id_lote, l.id_ciclo, l.id_categoria_calidad, l.codigo_lote,
+        SELECT l.id_lote, l.id_ciclo, l.codigo_lote,
                l.fecha_cosecha, l.cantidad_cosechada, l.unidad_medida,
-               l.precio_unitario_sugerido, l.costo_produccion_unitario,
                l.registrado_por, l.observaciones, l.activo,
                c.id_parcela, c.id_variedad, c.area_sembrada,
                p.nombre AS nombre_parcela,
                v.nombre AS nombre_variedad,
                t.nombre AS nombre_tipo_cultivo,
                a.nombre + ' ' + a.apellido AS nombre_productor,
-               cc.nombre AS categoria_calidad,
                u.nombre + ' ' + u.apellido AS registrado_por_nombre
         FROM LotesCosecha l
         JOIN CiclosProduccion c ON l.id_ciclo = c.id_ciclo
@@ -85,7 +80,6 @@ class LoteCosechaRepositorio(RepositorioBase):
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
         JOIN Productores a ON p.id_productor = a.id_productor
-        JOIN CategoriasCalidad cc ON l.id_categoria_calidad = cc.id_categoria
         JOIN Usuarios u ON l.registrado_por = u.id_usuario
         WHERE l.id_lote = ? AND l.activo = 1
         """
@@ -109,16 +103,14 @@ class LoteCosechaRepositorio(RepositorioBase):
             list: Lista de lotes del ciclo.
         """
         query = """
-        SELECT l.id_lote, l.id_ciclo, l.id_categoria_calidad, l.codigo_lote,
+        SELECT l.id_lote, l.id_ciclo, l.codigo_lote,
                l.fecha_cosecha, l.cantidad_cosechada, l.unidad_medida,
-               l.precio_unitario_sugerido, l.costo_produccion_unitario,
                l.registrado_por, l.observaciones, l.activo,
                c.id_parcela, c.id_variedad, c.area_sembrada,
                p.nombre AS nombre_parcela,
                v.nombre AS nombre_variedad,
                t.nombre AS nombre_tipo_cultivo,
                a.nombre + ' ' + a.apellido AS nombre_productor,
-               cc.nombre AS categoria_calidad,
                u.nombre + ' ' + u.apellido AS registrado_por_nombre
         FROM LotesCosecha l
         JOIN CiclosProduccion c ON l.id_ciclo = c.id_ciclo
@@ -126,7 +118,6 @@ class LoteCosechaRepositorio(RepositorioBase):
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
         JOIN Productores a ON p.id_productor = a.id_productor
-        JOIN CategoriasCalidad cc ON l.id_categoria_calidad = cc.id_categoria
         JOIN Usuarios u ON l.registrado_por = u.id_usuario
         WHERE l.id_ciclo = ? AND l.activo = 1
         ORDER BY l.fecha_cosecha DESC
@@ -155,16 +146,14 @@ class LoteCosechaRepositorio(RepositorioBase):
             list: Lista de lotes en el rango.
         """
         query = """
-        SELECT l.id_lote, l.id_ciclo, l.id_categoria_calidad, l.codigo_lote,
+        SELECT l.id_lote, l.id_ciclo, l.codigo_lote,
                l.fecha_cosecha, l.cantidad_cosechada, l.unidad_medida,
-               l.precio_unitario_sugerido, l.costo_produccion_unitario,
                l.registrado_por, l.observaciones, l.activo,
                c.id_parcela, c.id_variedad, c.area_sembrada,
                p.nombre AS nombre_parcela,
                v.nombre AS nombre_variedad,
                t.nombre AS nombre_tipo_cultivo,
                a.nombre + ' ' + a.apellido AS nombre_productor,
-               cc.nombre AS categoria_calidad,
                u.nombre + ' ' + u.apellido AS registrado_por_nombre
         FROM LotesCosecha l
         JOIN CiclosProduccion c ON l.id_ciclo = c.id_ciclo
@@ -172,7 +161,6 @@ class LoteCosechaRepositorio(RepositorioBase):
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
         JOIN Productores a ON p.id_productor = a.id_productor
-        JOIN CategoriasCalidad cc ON l.id_categoria_calidad = cc.id_categoria
         JOIN Usuarios u ON l.registrado_por = u.id_usuario
         WHERE l.fecha_cosecha BETWEEN ? AND ? AND l.activo = 1
         ORDER BY l.fecha_cosecha DESC
@@ -197,35 +185,36 @@ class LoteCosechaRepositorio(RepositorioBase):
             list: Lista de lotes disponibles.
         """
         query = """
-        SELECT l.id_lote, l.id_ciclo, l.id_categoria_calidad, l.codigo_lote,
-               l.fecha_cosecha, l.cantidad_cosechada, l.unidad_medida,
-               l.precio_unitario_sugerido, l.costo_produccion_unitario,
-               l.registrado_por, l.observaciones, l.activo,
-               c.id_parcela, c.id_variedad, c.area_sembrada,
-               p.nombre AS nombre_parcela,
-               v.nombre AS nombre_variedad,
-               t.nombre AS nombre_tipo_cultivo,
-               a.nombre + ' ' + a.apellido AS nombre_productor,
-               cc.nombre AS categoria_calidad,
-               u.nombre + ' ' + u.apellido AS registrado_por_nombre,
-               COALESCE(SUM(dv.cantidad), 0) AS cantidad_vendida,
-               (l.cantidad_cosechada - COALESCE(SUM(dv.cantidad), 0)) AS cantidad_disponible
+        SELECT 
+            l.id_lote, l.id_ciclo, l.codigo_lote,
+            l.fecha_cosecha, l.cantidad_cosechada, l.unidad_medida,
+            l.registrado_por, 
+            MAX(CAST(l.observaciones AS VARCHAR(MAX))) AS observaciones, 
+            l.activo,
+            c.id_parcela, c.id_variedad, c.area_sembrada,
+            p.nombre AS nombre_parcela,
+            v.nombre AS nombre_variedad,
+            t.nombre AS nombre_tipo_cultivo,
+            a.nombre + ' ' + a.apellido AS nombre_productor,
+            u.nombre + ' ' + u.apellido AS registrado_por_nombre,
+            COALESCE(SUM(dv.cantidad), 0) AS cantidad_vendida,
+            (l.cantidad_cosechada - COALESCE(SUM(dv.cantidad), 0)) AS cantidad_disponible
         FROM LotesCosecha l
         JOIN CiclosProduccion c ON l.id_ciclo = c.id_ciclo
         JOIN Parcelas p ON c.id_parcela = p.id_parcela
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
         JOIN Productores a ON p.id_productor = a.id_productor
-        JOIN CategoriasCalidad cc ON l.id_categoria_calidad = cc.id_categoria
         JOIN Usuarios u ON l.registrado_por = u.id_usuario
         LEFT JOIN DetallesVenta dv ON l.id_lote = dv.id_lote
         WHERE l.activo = 1
-        GROUP BY l.id_lote, l.codigo_lote, l.cantidad_cosechada, 
-                 l.fecha_cosecha, l.unidad_medida, l.precio_unitario_sugerido,
-                 l.costo_produccion_unitario, l.registrado_por, l.observaciones,
-                 c.id_parcela, c.id_variedad, c.area_sembrada,
-                 p.nombre, v.nombre, t.nombre, a.nombre, a.apellido,
-                 cc.nombre, u.nombre, u.apellido
+        GROUP BY 
+            l.id_lote, l.id_ciclo, l.codigo_lote,
+            l.fecha_cosecha, l.cantidad_cosechada, l.unidad_medida,
+            l.registrado_por, l.activo,
+            c.id_parcela, c.id_variedad, c.area_sembrada,
+            p.nombre, v.nombre, t.nombre, a.nombre, a.apellido,
+            u.nombre, u.apellido
         HAVING (l.cantidad_cosechada - COALESCE(SUM(dv.cantidad), 0)) > 0
         ORDER BY l.fecha_cosecha DESC
         """
@@ -257,10 +246,9 @@ class LoteCosechaRepositorio(RepositorioBase):
             COUNT(DISTINCT cc.id_categoria) as categorias_utilizadas,
             SUM(l.cantidad_cosechada) as cantidad_total_cosechada,
             AVG(l.cantidad_cosechada) as cantidad_promedio_lote,
-            AVG(l.precio_unitario_sugerido) as precio_promedio_sugerido,
+            AVG precio_promedio_sugerido,
             COUNT(CASE WHEN l.fecha_cosecha >= DATEADD(month, -1, GETDATE()) THEN 1 END) as lotes_ultimo_mes
         FROM LotesCosecha l
-        JOIN CategoriasCalidad cc ON l.id_categoria_calidad = cc.id_categoria
         WHERE l.activo = 1
         """
         
@@ -285,11 +273,9 @@ class LoteCosechaRepositorio(RepositorioBase):
         
         # Obtener distribución por calidad
         calidad_query = """
-        SELECT cc.nombre, COUNT(*) as cantidad, SUM(l.cantidad_cosechada) as total_cosechado
+        SELECT COUNT(*) as cantidad, SUM(l.cantidad_cosechada) as total_cosechado
         FROM LotesCosecha l
-        JOIN CategoriasCalidad cc ON l.id_categoria_calidad = cc.id_categoria
         WHERE l.activo = 1
-        GROUP BY cc.nombre
         ORDER BY total_cosechado DESC
         """
         
@@ -335,22 +321,19 @@ class LoteCosechaRepositorio(RepositorioBase):
         
         query = """
         INSERT INTO LotesCosecha (
-            id_ciclo, id_categoria_calidad, codigo_lote, fecha_cosecha,
-            cantidad_cosechada, unidad_medida, precio_unitario_sugerido,
-            costo_produccion_unitario, registrado_por, observaciones, activo
+            id_ciclo, codigo_lote, fecha_cosecha,
+            cantidad_cosechada, unidad_medida,
+            registrado_por, observaciones, activo
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """
         
         valores = (
             datos_lote['id_ciclo'],
-            datos_lote['id_categoria_calidad'],
             datos_lote['codigo_lote'],
             datos_lote['fecha_cosecha'],
             datos_lote['cantidad_cosechada'],
             datos_lote.get('unidad_medida', 'kg'),
-            datos_lote.get('precio_unitario_sugerido'),
-            datos_lote.get('costo_produccion_unitario'),
             datos_lote['registrado_por'],
             datos_lote.get('observaciones'),
             1  # activo por defecto
@@ -387,9 +370,9 @@ class LoteCosechaRepositorio(RepositorioBase):
         valores = []
         
         campos_permitidos = [
-            'id_categoria_calidad', 'codigo_lote', 'fecha_cosecha',
-            'cantidad_cosechada', 'unidad_medida', 'precio_unitario_sugerido',
-            'costo_produccion_unitario', 'observaciones'
+            'codigo_lote', 'fecha_cosecha',
+            'cantidad_cosechada', 'unidad_medida',
+            'observaciones'
         ]
         
         for campo in campos_permitidos:
@@ -454,13 +437,10 @@ class LoteCosechaRepositorio(RepositorioBase):
             'id_lote': row.id_lote,
             'id': row.id_lote,  # Alias para compatibilidad
             'id_ciclo': row.id_ciclo,
-            'id_categoria_calidad': row.id_categoria_calidad,
             'codigo_lote': row.codigo_lote or '',
             'fecha_cosecha': self._formatear_fecha(row.fecha_cosecha),
             'cantidad_cosechada': float(row.cantidad_cosechada),
             'unidad_medida': row.unidad_medida or 'kg',
-            'precio_unitario_sugerido': float(row.precio_unitario_sugerido) if row.precio_unitario_sugerido else 0,
-            'costo_produccion_unitario': float(row.costo_produccion_unitario) if row.costo_produccion_unitario else 0,
             'registrado_por': row.registrado_por,
             'observaciones': row.observaciones or '',
             'activo': bool(row.activo),
@@ -475,14 +455,11 @@ class LoteCosechaRepositorio(RepositorioBase):
             'nombre_variedad': row.nombre_variedad or '',
             'nombre_tipo_cultivo': row.nombre_tipo_cultivo or '',
             'nombre_productor': row.nombre_productor or '',
-            'categoria_calidad': row.categoria_calidad or '',
             'registrado_por_nombre': row.registrado_por_nombre or '',
             
             # Campos calculados
             'cultivo_completo': f"{row.nombre_tipo_cultivo} - {row.nombre_variedad}" if row.nombre_tipo_cultivo else row.nombre_variedad,
-            'valor_total_estimado': float(row.cantidad_cosechada) * float(row.precio_unitario_sugerido) if row.precio_unitario_sugerido else 0,
             'rendimiento_por_hectarea': float(row.cantidad_cosechada) / float(row.area_sembrada) if row.area_sembrada > 0 else 0,
-            'margen_estimado': self._calcular_margen_estimado(row),
             'dias_desde_cosecha': self._calcular_dias_desde_cosecha(row.fecha_cosecha),
             'cantidad_texto': f"{float(row.cantidad_cosechada):,.2f} {row.unidad_medida or 'kg'}"
         }
@@ -500,9 +477,6 @@ class LoteCosechaRepositorio(RepositorioBase):
         if not datos.get('id_ciclo'):
             raise ErrorValidacion("El ciclo de producción es obligatorio")
         
-        if not datos.get('id_categoria_calidad'):
-            raise ErrorValidacion("La categoría de calidad es obligatoria")
-        
         if not datos.get('fecha_cosecha'):
             raise ErrorValidacion("La fecha de cosecha es obligatoria")
         
@@ -518,13 +492,6 @@ class LoteCosechaRepositorio(RepositorioBase):
         
         if fecha_cosecha > date.today():
             raise ErrorValidacion("La fecha de cosecha no puede ser futura")
-        
-        # Validar precios si se proporcionan
-        if datos.get('precio_unitario_sugerido') is not None and datos['precio_unitario_sugerido'] < 0:
-            raise ErrorValidacion("El precio unitario debe ser positivo")
-        
-        if datos.get('costo_produccion_unitario') is not None and datos['costo_produccion_unitario'] < 0:
-            raise ErrorValidacion("El costo de producción debe ser positivo")
     
     def _generar_codigo_lote(self, id_ciclo):
         """
@@ -538,26 +505,6 @@ class LoteCosechaRepositorio(RepositorioBase):
         """
         fecha_actual = datetime.now()
         return f"L{id_ciclo}-{fecha_actual.strftime('%Y%m%d')}-{fecha_actual.strftime('%H%M')}"
-    
-    def _calcular_margen_estimado(self, row):
-        """
-        Calcula el margen estimado del lote.
-        
-        Args:
-            row: Fila de datos del lote.
-            
-        Returns:
-            float: Margen estimado en porcentaje.
-        """
-        if not row.precio_unitario_sugerido or not row.costo_produccion_unitario:
-            return 0
-        
-        precio = float(row.precio_unitario_sugerido)
-        costo = float(row.costo_produccion_unitario)
-        
-        if precio > 0:
-            return round(((precio - costo) / precio) * 100, 2)
-        return 0
     
     def _calcular_dias_desde_cosecha(self, fecha_cosecha):
         """

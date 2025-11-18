@@ -80,7 +80,6 @@ class LoteCosechaServicio:
                 'metadatos_servicio': {
                     'timestamp': self._get_timestamp(),
                     'total_disponibles': sum(1 for l in lotes_enriquecidos if l['disponibilidad']['disponible']),
-                    'valor_total_pagina': sum(l['valor_total_estimado'] for l in lotes_enriquecidos)
                 }
             }
             
@@ -122,7 +121,7 @@ class LoteCosechaServicio:
             
             if exito:
                 # Actualizar estado del ciclo a 'Finalizado'
-                self._finalizar_ciclo_automaticamente(id_ciclo, datos_cosecha['fecha_cosecha'])
+                self._finalizar_ciclo_automaticamente(id_ciclo)
                 
                 # Obtener información del lote creado
                 lote_creado = self.lote_repo.obtener_por_id(id_lote)
@@ -351,12 +350,11 @@ class LoteCosechaServicio:
         
         return datos_lote
     
-    def _finalizar_ciclo_automaticamente(self, id_ciclo, fecha_cosecha):
+    def _finalizar_ciclo_automaticamente(self, id_ciclo):
         """Finaliza automáticamente el ciclo al registrar cosecha."""
         try:
             self.ciclo_repo.actualizar(id_ciclo, {
-                'estado': 'Finalizado',
-                'fecha_cosecha_real': fecha_cosecha
+                'estado': 'Finalizado'
             })
         except Exception as e:
             logger.warning(f"No se pudo finalizar automáticamente el ciclo {id_ciclo}: {str(e)}")
@@ -364,9 +362,6 @@ class LoteCosechaServicio:
     def _aplicar_filtros(self, lotes, filtros):
         """Aplica filtros a la lista de lotes."""
         lotes_filtrados = lotes
-        
-        if filtros.get('categoria'):
-            lotes_filtrados = [l for l in lotes_filtrados if l['categoria_calidad'] == filtros['categoria']]
         
         if filtros.get('fecha_desde'):
             fecha_desde = datetime.strptime(filtros['fecha_desde'], '%Y-%m-%d').date()
@@ -403,23 +398,51 @@ class LoteCosechaServicio:
             return 'vendido'
     
     def _generar_recomendacion_precio(self, lote):
-        """Genera recomendación de precio basada en calidad y mercado."""
+        """Genera recomendación de precio basada en rentabilidad/margen, sin referencias a campos de calidad eliminados."""
         precio_base = lote.get('precio_unitario_sugerido', 0)
-        categoria = lote.get('categoria_calidad', '').lower()
-        
-        if 'premium' in categoria or 'primera' in categoria:
-            factor = 1.2
-        elif 'segunda' in categoria or 'buena' in categoria:
-            factor = 1.0
+
+        # Preferir categoría de rentabilidad si está disponible
+        categoria_renta = (lote.get('categoria_rentabilidad') or '').lower()
+        if categoria_renta:
+            if 'muy_alta' in categoria_renta or 'alta' in categoria_renta:
+                factor = 1.2
+            elif 'media' in categoria_renta:
+                factor = 1.0
+            elif 'baja' in categoria_renta or 'muy_baja' in categoria_renta:
+                factor = 0.85
+            else:
+                factor = 1.0
+            justificacion = f"Ajuste basado en rentabilidad ('{categoria_renta}')"
         else:
-            factor = 0.8
-        
-        precio_recomendado = precio_base * factor
-        
+            # Si no hay categoría, usar margen_estimado como señal alternativa
+            margen = lote.get('margen_estimado')
+            if margen is None:
+                factor = 1.0
+                justificacion = "Sin señal de rentabilidad ni margen estimado; factor neutro aplicado"
+            else:
+                try:
+                    margen_val = float(margen)
+                    if margen_val >= 50:
+                        factor = 1.2
+                    elif margen_val >= 30:
+                        factor = 1.15
+                    elif margen_val >= 15:
+                        factor = 1.0
+                    elif margen_val >= 5:
+                        factor = 0.9
+                    else:
+                        factor = 0.85
+                    justificacion = f"Ajuste basado en margen estimado ({margen_val})"
+                except Exception:
+                    factor = 1.0
+                    justificacion = "Error al leer margen estimado; factor neutro aplicado"
+
+        precio_recomendado = round(precio_base * factor, 2)
+
         return {
-            'precio_recomendado': round(precio_recomendado, 2),
-            'factor_aplicado': factor,
-            'justificacion': f"Ajuste por calidad: {categoria}"
+            'precio_recomendado': precio_recomendado,
+            'factor_aplicado': round(factor, 2),
+            'justificacion': justificacion
         }
     
     def _generar_alertas_lote(self, lote):
@@ -461,10 +484,8 @@ class LoteCosechaServicio:
         
         return {
             'total_cantidad': sum(l['cantidad_cosechada'] for l in lotes),
-            'valor_total': sum(l['valor_total_estimado'] for l in lotes),
             'rendimiento_promedio': sum(l['rendimiento_por_hectarea'] for l in lotes) / len(lotes),
             'lotes_disponibles': sum(1 for l in lotes if l['disponibilidad']['disponible']),
-            'categorias_calidad': list(set(l['categoria_calidad'] for l in lotes))
         }
     
     def _calcular_precio_sugerido(self, datos_cosecha, ciclo):
@@ -491,9 +512,6 @@ class LoteCosechaServicio:
     def _evaluar_urgencia_venta(self, lote):
         dias = lote.get('dias_desde_cosecha', 0)
         return 'alta' if dias > 60 else 'media' if dias > 30 else 'baja'
-    
-    def _obtener_descripcion_calidad(self, lote):
-        return lote.get('categoria_calidad', 'Estándar')
     
     def _preparar_info_cultivo_venta(self, lote):
         return {
@@ -533,15 +551,6 @@ class LoteCosechaServicio:
             return 'bueno'
         else:
             return 'mejorable'
-    
-    def _analizar_calidad_lotes(self, lotes):
-        categorias = {}
-        for lote in lotes:
-            cat = lote['categoria_calidad']
-            if cat not in categorias:
-                categorias[cat] = 0
-            categorias[cat] += 1
-        return categorias
     
     def _generar_recomendaciones_ciclo(self, eficiencia, lotes):
         recomendaciones = []

@@ -12,14 +12,13 @@ Módulos:
     - gestion_cliente_venta_servicio: Orquestación y fachada para operaciones complejas
 """
 
-from .cliente_servicio import ClienteServicio
-from .venta_servicio import VentaServicio
-from .gestion_cliente_venta_servicio import GestionClienteVentaServicio
+from .cliente_service import ClienteService
+from .venta_servicie import VentaService
+
 
 __all__ = [
-    'ClienteServicio',
-    'VentaServicio',
-    'GestionClienteVentaServicio'
+    'ClienteService',
+    'VentaService',
 ]
 
 __version__ = '1.0.0'

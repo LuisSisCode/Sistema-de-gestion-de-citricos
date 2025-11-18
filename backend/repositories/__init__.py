@@ -24,9 +24,6 @@ from .CultivosRepositorio.relacion_cultivo_repositorio import RelacionCultivoRep
 # Repositorios de Clientes y Ventas
 from .ClientesVentasRep.cliente_repositorio import ClienteRepositorio
 from .ClientesVentasRep.venta_repositorio import VentaRepositorio
-from .ClientesVentasRep.detalle_venta_repositorio import DetalleVentaRepositorio
-from .ClientesVentasRep.estado_venta_repositorio import EstadoVentaRepositorio
-from .ClientesVentasRep.relacion_cliente_venta_repositorio import RelacionClienteVentaRepositorio
 
 __all__ = [
     # Usuarios y autentificacion
@@ -47,7 +44,4 @@ __all__ = [
     # Clientes y Ventas
     'ClienteRepositorio',
     'VentaRepositorio',
-    'DetalleVentaRepositorio',
-    'EstadoVentaRepositorio',
-    'RelacionClienteVentaRepositorio'
 ]

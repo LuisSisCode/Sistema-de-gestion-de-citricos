@@ -7,7 +7,8 @@ from .gastos_model import GastosModel
 from .maquinaria_model import MaquinariaModel
 from .reportes_model import *
 from .usuario_model import UsuariosRolesModel
-from .ventas_cliente_model import ClientesVentaModel
+from .clientes_model import ClientesModel
+from .ventas_model import VentasModel
 """
 Models QObject - Conectores entre QML y Backend
 
@@ -30,7 +31,8 @@ __all__ = [
     'MaquinariaModel',
     #'ReportesModel',
     'UsuariosRolesModel',
-    'ClientesVentaModel',
+    'ClientesModel',
+    'VentasModel',
 ]
 
 print("🎯 Models QObject cargados")

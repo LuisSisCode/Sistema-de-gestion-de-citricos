@@ -27,8 +27,6 @@ class ParcelaRepositorio(RepositorioBase):
             p.nombre, 
             p.ubicacion, 
             p.area_total,
-            p.coordenadas_gps, 
-            p.tipo_suelo, 
             p.fuente_agua,
             p.fecha_adquisicion, 
             p.activo, 
@@ -54,7 +52,6 @@ class ParcelaRepositorio(RepositorioBase):
                 if i < 3:
                     logger.info(f"Fila {i}: id_parcela={getattr(row, 'id_parcela', 'N/A')}, "
                             f"nombre={getattr(row, 'nombre', 'N/A')}, "
-                            f"coordenadas_gps={getattr(row, 'coordenadas_gps', 'N/A')}, "
                             f"area_total={getattr(row, 'area_total', 'N/A')}, "
                             f"nombre_productor={getattr(row, 'nombre_productor', 'N/A')}")
                 
@@ -96,7 +93,6 @@ class ParcelaRepositorio(RepositorioBase):
         """
         query = """
         SELECT p.id_parcela, p.nombre, p.ubicacion, p.area_total,
-            p.coordenadas_gps, p.tipo_suelo, p.fuente_agua,
             p.fecha_adquisicion, p.activo, 
             a.id_productor, a.nombre + ' ' + a.apellido AS nombre_propietario
         FROM Parcelas p
@@ -125,7 +121,6 @@ class ParcelaRepositorio(RepositorioBase):
         """
         query = """
         SELECT p.id_parcela, p.nombre, p.ubicacion, p.area_total,
-            p.coordenadas_gps, p.tipo_suelo, p.fuente_agua,
             p.fecha_adquisicion, p.activo, 
             a.id_productor, a.nombre + ' ' + a.apellido AS nombre_propietario
         FROM Parcelas p
@@ -176,7 +171,6 @@ class ParcelaRepositorio(RepositorioBase):
         # Obtener registros paginados
         data_query = f"""
         SELECT p.id_parcela, p.nombre, p.ubicacion, p.area_total,
-            p.coordenadas_gps, p.tipo_suelo, p.fuente_agua,
             p.fecha_adquisicion, p.activo, 
             a.id_productor a.nombre + ' ' + a.apellido AS nombre_propietario
         FROM Parcelas p
@@ -219,7 +213,6 @@ class ParcelaRepositorio(RepositorioBase):
         """
         query = """
         SELECT p.id_parcela, p.nombre, p.ubicacion, p.area_total,
-            p.coordenadas_gps, p.tipo_suelo, p.fuente_agua,
             p.fecha_adquisicion, p.activo, 
             a.id_productor a.nombre + ' ' + a.apellido AS nombre_propietario
         FROM Parcelas p
@@ -301,40 +294,6 @@ class ParcelaRepositorio(RepositorioBase):
             """
             return self._ejecutar_consulta_escalar(count_query)
 
-    @cacheable('parcelas_geo', key_func=lambda: 'coordenadas_validas', ttl=3600)  # 1 hora
-    def obtener_parcelas_con_coordenadas(self):
-        """
-        Obtiene parcelas que tienen coordenadas GPS válidas.
-        ⭐ OPTIMIZADO: Para el mapa GeoJSON que procesa 19+ parcelas repetidamente
-        
-        Returns:
-            list: Lista de parcelas con coordenadas válidas.
-        """
-        query = """
-        SELECT p.id_parcela, p.nombre, p.ubicacion, p.area_total,
-            p.coordenadas_gps, p.tipo_suelo, p.fuente_agua,
-            p.fecha_adquisicion, p.activo, 
-            a.id_productor, a.nombre + ' ' + a.apellido AS nombre_propietario
-        FROM Parcelas p
-        JOIN Productores a ON p.id_productor = a.id_productor
-        WHERE p.activo = 1 AND a.activo = 1 
-        AND p.coordenadas_gps IS NOT NULL 
-        AND p.coordenadas_gps != ''
-        ORDER BY p.nombre
-        """
-        
-        rows = self._ejecutar_consulta(query)
-        parcelas = []
-        
-        for row in rows:
-            parcela = self._construir_objeto_parcela_cached(row)
-            # Solo agregar si las coordenadas son válidas
-            if parcela.get('tiene_coordenadas'):
-                parcelas.append(parcela)
-        
-        logger.info(f"Se obtuvieron {len(parcelas)} parcelas con coordenadas válidas")
-        return parcelas
-
     def _construir_objeto_parcela_cached(self, row):
         """
         Construye un objeto parcela a partir de una fila de la base de datos.
@@ -347,19 +306,6 @@ class ParcelaRepositorio(RepositorioBase):
             dict: Objeto parcela estructurado.
         """
         # Extraer coordenadas GPS - OPTIMIZADO con caché local
-        latitud = None
-        longitud = None
-        tiene_coordenadas = False
-        
-        if row.coordenadas_gps:
-            try:
-                coord_parts = row.coordenadas_gps.split(',')
-                if len(coord_parts) == 2:
-                    latitud = float(coord_parts[0].strip())
-                    longitud = float(coord_parts[1].strip())
-                    tiene_coordenadas = True
-            except (ValueError, AttributeError):
-                pass
         
         # Calcular porcentaje de uso (temporal - debería venir de cultivos)
         from random import randint
@@ -386,18 +332,8 @@ class ParcelaRepositorio(RepositorioBase):
             'area': area_total,
             'area_total': area_total,
             'area_texto': f"{area_total:,.2f} ha",
-            
-            # Coordenadas optimizadas
-            'coordenadas_gps': row.coordenadas_gps,
-            'latitud': latitud,
-            'longitud': longitud,
-            'tiene_coordenadas': tiene_coordenadas,
-            
-            # Otros campos
-            'tipoSuelo': row.tipo_suelo or 'No especificado',
-            'tipo_suelo': row.tipo_suelo or 'No especificado',
-            'fuenteAgua': row.fuente_agua or 'No especificada',
-            'fuente_agua': row.fuente_agua or 'No especificada',
+
+
             'fechaAdquisicion': self._formatear_fecha(row.fecha_adquisicion),
             'fecha_adquisicion': self._formatear_fecha(row.fecha_adquisicion),
             'porcentajeUso': porcentaje_uso,
@@ -409,7 +345,6 @@ class ParcelaRepositorio(RepositorioBase):
     @cache_invalidator('parcelas', key='todas_activas')           # Lista completa
     @cache_invalidator('parcelas', pattern='pag_')               # Paginación
     @cache_invalidator('parcelas', pattern='propietario_')       # Por propietario
-    @cache_invalidator('parcelas_geo', key='coordenadas_validas') # GeoJSON
     @cache_invalidator('estadisticas', key='parcelas_basicas')   # Estadísticas
     @cache_invalidator('conteos')                                # Conteos
     def crear(self, datos_parcela):
@@ -430,17 +365,9 @@ class ParcelaRepositorio(RepositorioBase):
         
         query = """
         INSERT INTO Parcelas (id_productor nombre, ubicacion, area_total,
-                            coordenadas_gps, tipo_suelo, fuente_agua,
                             fecha_adquisicion, activo)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?)
         """
-        
-        # Preparar coordenadas GPS
-        coordenadas_gps = None
-        if datos_parcela.get('latitud') and datos_parcela.get('longitud'):
-            coordenadas_gps = f"{datos_parcela['latitud']},{datos_parcela['longitud']}"
-        elif datos_parcela.get('coordenadasGPS'):
-            coordenadas_gps = datos_parcela['coordenadasGPS']
         
         fecha_actual = datetime.now().date().strftime('%Y-%m-%d')
         valores = (
@@ -448,7 +375,6 @@ class ParcelaRepositorio(RepositorioBase):
             datos_parcela['nombre'],
             datos_parcela['ubicacion'],
             datos_parcela['area'],
-            coordenadas_gps,
             datos_parcela.get('tipoSuelo'),
             datos_parcela.get('fuenteAgua'),
             fecha_actual,
@@ -507,23 +433,6 @@ class ParcelaRepositorio(RepositorioBase):
             campos_actualizar.append("area_total = ?")
             valores.append(datos_parcela['area'])
         
-        # Manejar coordenadas GPS
-        if 'latitud' in datos_parcela and 'longitud' in datos_parcela:
-            coordenadas_gps = f"{datos_parcela['latitud']},{datos_parcela['longitud']}"
-            campos_actualizar.append("coordenadas_gps = ?")
-            valores.append(coordenadas_gps)
-        elif 'coordenadasGPS' in datos_parcela:
-            campos_actualizar.append("coordenadas_gps = ?")
-            valores.append(datos_parcela['coordenadasGPS'])
-        
-        if 'tipoSuelo' in datos_parcela:
-            campos_actualizar.append("tipo_suelo = ?")
-            valores.append(datos_parcela['tipoSuelo'])
-            
-        if 'fuenteAgua' in datos_parcela:
-            campos_actualizar.append("fuente_agua = ?")
-            valores.append(datos_parcela['fuenteAgua'])
-        
         if not campos_actualizar:
             logger.warning("No hay campos para actualizar")
             return False
@@ -540,7 +449,6 @@ class ParcelaRepositorio(RepositorioBase):
     @cache_invalidator('parcelas', key='todas_activas')          # Lista completa
     @cache_invalidator('parcelas', pattern='pag_')              # Paginación  
     @cache_invalidator('parcelas', pattern='propietario_')      # Por propietario
-    @cache_invalidator('parcelas_geo', key='coordenadas_validas') # GeoJSON
     @cache_invalidator('estadisticas', key='parcelas_basicas')  # Estadísticas
     @cache_invalidator('conteos')                               # Conteos
     def desactivar(self, id_parcela):
@@ -611,27 +519,3 @@ class ParcelaRepositorio(RepositorioBase):
                     
             except (ValueError, TypeError):
                 raise ErrorValidacion("Las coordenadas deben ser números válidos")
-
-    # MÉTODO ADICIONAL para debugging específico
-    def debug_parcelas_data(self):
-        """Método para debugging - obtener datos crudos"""
-        query = """
-        SELECT TOP 5
-            p.id_parcela, 
-            p.nombre, 
-            p.coordenadas_gps,
-            p.area_total,
-            p.id_productor
-            a.nombre,
-            a.apellido
-        FROM Parcelas p
-        JOIN Productores a ON p.id_productor= a.id_productor
-        WHERE p.activo = 1
-        """
-        
-        rows = self._ejecutar_consulta(query)
-        for row in rows:
-            print(f"DEBUG - Parcela: {row.nombre}, Coords: {row.coordenadas_gps}, "
-                f"Área: {row.area_total}, Agricultor: {row.nombre} {row.apellido}")
-        
-        return rows

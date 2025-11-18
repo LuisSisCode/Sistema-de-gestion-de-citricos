@@ -376,19 +376,6 @@ class CultivosModel(QObject):
             print(f"Error al eliminar ciclo de producción: {str(e)}")
             return False
     
-    @Slot(int, result=bool)
-    def desactivar_ciclo_produccion(self, id_ciclo):
-        """Desactiva un ciclo de producción en lugar de eliminarlo físicamente"""
-        try:
-            success = self._ciclo_servicio.desactivar_ciclo_produccion(id_ciclo)
-            if success:
-                self.cargar_ciclos_produccion()
-                self.cargar_estadisticas()
-            return success
-        except Exception as e:
-            print(f"Error al desactivar ciclo de producción: {str(e)}")
-            return False
-    
     @Slot(int, str, result=bool)
     def cambiar_estado_ciclo(self, id_ciclo, nuevo_estado):
         """Cambia el estado de un ciclo de producción"""
@@ -916,7 +903,7 @@ class CultivosModel(QObject):
         """Obtiene configuración para formularios dinámicos."""
         return {
             'tipo_cultivo': {
-                'campos': ['nombre', 'nombre_cientifico', 'descripcion', 'tiempo_cosecha_min', 'tiempo_cosecha_max'],
+                'campos': ['nombre', 'descripcion', 'tiempo_cosecha_min', 'tiempo_cosecha_max'],
                 'validaciones': {'nombre': {'required': True, 'min_length': 3}}
             },
             'variedad': {

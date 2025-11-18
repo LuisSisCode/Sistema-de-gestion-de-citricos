@@ -241,7 +241,7 @@ class RelacionRepositorio(RepositorioBase):
             COALESCE(AVG(p.area_total), 0) as area_promedio,
             MIN(p.fecha_adquisicion) as primera_adquisicion,
             MAX(p.fecha_adquisicion) as ultima_adquisicion
-        FROM Productoresa
+        FROM Productores a
         LEFT JOIN Parcelas p ON a.id_productor = p.id_productor AND p.activo = 1
         WHERE a.activo = 1
         GROUP BY a.id_productor, a.nombre, a.apellido, a.identificacion, a.telefono, a.correo

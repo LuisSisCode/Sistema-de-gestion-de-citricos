@@ -100,17 +100,17 @@ class RelacionCultivoRepositorio(RepositorioBase):
             (SELECT COUNT(*) FROM CiclosProduccion c 
              JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
              JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
-             WHERE c.activo = 1 AND v.activo = 1 AND t.activo = 1) as total_ciclos,
+             WHERE v.activo = 1 AND t.activo = 1) as total_ciclos,
             (SELECT COUNT(*) FROM CiclosProduccion c 
              JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
-             WHERE c.activo = 1 AND v.activo = 1 
+             WHERE v.activo = 1 
              AND c.estado IN ('Planificado', 'En Preparación', 'Sembrado', 'En Desarrollo', 'En Cosecha')) as ciclos_activos,
             (SELECT COALESCE(SUM(area_sembrada), 0) FROM CiclosProduccion c 
              JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
-             WHERE c.activo = 1 AND v.activo = 1) as area_total_sembrada,
+             WHERE v.activo = 1) as area_total_sembrada,
             (SELECT COUNT(DISTINCT c.id_parcela) FROM CiclosProduccion c 
              JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
-             WHERE c.activo = 1 AND v.activo = 1) as parcelas_con_cultivos
+             WHERE v.activo = 1) as parcelas_con_cultivos
         """
         
         row = self._ejecutar_consulta(query)[0]
@@ -155,7 +155,6 @@ class RelacionCultivoRepositorio(RepositorioBase):
         SELECT TOP (?)
             t.id_tipo_cultivo,
             t.nombre,
-            t.nombre_cientifico,
             COUNT(DISTINCT v.id_variedad) as total_variedades,
             COUNT(c.id_ciclo) as total_ciclos,
             COALESCE(SUM(c.area_sembrada), 0) as area_total,
@@ -164,8 +163,8 @@ class RelacionCultivoRepositorio(RepositorioBase):
         FROM TiposCultivo t
         JOIN VariedadesCultivo v ON t.id_tipo_cultivo = v.id_tipo_cultivo
         JOIN CiclosProduccion c ON v.id_variedad = c.id_variedad
-        WHERE t.activo = 1 AND v.activo = 1 AND c.activo = 1
-        GROUP BY t.id_tipo_cultivo, t.nombre, t.nombre_cientifico
+        WHERE t.activo = 1 AND v.activo = 1
+        GROUP BY t.id_tipo_cultivo, t.nombre
         ORDER BY total_ciclos DESC, area_total DESC
         """
         
@@ -177,7 +176,6 @@ class RelacionCultivoRepositorio(RepositorioBase):
                 'ranking': i,
                 'id_tipo_cultivo': row.id_tipo_cultivo,
                 'nombre': row.nombre,
-                'nombre_cientifico': row.nombre_cientifico,
                 'total_variedades': row.total_variedades,
                 'total_ciclos': row.total_ciclos,
                 'area_total': float(row.area_total),
@@ -212,8 +210,8 @@ class RelacionCultivoRepositorio(RepositorioBase):
             COUNT(CASE WHEN c.estado = 'Finalizado' THEN 1 END) as ciclos_finalizados
         FROM VariedadesCultivo v
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
-        LEFT JOIN CiclosProduccion c ON v.id_variedad = c.id_variedad AND c.activo = 1
-        WHERE v.activo = 1 AND t.activo = 1 IS NOT NULL
+        LEFT JOIN CiclosProduccion c ON v.id_variedad = c.id_variedad
+        WHERE v.activo = 1 AND t.activo = 1
         GROUP BY v.id_variedad, v.nombre,  v.tiempo_produccion, t.nombre
         ORDER BY total_ciclos DESC
         """
@@ -257,12 +255,12 @@ class RelacionCultivoRepositorio(RepositorioBase):
             COALESCE(SUM(c.area_sembrada), 0) as area_total_sembrada,
             COUNT(CASE WHEN c.estado = 'Finalizado' THEN 1 END) as ciclos_completados,
             COUNT(CASE WHEN c.estado IN ('Planificado', 'En Preparación', 'Sembrado', 'En Desarrollo', 'En Cosecha') THEN 1 END) as ciclos_activos
-        FROM Productoresa
+        FROM Productores a
         JOIN Parcelas p ON a.id_productor = p.id_productor
         JOIN CiclosProduccion c ON p.id_parcela = c.id_parcela
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
-        WHERE a.activo = 1 AND p.activo = 1 AND c.activo = 1 AND v.activo = 1 AND t.activo = 1
+        WHERE a.activo = 1 AND p.activo = 1 AND v.activo = 1 AND t.activo = 1
         GROUP BY a.id_productor, a.nombre, a.apellido
         ORDER BY area_total_sembrada DESC, total_ciclos DESC
         """
@@ -311,7 +309,7 @@ class RelacionCultivoRepositorio(RepositorioBase):
         FROM CiclosProduccion c
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
-        WHERE c.activo = 1 AND v.activo = 1 AND t.activo = 1 
+        WHERE v.activo = 1 AND t.activo = 1 
         AND c.fecha_siembra IS NOT NULL
         GROUP BY MONTH(c.fecha_siembra), DATENAME(MONTH, c.fecha_siembra), t.nombre
         ORDER BY mes, total_siembras DESC
@@ -365,14 +363,14 @@ class RelacionCultivoRepositorio(RepositorioBase):
             COUNT(*) as total_ciclos,
             COUNT(CASE WHEN estado = 'Finalizado' THEN 1 END) as ciclos_finalizados,
             COUNT(CASE WHEN estado = 'Cancelado' THEN 1 END) as ciclos_cancelados,
-            AVG(CASE WHEN fecha_cosecha_real IS NOT NULL AND fecha_siembra IS NOT NULL 
-                THEN DATEDIFF(DAY, fecha_siembra, fecha_cosecha_real) END) as duracion_promedio_real,
+            AVG(CASE WHEN fecha_siembra IS NOT NULL 
+                THEN DATEDIFF(DAY, fecha_siembra, fecha_cosecha_estimada) END) as duracion_promedio_real,
             AVG(CASE WHEN fecha_cosecha_estimada IS NOT NULL AND fecha_siembra IS NOT NULL 
                 THEN DATEDIFF(DAY, fecha_siembra, fecha_cosecha_estimada) END) as duracion_promedio_estimada,
             AVG(area_sembrada) as area_promedio_por_ciclo
         FROM CiclosProduccion c
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
-        WHERE c.activo = 1 AND v.activo = 1
+        WHERE v.activo = 1
         """
         
         row = self._ejecutar_consulta(query)[0]
@@ -386,7 +384,7 @@ class RelacionCultivoRepositorio(RepositorioBase):
             SUM(area_sembrada) as area_total
         FROM CiclosProduccion c
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
-        WHERE c.activo = 1 AND v.activo = 1
+        WHERE v.activo = 1
         GROUP BY estado
         ORDER BY 
             CASE estado 
@@ -501,9 +499,9 @@ class RelacionCultivoRepositorio(RepositorioBase):
         # Buscar en tipos de cultivo
         tipos_query = """
         SELECT 'tipo' as entidad, id_tipo_cultivo as id, nombre, 
-               nombre_cientifico as descripcion, NULL as info_adicional
+               descripcion, NULL as info_adicional
         FROM TiposCultivo
-        WHERE activo = 1 AND (nombre LIKE ? OR nombre_cientifico LIKE ? OR descripcion LIKE ?)
+        WHERE activo = 1 AND (nombre LIKE ? OR descripcion LIKE ?)
         """
         
         # Buscar en variedades
@@ -526,7 +524,7 @@ class RelacionCultivoRepositorio(RepositorioBase):
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
         JOIN Parcelas p ON c.id_parcela = p.id_parcela
-        WHERE c.activo = 1 AND v.activo = 1 AND t.activo = 1 AND p.activo = 1
+        WHERE v.activo = 1 AND t.activo = 1 AND p.activo = 1
         AND (p.nombre LIKE ? OR c.estado LIKE ? OR t.nombre LIKE ?)
         """
         
@@ -563,7 +561,7 @@ class RelacionCultivoRepositorio(RepositorioBase):
         SELECT COUNT(*)
         FROM CiclosProduccion c
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
-        WHERE v.id_tipo_cultivo = ? AND c.activo = 1 AND v.activo = 1
+        WHERE v.id_tipo_cultivo = ? AND v.activo = 1
         """
         return self._ejecutar_consulta_escalar(query, (id_tipo_cultivo,))
     
@@ -599,7 +597,7 @@ class RelacionCultivoRepositorio(RepositorioBase):
                 SELECT COUNT(*)
                 FROM VariedadesCultivo v
                 JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
-                LEFT JOIN CiclosProduccion c ON v.id_variedad = c.id_variedad AND c.activo = 1
+                LEFT JOIN CiclosProduccion c ON v.id_variedad = c.id_variedad
                 WHERE v.activo = 1 AND t.activo = 1 AND c.id_ciclo IS NULL
             """)
             
@@ -610,8 +608,7 @@ class RelacionCultivoRepositorio(RepositorioBase):
             ciclos_retrasados = self._ejecutar_consulta_escalar("""
                 SELECT COUNT(*)
                 FROM CiclosProduccion c
-                WHERE c.activo = 1 
-                AND c.estado IN ('Sembrado', 'En Desarrollo', 'En Cosecha')
+                WHERE c.estado IN ('Sembrado', 'En Desarrollo', 'En Cosecha')
                 AND DATEDIFF(DAY, c.fecha_siembra, GETDATE()) > 365
             """)
             
@@ -643,39 +640,39 @@ class RelacionCultivoRepositorio(RepositorioBase):
             c.id_ciclo,
             c.area_sembrada,
             c.fecha_siembra,
-            c.fecha_cosecha_real,
             v.nombre as variedad,
             t.nombre as tipo_cultivo,
             p.nombre as parcela,
             
             -- Datos de cosecha
             COALESCE(SUM(l.cantidad_cosechada), 0) as cantidad_cosechada,
-            COALESCE(AVG(l.rendimiento_por_hectarea), 0) as rendimiento_promedio,
+            
+            -- Rendimiento calculado (cantidad / área)
+            CASE 
+                WHEN c.area_sembrada > 0 THEN 
+                    COALESCE(SUM(l.cantidad_cosechada), 0) / c.area_sembrada 
+                ELSE 0 
+            END as rendimiento_calculado,
             
             -- Ingresos (desde ventas)
             COALESCE(SUM(dv.cantidad * dv.precio_unitario), 0) as ingresos_total,
             COALESCE(AVG(dv.precio_unitario), 0) as precio_promedio,
             
-            -- Costos estimados
-            COALESCE(SUM(cp.costo_total), 0) as costos_produccion,
+            -- ROI temporal (0 por ahora)
+            0 as roi_porcentaje,
             
-            -- ROI calculado
-            CASE 
-                WHEN SUM(cp.costo_total) > 0 THEN
-                    ((SUM(dv.cantidad * dv.precio_unitario) - SUM(cp.costo_total)) / SUM(cp.costo_total)) * 100
-                ELSE 0
-            END as roi_porcentaje
-            
+            -- Costos temporales
+            0 as costos_produccion
+                    
         FROM CiclosProduccion c
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
         JOIN Parcelas p ON c.id_parcela = p.id_parcela
         LEFT JOIN LotesCosecha l ON c.id_ciclo = l.id_ciclo AND l.activo = 1
         LEFT JOIN DetallesVenta dv ON l.id_lote = dv.id_lote
-        LEFT JOIN CostosProduccion cp ON c.id_ciclo = cp.id_ciclo
-        
-        WHERE c.id_ciclo = ? AND c.activo = 1 AND c.estado = 'Finalizado'
-        GROUP BY c.id_ciclo, c.area_sembrada, c.fecha_siembra, c.fecha_cosecha_real,
+            
+        WHERE c.id_ciclo = ? AND c.estado = 'Finalizado'
+        GROUP BY c.id_ciclo, c.area_sembrada, c.fecha_siembra,
                 v.nombre, t.nombre, p.nombre
         """
         
@@ -684,20 +681,25 @@ class RelacionCultivoRepositorio(RepositorioBase):
             return None
         
         row = rows[0]
+        
+        # Calcular ganancia neta (ingresos - costos)
+        ingresos_total = float(row.ingresos_total)
+        costos_total = 0  # Temporalmente 0
+        
         return {
             'id_ciclo': row.id_ciclo,
             'cultivo_completo': f"{row.tipo_cultivo} - {row.variedad}",
             'parcela': row.parcela,
             'area_sembrada': float(row.area_sembrada),
             'cantidad_cosechada': float(row.cantidad_cosechada),
-            'rendimiento_promedio': float(row.rendimiento_promedio),
-            'ingresos_total': float(row.ingresos_total),
-            'costos_total': float(row.costos_produccion),
-            'ganancia_neta': float(row.ingresos_total) - float(row.costos_produccion),
-            'roi_porcentaje': float(row.roi_porcentaje),
+            'rendimiento_promedio': float(row.rendimiento_calculado),  # Usar el calculado
+            'ingresos_total': ingresos_total,
+            'costos_total': costos_total,
+            'ganancia_neta': ingresos_total - costos_total,
+            'roi_porcentaje': 0,  # Temporalmente 0
             'precio_promedio': float(row.precio_promedio),
-            'duracion_dias': (row.fecha_cosecha_real - row.fecha_siembra).days if row.fecha_cosecha_real and row.fecha_siembra else 0,
-            'rentabilidad_por_hectarea': (float(row.ingresos_total) - float(row.costos_produccion)) / float(row.area_sembrada) if row.area_sembrada > 0 else 0
+            'duracion_dias': (row.fecha_siembra).days if row.fecha_siembra else 0,
+            'rentabilidad_por_hectarea': (ingresos_total - costos_total) / float(row.area_sembrada) if row.area_sembrada > 0 else 0
         }
 
     @cacheable('rentabilidad_cultivos', key_func=lambda: 'comparativo_variedades', ttl=1800)  
@@ -734,7 +736,7 @@ class RelacionCultivoRepositorio(RepositorioBase):
         JOIN DetallesVenta dv ON l.id_lote = dv.id_lote
         LEFT JOIN CostosProduccion cp ON c.id_ciclo = cp.id_ciclo
         
-        WHERE c.activo = 1 AND c.estado = 'Finalizado'
+        WHERE c.estado = 'Finalizado'
         GROUP BY t.nombre, v.nombre
         HAVING COUNT(c.id_ciclo) >= 1
         ORDER BY roi_promedio DESC
@@ -775,29 +777,21 @@ class RelacionCultivoRepositorio(RepositorioBase):
             AVG(c.area_sembrada) as area_promedio_ciclo,
             SUM(c.area_sembrada) / COUNT(c.id_ciclo) as utilizacion_promedio,
             
-            -- Performance financiera
-            AVG(
-                CASE 
-                    WHEN cp.costo_total > 0 THEN
-                        ((dv.cantidad * dv.precio_unitario - cp.costo_total) / cp.costo_total) * 100
-                    ELSE 0
-                END
-            ) as roi_promedio,
+            -- Performance financiera (sin ROI por falta de costos)
+            0 as roi_promedio,  -- Valor temporal
             
-            AVG(l.rendimiento_por_hectarea) as rendimiento_promedio,
             SUM(dv.cantidad * dv.precio_unitario) / COUNT(c.id_ciclo) as ingreso_promedio_ciclo
             
         FROM Parcelas p
-        JOIN CiclosProduccion c ON p.id_parcela = c.id_parcela AND c.activo = 1 AND c.estado = 'Finalizado'
+        JOIN CiclosProduccion c ON p.id_parcela = c.id_parcela AND c.estado = 'Finalizado'
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
-        JOIN LotesCosecha l ON c.id_ciclo = l.id_ciclo AND l.activo = 1
+        JOIN LotesCosecha ? ON c.id_ciclo = l.id_ciclo AND l.activo = ?
         JOIN DetallesVenta dv ON l.id_lote = dv.id_lote
-        LEFT JOIN CostosProduccion cp ON c.id_ciclo = cp.id_ciclo
-        
-        WHERE p.activo = 1
+            
+        WHERE p.activo = ?
         GROUP BY p.id_parcela, p.nombre, p.area_total
         HAVING COUNT(c.id_ciclo) >= 1
-        ORDER BY roi_promedio DESC
+        ORDER BY ingreso_promedio_ciclo DESC;  -- Ordenar por ingreso en lugar de ROI
         """
         
         rows = self._ejecutar_consulta(query)
@@ -835,34 +829,8 @@ class RelacionCultivoRepositorio(RepositorioBase):
             
             -- Métricas promedio
             AVG(c.area_sembrada) as area_promedio,
-            AVG(l.rendimiento_por_hectarea) as rendimiento_promedio,
-            AVG(dv.precio_unitario) as precio_promedio,
-            
-            -- ROI promedio para esta combinación
-            AVG(
-                CASE 
-                    WHEN cp.costo_total > 0 THEN
-                        ((dv.cantidad * dv.precio_unitario - cp.costo_total) / cp.costo_total) * 100
-                    ELSE 0
-                END
-            ) as roi_promedio,
-            
-            -- Mejor y peor ciclo
-            MAX(
-                CASE 
-                    WHEN cp.costo_total > 0 THEN
-                        ((dv.cantidad * dv.precio_unitario - cp.costo_total) / cp.costo_total) * 100
-                    ELSE 0
-                END
-            ) as mejor_roi,
-            
-            MIN(
-                CASE 
-                    WHEN cp.costo_total > 0 THEN
-                        ((dv.cantidad * dv.precio_unitario - cp.costo_total) / cp.costo_total) * 100
-                    ELSE 0
-                END
-            ) as peor_roi
+            AVG(dv.precio_unitario) as precio_promedio
+            -- Se eliminó el ROI porque no tenemos la tabla de costos
             
         FROM CiclosProduccion c
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
@@ -870,12 +838,11 @@ class RelacionCultivoRepositorio(RepositorioBase):
         JOIN Parcelas p ON c.id_parcela = p.id_parcela
         JOIN LotesCosecha l ON c.id_ciclo = l.id_ciclo AND l.activo = 1
         JOIN DetallesVenta dv ON l.id_lote = dv.id_lote
-        LEFT JOIN CostosProduccion cp ON c.id_ciclo = cp.id_ciclo
-        
-        WHERE c.activo = 1 AND c.estado = 'Finalizado' AND p.activo = 1 AND v.activo = 1 AND t.activo = 1
+
+        WHERE c.estado = 'Finalizado' AND p.activo = 1 AND v.activo = 1 AND t.activo = 1
         GROUP BY t.nombre, v.nombre, p.nombre
         HAVING COUNT(c.id_ciclo) >= 1
-        ORDER BY roi_promedio DESC
+        ORDER BY total_ciclos DESC;  -- Ordenamos por total de ciclos, ya que no tenemos ROI
         """
         
         rows = self._ejecutar_consulta(query)

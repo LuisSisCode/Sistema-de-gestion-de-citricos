@@ -16,16 +16,12 @@ Módulos:
 
 from .cliente_repositorio import ClienteRepositorio
 from .venta_repositorio import VentaRepositorio
-from .detalle_venta_repositorio import DetalleVentaRepositorio
-from .estado_venta_repositorio import EstadoVentaRepositorio
-from .relacion_cliente_venta_repositorio import RelacionClienteVentaRepositorio
+
 
 __all__ = [
     'ClienteRepositorio',
     'VentaRepositorio',
-    'DetalleVentaRepositorio', 
-    'EstadoVentaRepositorio',
-    'RelacionClienteVentaRepositorio'
+
 ]
 
 __version__ = '1.0.0'

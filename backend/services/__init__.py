@@ -18,9 +18,8 @@ from .CultivosServ.gestion_cultivo_servicio import GestionCultivoServicio
 from .CultivosServ.analisis_rentabilidad_servicio import AnalisisRentabilidadServicio
 
 # Servicios de Clientes y Ventas
-from .ClientesVentasServ.cliente_servicio import ClienteServicio
-from .ClientesVentasServ.venta_servicio import VentaServicio
-from .ClientesVentasServ.gestion_cliente_venta_servicio import GestionClienteVentaServicio
+from .ClientesVentasServ.cliente_service import ClienteService
+from .ClientesVentasServ.venta_servicie import VentaService
 
 __all__ = [
     # Agricultores y Parcelas
@@ -36,7 +35,6 @@ __all__ = [
     'AnalisisRentabilidadServicio',
     
     # Clientes y Ventas
-    'ClienteServicio',
-    'VentaServicio',
-    'GestionClienteVentaServicio'
+    'ClienteService',
+    'VentaServices',
 ]

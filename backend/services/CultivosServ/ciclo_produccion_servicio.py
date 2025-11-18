@@ -329,11 +329,11 @@ class CicloProduccionServicio:
     @cache_invalidator('estadisticas_ciclos_servicio')                  # Invalidar estadísticas
     def finalizar_ciclo_produccion(self, id_ciclo, datos_finalizacion):
         """
-        Finaliza un ciclo de producción registrando datos de cosecha.
+        Finaliza un ciclo de producción registrando datos de finalización.
         
         Args:
             id_ciclo (int): ID del ciclo.
-            datos_finalizacion (dict): Datos de finalización (fecha_cosecha_real, rendimiento_real, etc.).
+            datos_finalizacion (dict): Datos de finalización (rendimiento_real, etc.).
             
         Returns:
             dict: Resultado de la finalización.
@@ -349,13 +349,12 @@ class CicloProduccionServicio:
                     'mensaje': f"Solo se pueden finalizar ciclos en estado 'En Cosecha'. Estado actual: {ciclo_actual['estado']}"
                 }
             
-            # Validar datos de finalización
-            self._validar_datos_finalizacion(datos_finalizacion)
-            
+            # NOTA: Se removieron las referencias a (campo eliminado de BD).
+            # Evitar validaciones o actualizaciones que dependan de ese campo.
+
             # Preparar datos de actualización
             datos_actualizacion = {
-                'estado': 'Finalizado',
-                'fecha_cosecha_real': datos_finalizacion['fecha_cosecha_real']
+                'estado': 'Finalizado'
             }
             
             # Agregar datos opcionales si se proporcionan
@@ -366,16 +365,13 @@ class CicloProduccionServicio:
             exito = self.ciclo_repo.actualizar(id_ciclo, datos_actualizacion)
             
             if exito:
-                # Calcular métricas de finalización
-                metricas = self._calcular_metricas_finalizacion(ciclo_actual, datos_finalizacion)
+                # No se calculan métricas que dependan aquí.
+                metricas = {}
                 
                 resultado = {
                     'exito': True,
                     'mensaje': 'Ciclo finalizado exitosamente',
-                    'fecha_cosecha_real': datos_finalizacion['fecha_cosecha_real'],
                     'metricas_finalizacion': metricas,
-                    'duracion_real': metricas['duracion_real_dias'],
-                    'eficiencia_tiempo': metricas['eficiencia_temporal'],
                     'requiere_actualizacion_listas': True
                 }
                 
@@ -402,25 +398,9 @@ class CicloProduccionServicio:
             bool: True si se eliminó correctamente, False en caso contrario.
         """
         try:
-            return self.ciclo_repo.desactivar(id_ciclo)  # Usar desactivar en lugar de eliminar
+            return self.ciclo_repo.eliminar_ciclo_produccion(id_ciclo)  # Usar desactivar en lugar de eliminar
         except Exception as e:
             logger.error(f"Error al eliminar ciclo de producción: {str(e)}")
-            return False
-
-    def desactivar_ciclo_produccion(self, id_ciclo):
-        """
-        Desactiva un ciclo de producción en lugar de eliminarlo físicamente.
-        
-        Args:
-            id_ciclo (int): ID del ciclo de producción a desactivar.
-            
-        Returns:
-            bool: True si se desactivó correctamente, False en caso contrario.
-        """
-        try:
-            return self.ciclo_repo.desactivar(id_ciclo)
-        except Exception as e:
-            logger.error(f"Error al desactivar ciclo de producción: {str(e)}")
             return False
 
     @cacheable('servicio_ciclos', key_func=lambda estado: f"estado_{estado}", ttl=600)  # 10 min
@@ -804,7 +784,7 @@ class CicloProduccionServicio:
         
         campos_importantes = [
             'id_parcela', 'id_variedad', 'area_sembrada', 'estado',
-            'fecha_siembra', 'fecha_cosecha_estimada', 'fecha_cosecha_real'
+            'fecha_siembra', 'fecha_cosecha_estimada'
         ]
         
         for campo in campos_importantes:
@@ -854,7 +834,7 @@ class CicloProduccionServicio:
                 raise ErrorValidacion("Se requiere fecha de siembra para pasar a estado 'Sembrado'")
         
         elif nuevo_estado == 'Finalizado':
-            if not datos_adicionales or not datos_adicionales.get('fecha_cosecha_real'):
+            if not datos_adicionales:
                 raise ErrorValidacion("Se requiere fecha de cosecha real para finalizar el ciclo")
     
     def _preparar_datos_transicion(self, ciclo, nuevo_estado, datos_adicionales):
@@ -863,10 +843,6 @@ class CicloProduccionServicio:
         
         if nuevo_estado == 'Sembrado' and not ciclo.get('fecha_siembra'):
             datos['fecha_siembra'] = date.today().strftime('%Y-%m-%d')
-        
-        elif nuevo_estado == 'Finalizado' and datos_adicionales:
-            if 'fecha_cosecha_real' in datos_adicionales:
-                datos['fecha_cosecha_real'] = datos_adicionales['fecha_cosecha_real']
         
         return datos if datos else None
     
@@ -906,7 +882,7 @@ class CicloProduccionServicio:
             'alertas_fechas': []
         }
         
-        fechas = ['fecha_siembra', 'fecha_cosecha_estimada', 'fecha_cosecha_real']
+        fechas = ['fecha_siembra', 'fecha_cosecha_estimada']
         fechas_presentes = [f for f in fechas if ciclo.get(f)]
         
         analisis['fechas_completas'] = len(fechas_presentes) >= 2
@@ -919,8 +895,9 @@ class CicloProduccionServicio:
                 
                 if cosecha_est <= siembra:
                     analisis['coherencia'] = False
-                    analisis['alertas_fechas'].append("Fecha de cosecha anterior a siembra")
-        except:
+                    analisis['alertas_fechas'].append("Fecha de cosecha estimada anterior o igual a fecha de siembra")
+        except Exception:
+            analisis['coherencia'] = False
             analisis['alertas_fechas'].append("Error en formato de fechas")
         
         return analisis
@@ -937,14 +914,10 @@ class CicloProduccionServicio:
             dias_estimados = (cosecha_est - siembra).days
             dias_desde_siembra = ciclo.get('dias_desde_siembra', 0)
             
-            if ciclo['estado'] == 'Finalizado' and ciclo.get('fecha_cosecha_real'):
-                cosecha_real = datetime.strptime(ciclo['fecha_cosecha_real'], '%Y-%m-%d').date()
-                dias_reales = (cosecha_real - siembra).days
-                eficiencia = (dias_estimados / dias_reales) * 100 if dias_reales > 0 else 0
-            else:
-                # Eficiencia basada en progreso actual
-                progreso = (dias_desde_siembra / dias_estimados) * 100 if dias_estimados > 0 else 0
-                eficiencia = min(100, progreso)
+            # Usar progreso actual como proxy de eficiencia (válido también para Finalizado cuando
+            # la fecha real ya no se registra en la BD)
+            progreso = (dias_desde_siembra / dias_estimados) * 100 if dias_estimados > 0 else 0
+            eficiencia = min(100, progreso)
             
             if eficiencia >= 90:
                 categoria = 'excelente'
@@ -1028,47 +1001,38 @@ class CicloProduccionServicio:
         }
         return progresos.get(estado, 0)
     
-    def _validar_datos_finalizacion(self, datos):
-        """Valida los datos de finalización de un ciclo."""
-        if not datos.get('fecha_cosecha_real'):
-            raise ErrorValidacion("La fecha de cosecha real es obligatoria")
-        
-        # Validar que la fecha no sea futura
-        try:
-            fecha_cosecha = datetime.strptime(datos['fecha_cosecha_real'], '%Y-%m-%d').date()
-            if fecha_cosecha > date.today():
-                raise ErrorValidacion("La fecha de cosecha no puede ser futura")
-        except ValueError:
-            raise ErrorValidacion("Formato de fecha inválido")
-        
-        # Validar rendimiento real si se proporciona
-        if 'rendimiento_real' in datos:
-            rendimiento = datos['rendimiento_real']
-            if rendimiento < 0:
-                raise ErrorValidacion("El rendimiento real debe ser positivo")
-            elif rendimiento > 500:  # 500 ton/ha es extremadamente alto
-                raise ErrorValidacion("El rendimiento real parece demasiado alto")
-    
     def _calcular_metricas_finalizacion(self, ciclo, datos_finalizacion):
-        """Calcula métricas al finalizar un ciclo."""
+        """Calcula métricas al finalizar un ciclo ."""
         metricas = {}
         
-        # Duración real
-        if ciclo.get('fecha_siembra'):
-            try:
-                siembra = datetime.strptime(ciclo['fecha_siembra'], '%Y-%m-%d').date()
-                cosecha = datetime.strptime(datos_finalizacion['fecha_cosecha_real'], '%Y-%m-%d').date()
-                duracion = (cosecha - siembra).days
+        try:
+            if ciclo.get('fecha_siembra') and datos_finalizacion.get('fecha_cosecha'):
+                # Parsear fechas si vienen como string
+                if isinstance(ciclo['fecha_siembra'], str):
+                    siembra = datetime.strptime(ciclo['fecha_siembra'], '%Y-%m-%d').date()
+                else:
+                    siembra = ciclo['fecha_siembra']
+                
+                fecha_cosecha = datos_finalizacion['fecha_cosecha']
+                if isinstance(fecha_cosecha, str):
+                    fecha_cosecha = datetime.strptime(fecha_cosecha, '%Y-%m-%d').date()
+                
+                duracion = (fecha_cosecha - siembra).days
                 metricas['duracion_real_dias'] = duracion
                 
-                # Eficiencia temporal vs estimado
+                # Eficiencia temporal vs estimado (si existe fecha estimada)
                 if ciclo.get('fecha_cosecha_estimada'):
-                    cosecha_est = datetime.strptime(ciclo['fecha_cosecha_estimada'], '%Y-%m-%d').date()
-                    duracion_estimada = (cosecha_est - siembra).days
-                    eficiencia = (duracion_estimada / duracion) * 100 if duracion > 0 else 0
-                    metricas['eficiencia_temporal'] = round(eficiencia, 1)
-            except:
-                pass
+                    try:
+                        cosecha_est = datetime.strptime(ciclo['fecha_cosecha_estimada'], '%Y-%m-%d').date()
+                        duracion_estimada = (cosecha_est - siembra).days
+                        eficiencia = (duracion_estimada / duracion) * 100 if duracion > 0 else 0
+                        metricas['eficiencia_temporal'] = round(eficiencia, 1)
+                    except Exception:
+                        # Ignorar formato inválido de fecha estimada
+                        pass
+        except Exception:
+            # En caso de cualquier error devolver métricas vacías
+            pass
         
         return metricas
     
@@ -1212,7 +1176,6 @@ class CicloProduccionServicio:
             datos_cosecha (dict): Datos de la cosecha {
                 'cantidad_cosechada': float,
                 'fecha_cosecha': str/date,
-                'id_categoria_calidad': int,
                 'unidad_medida': str (opcional),
                 'precio_unitario_sugerido': float (opcional),
                 'costo_produccion_unitario': float (opcional),
@@ -1283,10 +1246,7 @@ class CicloProduccionServicio:
                 'lote_info': {
                     'cantidad_cosechada': lote_creado['cantidad_cosechada'],
                     'rendimiento_por_hectarea': lote_creado['rendimiento_por_hectarea'],
-                    'valor_estimado': lote_creado['valor_total_estimado'],
-                    'categoria_calidad': lote_creado['categoria_calidad']
                 },
-                'datos_analisis': analisis_rendimiento,
                 'recomendaciones': recomendaciones,
                 'requiere_actualizacion': {
                     'ciclos': True,
@@ -1378,9 +1338,6 @@ class CicloProduccionServicio:
         
         if not datos_cosecha.get('fecha_cosecha'):
             raise ErrorValidacion("La fecha de cosecha es obligatoria")
-        
-        if not datos_cosecha.get('id_categoria_calidad'):
-            raise ErrorValidacion("La categoría de calidad es obligatoria")
         
         if not datos_cosecha.get('registrado_por'):
             raise ErrorValidacion("El usuario que registra es obligatorio")
@@ -1500,8 +1457,7 @@ class CicloProduccionServicio:
         """
         try:
             datos_actualizacion = {
-                'estado': 'Finalizado',
-                'fecha_cosecha_real': fecha_cosecha
+                'estado': 'Finalizado'
             }
             
             return self.ciclo_repo.actualizar(id_ciclo, datos_actualizacion)
@@ -1547,15 +1503,6 @@ class CicloProduccionServicio:
                 'mensaje': 'Rendimiento crítico. Revisar todas las prácticas de cultivo antes del próximo ciclo.',
                 'prioridad': 'alta'
             })
-        
-        # Recomendaciones de comercialización
-        if lote['precio_unitario_sugerido'] > 0:
-            if lote['categoria_calidad'] in ['Primera Calidad', 'Premium']:
-                recomendaciones.append({
-                    'tipo': 'comercial',
-                    'mensaje': 'Producto de alta calidad. Buscar mercados premium para maximizar ingresos.',
-                    'prioridad': 'media'
-                })
         else:
             recomendaciones.append({
                 'tipo': 'precio',
@@ -1624,17 +1571,6 @@ class CicloProduccionServicio:
         # Precio base simple (en producción sería más complejo)
         precio_base = 15.0  # Precio base por kg
         
-        # Ajuste por calidad
-        categoria_id = datos_cosecha.get('id_categoria_calidad', 2)
-        if categoria_id == 1:  # Primera calidad
-            factor_calidad = 1.3
-        elif categoria_id == 2:  # Segunda calidad
-            factor_calidad = 1.0
-        elif categoria_id == 3:  # Tercera calidad
-            factor_calidad = 0.8
-        else:  # Descarte
-            factor_calidad = 0.5
-        
         # Ajuste por cantidad (descuento por volumen inverso)
         cantidad = datos_cosecha.get('cantidad_cosechada', 0)
         if cantidad > 10000:  # Más de 10 toneladas
@@ -1644,7 +1580,7 @@ class CicloProduccionServicio:
         else:
             factor_volumen = 1.0
         
-        precio_sugerido = precio_base * factor_calidad * factor_volumen
+        precio_sugerido = precio_base  * factor_volumen
         
         return round(precio_sugerido, 2)
     

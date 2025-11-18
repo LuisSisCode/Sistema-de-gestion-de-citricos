@@ -26,13 +26,13 @@ from backend.models.productores_parcelas_model import ProductoresParcelasModels
 from backend.models.cultivos_model import CultivosModel
 from backend.models.agroquimicos_model import AgroquimicosModel
 from backend.models.maquinaria_model import MaquinariaModel
-from backend.models.ventas_cliente_model import ClientesVentaModel
 
 # Nuevos modelos a incluir
 from backend.models.auth_model import AutoModel 
 from backend.models.gastos_model import GastosModel
 from backend.models.reportes_model import *
 from backend.models.dashboard_model import DashboardModel
+from backend.models.clientes_model import ClientesModel
 
 
 class AppManager(QObject):
@@ -320,12 +320,14 @@ def main():
     except Exception as e:
         print(f"⚠️ No se pudo registrar AgroquimicosModel: {e}")
     
+
+
     try:
-        ventas_cliente_model = ClientesVentaModel()
-        engine.rootContext().setContextProperty("ventaModel", ventas_cliente_model)
-        print("✅ ClientesVentaModel registrado en QML")
+        clientes_model = ClientesModel()
+        engine.rootContext().setContextProperty("clientesModel", clientes_model)
+        print("✅ ClientesModel registrado en QML")
     except Exception as e:
-        print(f"⚠️ No se pudo registrar ClientesVentaModel: {e}")
+        print(f"⚠️ No se pudo registrar ClientesModel: {e}")
     
     try:
         maquinaria_model = MaquinariaModel()

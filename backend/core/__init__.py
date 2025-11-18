@@ -104,7 +104,6 @@ __all__ = [
     'validar_cantidad',
     'validar_texto_requerido',
     'validar_rango_fecha',
-    'validar_coordenadas_gps',
     'validar_porcentaje',
     
     # Formatters

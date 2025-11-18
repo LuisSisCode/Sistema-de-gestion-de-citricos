@@ -54,8 +54,8 @@ class GestorClientes:
                 cursor = conn.cursor()
                 
                 query = """
-                SELECT c.id_cliente, c.nombre, c.direccion, c.ciudad, c.estado_provincia, 
-                       c.telefono, c.correo, c.condiciones_pago, c.fecha_registro, 
+                SELECT c.id_cliente, c.nombre, c.direccion, c.telefono, 
+                       c.condiciones_pago, c.fecha_registro, c.registrado_por, 
                        u.nombre AS registrado_por_nombre, c.activo
                 FROM Clientes c
                 LEFT JOIN Usuarios u ON c.registrado_por = u.id_usuario
@@ -73,7 +73,6 @@ class GestorClientes:
                         'id_cliente': row.id_cliente,
                         'nombre': row.nombre,
                         'direccion': row.direccion,
-                        'ciudad': row.ciudad,
                         'estado_provincia': row.estado_provincia,
                         'telefono': row.telefono,
                         'correo': row.correo,
@@ -105,7 +104,7 @@ class GestorClientes:
                 cursor = conn.cursor()
                 
                 query = """
-                SELECT c.id_cliente, c.nombre, c.direccion, c.ciudad, c.estado_provincia, 
+                SELECT c.id_cliente, c.nombre, c.direccion, c.estado_provincia, 
                        c.telefono, c.correo, c.condiciones_pago, c.fecha_registro, 
                        u.nombre AS registrado_por_nombre, c.activo
                 FROM Clientes c
@@ -124,7 +123,6 @@ class GestorClientes:
                         'id_cliente': row.id_cliente,
                         'nombre': row.nombre,
                         'direccion': row.direccion,
-                        'ciudad': row.ciudad,
                         'estado_provincia': row.estado_provincia,
                         'telefono': row.telefono,
                         'correo': row.correo,
@@ -155,18 +153,15 @@ class GestorClientes:
                 
                 # Construir la consulta para buscar en múltiples campos
                 query = """
-                SELECT c.id_cliente, c.nombre, c.direccion, c.ciudad, c.estado_provincia, 
-                       c.telefono, c.correo, c.condiciones_pago, c.fecha_registro, 
+                SELECT c.id_cliente, c.nombre, c.direccion, 
+                       c.telefono, c.condiciones_pago, c.fecha_registro, 
                        u.nombre AS registrado_por_nombre, c.activo
                 FROM Clientes c
                 LEFT JOIN Usuarios u ON c.registrado_por = u.id_usuario
                 WHERE c.activo = 1 AND (
                     c.nombre LIKE ? OR
                     c.direccion LIKE ? OR
-                    c.ciudad LIKE ? OR
-                    c.estado_provincia LIKE ? OR
                     c.telefono LIKE ? OR
-                    c.correo LIKE ?
                 )
                 ORDER BY c.nombre
                 """
@@ -186,10 +181,7 @@ class GestorClientes:
                         'id_cliente': row.id_cliente,
                         'nombre': row.nombre,
                         'direccion': row.direccion,
-                        'ciudad': row.ciudad,
-                        'estado_provincia': row.estado_provincia,
                         'telefono': row.telefono,
-                        'correo': row.correo,
                         'condiciones_pago': row.condiciones_pago,
                         'fecha_registro': fecha_registro,
                         'registrado_por': row.registrado_por_nombre,
@@ -220,9 +212,9 @@ class GestorClientes:
                 cursor = conn.cursor()
                 
                 query = """
-                INSERT INTO Clientes (nombre, direccion, ciudad, estado_provincia, telefono, correo, 
+                INSERT INTO Clientes (nombre, direccion, telefono,
                                      condiciones_pago, fecha_registro, registrado_por, activo)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """
                 
                 # Configurar valores para la inserción
@@ -230,8 +222,6 @@ class GestorClientes:
                 valores = (
                     cliente_data['nombre'],
                     cliente_data.get('direccion'),
-                    cliente_data.get('ciudad'),
-                    cliente_data.get('estado_provincia'),
                     cliente_data.get('telefono'),
                     cliente_data.get('correo'),
                     cliente_data.get('condiciones_pago'),
@@ -281,21 +271,11 @@ class GestorClientes:
                     campos_actualizar.append("direccion = ?")
                     valores.append(cliente_data['direccion'])
                     
-                if 'ciudad' in cliente_data:
-                    campos_actualizar.append("ciudad = ?")
-                    valores.append(cliente_data['ciudad'])
-                    
-                if 'estado_provincia' in cliente_data:
-                    campos_actualizar.append("estado_provincia = ?")
-                    valores.append(cliente_data['estado_provincia'])
                     
                 if 'telefono' in cliente_data:
                     campos_actualizar.append("telefono = ?")
                     valores.append(cliente_data['telefono'])
                     
-                if 'correo' in cliente_data:
-                    campos_actualizar.append("correo = ?")
-                    valores.append(cliente_data['correo'])
                     
                 if 'condiciones_pago' in cliente_data:
                     campos_actualizar.append("condiciones_pago = ?")
@@ -398,10 +378,9 @@ class GestorClientes:
                 # Obtener todas las ventas del cliente
                 query_ventas = """
                 SELECT v.id_venta, v.codigo_venta, v.fecha_venta, v.subtotal, v.total,
-                       v.condiciones_pago, v.estado_pago, e.nombre AS estado_nombre,
+                       v.estado_pago AS estado_nombre,
                        (SELECT COUNT(*) FROM DetallesVenta WHERE id_venta = v.id_venta) AS total_productos
                 FROM Ventas v
-                JOIN EstadosVenta e ON v.id_estado = e.id_estado
                 WHERE v.id_cliente = ?
                 ORDER BY v.fecha_venta DESC
                 """

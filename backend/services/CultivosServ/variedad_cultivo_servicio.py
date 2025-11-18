@@ -516,7 +516,7 @@ class VariedadCultivoServicio:
         try:
             return self.relacion_repo._contar_registros(
                 "CiclosProduccion", 
-                "id_variedad = ? AND activo = 1", 
+                "id_variedad = ?", 
                 (id_variedad,)
             )
         except Exception:
@@ -624,11 +624,10 @@ class VariedadCultivoServicio:
             tipo = self.tipo_repo.obtener_por_id(id_tipo_cultivo)
             return {
                 'nombre': tipo['nombre'],
-                'nombre_cientifico': tipo.get('nombre_cientifico', ''),
                 'tiempo_cosecha_rango': tipo.get('tiempo_cosecha_rango', 'No especificado')
             }
         except Exception:
-            return {'nombre': 'Tipo desconocido', 'nombre_cientifico': '', 'tiempo_cosecha_rango': ''}
+            return {'nombre': 'Tipo desconocido', 'tiempo_cosecha_rango': ''}
 
     @cacheable('resumen_variedades', key_func=lambda: 'dashboard_variedades', ttl=1800)  # 30 min
     def obtener_resumen_variedades(self):

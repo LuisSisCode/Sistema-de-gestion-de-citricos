@@ -34,10 +34,7 @@ from .repositories import (
     VariedadCultivoRepositorio,
     # Nuevos repositorios de Clientes y Ventas
     ClienteRepositorio,
-    VentaRepositorio,
-    DetalleVentaRepositorio,
-    EstadoVentaRepositorio,
-    RelacionClienteVentaRepositorio
+    VentaRepositorio
 )
 
 # Importaciones de servicios
@@ -50,9 +47,8 @@ from .services import (
     TipoCultivoServicio,
     VariedadCultivoServicio,
     # Nuevos servicios de Clientes y Ventas
-    ClienteServicio,
-    VentaServicio,
-    GestionClienteVentaServicio
+    ClienteService,
+    VentaService
 )
 
 __version__ = "1.0.0"
@@ -77,9 +73,6 @@ __all__ = [
     'VariedadCultivoRepositorio',
     'ClienteRepositorio',
     'VentaRepositorio',
-    'DetalleVentaRepositorio',
-    'EstadoVentaRepositorio',
-    'GestionClienteVentaServicio',
     
     # Servicios
     'ProductorServicio',
@@ -89,7 +82,6 @@ __all__ = [
     'CicloProduccionServicio',
     'TipoCultivoServicio',
     'VariedadCultivoServicio',
-    'ClienteServicio',
-    'VentaServicio',
-    'GestorClientesVentasCompatible'
+    'ClienteService',
+    'VentaService',
 ]

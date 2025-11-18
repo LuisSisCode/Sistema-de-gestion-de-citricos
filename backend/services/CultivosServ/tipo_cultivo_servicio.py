@@ -114,76 +114,7 @@ class TipoCultivoServicio:
         except Exception as e:
             logger.error(f"Error en servicio obtener_tipos_cultivo_paginado: {str(e)}")
             raise
-    @cacheable('estadisticas_cultivos', ttl=600)  # 10 minutos
-    def obtener_estadisticas_cultivos(self):
-        """
-        Obtiene estadísticas generales de cultivos y producción.
-        
-        Returns:
-            dict: Diccionario con diversas estadísticas de cultivos.
-        """
-        try:
-            with self.db.get_connection() as conn:
-                cursor = conn.cursor()
-                
-                # Total de tipos de cultivo activos
-                cursor.execute("SELECT COUNT(*) FROM TiposCultivo WHERE activo = 1")
-                total_tipos = cursor.fetchone()[0]
-                
-                # Total de variedades activas
-                cursor.execute("SELECT COUNT(*) FROM VariedadesCultivo WHERE activo = 1")
-                total_variedades = cursor.fetchone()[0]
-                
-                # Ciclos activos por estado
-                cursor.execute("""
-                    SELECT estado, COUNT(*) as total
-                    FROM CiclosProduccion
-                    WHERE activo = 1
-                    GROUP BY estado
-                    ORDER BY COUNT(*) DESC
-                """)
-                
-                ciclos_por_estado = {}
-                for row in cursor.fetchall():
-                    ciclos_por_estado[row[0]] = row[1]
-                
-                # Área total sembrada actualmente
-                cursor.execute("""
-                    SELECT SUM(area_sembrada) 
-                    FROM CiclosProduccion 
-                    WHERE activo = 1 AND estado NOT IN ('Finalizado', 'Cancelado')
-                """)
-                area_sembrada = cursor.fetchone()[0]
-                area_sembrada = float(area_sembrada) if area_sembrada else 0
-                
-                # Tipos de cultivo más utilizados
-                cursor.execute("""
-                    SELECT t.nombre, COUNT(c.id_ciclo) as total_ciclos
-                    FROM TiposCultivo t
-                    JOIN VariedadesCultivo v ON t.id_tipo_cultivo = v.id_tipo_cultivo
-                    JOIN CiclosProduccion c ON v.id_variedad = c.id_variedad
-                    WHERE c.activo = 1
-                    GROUP BY t.nombre
-                    ORDER BY total_ciclos DESC
-                """)
-                
-                cultivos_populares = {}
-                for row in cursor.fetchall():
-                    cultivos_populares[row[0]] = row[1]
-                
-                estadisticas = {
-                    'total_tipos_cultivo': total_tipos,
-                    'total_variedades': total_variedades,
-                    'ciclos_por_estado': ciclos_por_estado,
-                    'area_sembrada_activa': area_sembrada,
-                    'cultivos_populares': cultivos_populares
-                }
-                
-                logger.info("Estadísticas de cultivos generadas correctamente")
-                return estadisticas
-        except Exception as e:
-            logger.error(f"Error al obtener estadísticas de cultivos: {str(e)}")
-            return {}
+
 
     @cache_invalidator('servicio_tipos_cultivo', pattern='paginado_')     # Invalidar paginación
     @cache_invalidator('servicio_tipos_cultivo', pattern='busqueda_')    # Invalidar búsquedas

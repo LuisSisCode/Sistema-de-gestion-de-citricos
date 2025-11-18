@@ -1975,23 +1975,26 @@ class GestionCultivoServicio:
         try:
             # Obtener ciclos de esta combinación específica
             query = """
-            SELECT c.id_ciclo, c.fecha_siembra, c.fecha_cosecha_real, c.area_sembrada,
-                l.cantidad_cosechada, l.rendimiento_por_hectarea,
+            SELECT 
+                c.id_ciclo, 
+                c.fecha_siembra, 
+                c.area_sembrada,
+                l.cantidad_cosechada,
                 COALESCE(SUM(dv.cantidad * dv.precio_unitario), 0) as ingresos,
-                COALESCE(SUM(cp.costo_total), 0) as costos,
-                CASE 
-                    WHEN SUM(cp.costo_total) > 0 THEN
-                        ((SUM(dv.cantidad * dv.precio_unitario) - SUM(cp.costo_total)) / SUM(cp.costo_total)) * 100
-                    ELSE 0
-                END as roi_ciclo
+                -- Se eliminaron las columnas de costos y ROI que dependían de cp.costo_total
+                0 as costos,  -- Valor temporal en lugar de costos
+                0 as roi_ciclo  -- Valor temporal en lugar de ROI
             FROM CiclosProduccion c
             LEFT JOIN LotesCosecha l ON c.id_ciclo = l.id_ciclo AND l.activo = 1
             LEFT JOIN DetallesVenta dv ON l.id_lote = dv.id_lote
-            LEFT JOIN CostosProduccion cp ON c.id_ciclo = cp.id_ciclo
-            WHERE c.id_variedad = ? AND c.id_parcela = ? AND c.activo = 1 AND c.estado = 'Finalizado'
-            GROUP BY c.id_ciclo, c.fecha_siembra, c.fecha_cosecha_real, c.area_sembrada,
-                    l.cantidad_cosechada, l.rendimiento_por_hectarea
-            ORDER BY c.fecha_cosecha_real DESC
+            WHERE c.id_variedad = 1 AND c.id_parcela = 1 AND c.estado = 'Finalizado'
+            GROUP BY 
+                c.id_ciclo, 
+                c.fecha_siembra, 
+                c.fecha_cosecha_estimada, 
+                c.area_sembrada,
+                l.cantidad_cosechada
+            ORDER BY c.fecha_cosecha_estimada DESC
             """
             
             ciclos_data = self.relacion_repo._ejecutar_consulta(query, (id_variedad, id_parcela))
@@ -2010,7 +2013,7 @@ class GestionCultivoServicio:
                     'total_ciclos': len(ciclos_data),
                     'periodo_analisis': {
                         'desde': min(row.fecha_siembra for row in ciclos_data if row.fecha_siembra),
-                        'hasta': max(row.fecha_cosecha_real for row in ciclos_data if row.fecha_cosecha_real)
+                        'hasta': max(row.fecha_cosecha_estimada for row in ciclos_data if row.fecha_cosecha_estimada)
                     }
                 },
                 'metricas_rentabilidad': {
@@ -2030,7 +2033,7 @@ class GestionCultivoServicio:
                     {
                         'id_ciclo': row.id_ciclo,
                         'fecha_siembra': row.fecha_siembra,
-                        'fecha_cosecha': row.fecha_cosecha_real,
+                        'fecha_cosecha': row.fecha_cosecha_estimada,
                         'area_sembrada': float(row.area_sembrada),
                         'cantidad_cosechada': float(row.cantidad_cosechada) if row.cantidad_cosechada else 0,
                         'rendimiento': float(row.rendimiento_por_hectarea) if row.rendimiento_por_hectarea else 0,
@@ -2081,7 +2084,7 @@ class GestionCultivoServicio:
             return 'insuficientes_datos'
         
         # Ordenar por fecha y calcular tendencia simple
-        sorted_ciclos = sorted(ciclos_data, key=lambda x: x.fecha_cosecha_real or x.fecha_siembra)
+        sorted_ciclos = sorted(ciclos_data, key=lambda x: x.fecha_siembra)
         primera_mitad = sorted_ciclos[:len(sorted_ciclos)//2]
         segunda_mitad = sorted_ciclos[len(sorted_ciclos)//2:]
         

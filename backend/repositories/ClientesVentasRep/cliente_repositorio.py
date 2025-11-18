@@ -1,485 +1,545 @@
-# bd_conecciones/repositorio/ClientesVentasRep/cliente_repositorio.py
+"""
+Repositorio de Clientes
+Capa de acceso a datos - Solo queries SQL
+Sin lógica de negocio, sin cálculos complejos
+"""
 
 import logging
-from datetime import datetime, timedelta
-from ...core.repositorio_base import RepositorioBase
-from ...core.excepciones_bd import RegistroNoEncontrado, RegistroYaExiste, ErrorValidacion
-from ...core.cache_system import cacheable, cache_invalidator, get_ttl
+from datetime import datetime, date
+from typing import List, Dict, Optional, Tuple
+from backend.core.database import DatabaseConnection
 
-logger = logging.getLogger(__name__)
+# Configurar logging
+logger = logging.getLogger('cliente_repositorio')
 
-class ClienteRepositorio(RepositorioBase):
-    """Repositorio para operaciones CRUD de clientes con caché optimizado."""
 
-    @cacheable('clientes', key_func=lambda: 'todos_activos', ttl=1800)  # 30 min
-    def obtener_todos(self):
+class ClienteRepositorio:
+    """
+    Repositorio para acceso a datos de clientes.
+    Responsabilidad: Solo ejecutar queries SQL, sin lógica de negocio.
+    """
+    
+    def __init__(self):
+        """Inicializa la conexión a la base de datos."""
+        try:
+            self.db = DatabaseConnection()
+            logger.info("✅ ClienteRepositorio inicializado correctamente.")
+        except Exception as e:
+            logger.error(f"❌ Error al inicializar ClienteRepositorio: {str(e)}")
+            raise
+
+    def test_connection(self):
+        """Prueba la conexión a la base de datos."""
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT 1")
+                logger.info("✅ Conexión a BD verificada")
+                return True
+        except Exception as e:
+            logger.error(f"❌ Error al probar la conexión: {str(e)}")
+            raise
+
+    # ==================== CRUD BÁSICO ====================
+    
+    def obtener_todos(self) -> List[Dict]:
         """
         Obtiene todos los clientes activos.
         
         Returns:
-            list: Lista de diccionarios con información de clientes.
+            List[Dict]: Lista de clientes.
         """
-        query = """
-        SELECT c.id_cliente, c.nombre, c.direccion, c.ciudad, c.estado_provincia,
-               c.telefono, c.correo, c.condiciones_pago, c.fecha_registro,
-               u.nombre AS registrado_por_nombre, c.activo
-        FROM Clientes c
-        LEFT JOIN Usuarios u ON c.registrado_por = u.id_usuario
-        WHERE c.activo = 1
-        ORDER BY c.nombre
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                query = """
+                SELECT c.id_cliente, c.nombre, c.direccion, c.telefono, 
+                       c.condiciones_pago, c.fecha_registro, c.registrado_por, 
+                       u.nombre AS registrado_por_nombre, c.activo
+                FROM Clientes c
+                LEFT JOIN Usuarios u ON c.registrado_por = u.id_usuario
+                WHERE c.activo = 1
+                ORDER BY c.nombre
+                """
+                
+                cursor.execute(query)
+                clientes = []
+                
+                for row in cursor.fetchall():
+                    fecha_registro = row.fecha_registro.strftime('%Y-%m-%d') if row.fecha_registro and hasattr(row.fecha_registro, 'strftime') else row.fecha_registro
+                    
+                    cliente = {
+                        'id_cliente': row.id_cliente,
+                        'nombre': row.nombre,
+                        'direccion': row.direccion,
+                        'telefono': row.telefono,
+                        'condiciones_pago': row.condiciones_pago,
+                        'fecha_registro': fecha_registro,
+                        'registrado_por': row.registrado_por,
+                        'registrado_por_nombre': row.registrado_por_nombre,
+                        'activo': bool(row.activo)
+                    }
+                    clientes.append(cliente)
+                
+                logger.info(f"📊 Se obtuvieron {len(clientes)} clientes")
+                return clientes
+                
+        except Exception as e:
+            logger.error(f"❌ Error al obtener clientes: {str(e)}")
+            return []
+    
+    def obtener_por_id(self, id_cliente: int) -> Optional[Dict]:
         """
-        
-        rows = self._ejecutar_consulta(query)
-        clientes = []
-        
-        for row in rows:
-            cliente = {
-                'id_cliente': row.id_cliente,
-                'nombre': row.nombre,
-                'direccion': row.direccion,
-                'ciudad': row.ciudad,
-                'estado_provincia': row.estado_provincia,
-                'telefono': row.telefono,
-                'correo': row.correo,
-                'condiciones_pago': row.condiciones_pago,
-                'fecha_registro': self._formatear_fecha(row.fecha_registro),
-                'registrado_por': row.registrado_por_nombre,
-                'activo': bool(row.activo)
-            }
-            clientes.append(cliente)
-        
-        logger.info(f"Se obtuvieron {len(clientes)} clientes")
-        return clientes
-
-    @cacheable('clientes', key_func=lambda id_cli: f"id_{id_cli}", ttl=3600)  # 1 hora - datos específicos
-    def obtener_por_id(self, id_cliente):
-        """
-        Obtiene un cliente por su ID.
+        Obtiene un cliente específico por su ID.
         
         Args:
-            id_cliente (int): ID del cliente.
+            id_cliente: ID del cliente a obtener.
             
         Returns:
-            dict: Información del cliente.
-            
-        Raises:
-            RegistroNoEncontrado: Si el cliente no existe.
+            Dict con la información del cliente o None si no se encuentra.
         """
-        query = """
-        SELECT c.id_cliente, c.nombre, c.direccion, c.ciudad, c.estado_provincia,
-               c.telefono, c.correo, c.condiciones_pago, c.fecha_registro,
-               u.nombre AS registrado_por_nombre, c.activo
-        FROM Clientes c
-        LEFT JOIN Usuarios u ON c.registrado_por = u.id_usuario
-        WHERE c.id_cliente = ? AND c.activo = 1
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                query = """
+                SELECT c.id_cliente, c.nombre, c.direccion, 
+                       c.telefono, c.condiciones_pago, c.fecha_registro, 
+                       c.registrado_por, u.nombre AS registrado_por_nombre, c.activo
+                FROM Clientes c
+                LEFT JOIN Usuarios u ON c.registrado_por = u.id_usuario
+                WHERE c.id_cliente = ?
+                """
+                
+                cursor.execute(query, (id_cliente,))
+                row = cursor.fetchone()
+                
+                if row:
+                    fecha_registro = row.fecha_registro.strftime('%Y-%m-%d') if row.fecha_registro else None
+                    
+                    cliente = {
+                        'id_cliente': row.id_cliente,
+                        'nombre': row.nombre,
+                        'direccion': row.direccion,
+                        'telefono': row.telefono,
+                        'condiciones_pago': row.condiciones_pago,
+                        'fecha_registro': fecha_registro,
+                        'registrado_por': row.registrado_por,
+                        'registrado_por_nombre': row.registrado_por_nombre,
+                        'activo': bool(row.activo)
+                    }
+                    
+                    logger.info(f"✅ Cliente {id_cliente} encontrado")
+                    return cliente
+                
+                logger.warning(f"⚠️ Cliente {id_cliente} no encontrado")
+                return None
+                
+        except Exception as e:
+            logger.error(f"❌ Error al obtener cliente {id_cliente}: {str(e)}")
+            return None
+    
+    def crear(self, cliente_data: Dict, registrado_por: int) -> Tuple[bool, Optional[int]]:
         """
-        
-        rows = self._ejecutar_consulta(query, (id_cliente,))
-        
-        if not rows:
-            raise RegistroNoEncontrado(f"Cliente con ID {id_cliente} no encontrado")
-        
-        row = rows[0]
-        return {
-            'id_cliente': row.id_cliente,
-            'nombre': row.nombre,
-            'direccion': row.direccion,
-            'ciudad': row.ciudad,
-            'estado_provincia': row.estado_provincia,
-            'telefono': row.telefono,
-            'correo': row.correo,
-            'condiciones_pago': row.condiciones_pago,
-            'fecha_registro': self._formatear_fecha(row.fecha_registro),
-            'registrado_por': row.registrado_por_nombre,
-            'activo': bool(row.activo)
-        }
-
-    @cacheable('clientes', key_func=lambda pagina, por_pagina=10: f"pagina_{pagina}_{por_pagina}", ttl=1200)  # 20 min
-    def obtener_paginado(self, pagina, por_pagina=10):
-        """
-        Obtiene clientes con paginación.
+        Crea un nuevo cliente en la base de datos.
         
         Args:
-            pagina (int): Número de página.
-            por_pagina (int): Registros por página.
+            cliente_data: Diccionario con los datos del cliente.
+            registrado_por: ID del usuario que registra el cliente.
             
         Returns:
-            dict: Clientes, total_registros, total_paginas, pagina_actual.
+            Tuple[bool, Optional[int]]: (Éxito, ID del nuevo cliente)
         """
-        pagina, por_pagina, offset = self._validar_parametros_paginacion(pagina, por_pagina)
-        
-        # Contar total de registros activos
-        total_registros = self._contar_registros_cached()
-        
-        # Obtener registros paginados
-        query = """
-        SELECT c.id_cliente, c.nombre, c.direccion, c.ciudad, c.estado_provincia,
-               c.telefono, c.correo, c.condiciones_pago, c.fecha_registro,
-               u.nombre AS registrado_por_nombre, c.activo
-        FROM Clientes c
-        LEFT JOIN Usuarios u ON c.registrado_por = u.id_usuario
-        WHERE c.activo = 1
-        ORDER BY c.nombre
-        OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                query = """
+                INSERT INTO Clientes (nombre, direccion, telefono, condiciones_pago, 
+                                     fecha_registro, registrado_por, activo)
+                VALUES (?, ?, ?, ?, GETDATE(), ?, 1)
+                """
+                
+                valores = (
+                    cliente_data['nombre'],
+                    cliente_data.get('direccion'),
+                    cliente_data.get('telefono'),
+                    cliente_data.get('condiciones_pago'),
+                    registrado_por
+                )
+                
+                cursor.execute(query, valores)
+                conn.commit()
+                
+                # Obtener el ID del cliente recién insertado
+                cursor.execute("SELECT @@IDENTITY AS ID")
+                id_cliente = int(cursor.fetchone()[0])
+                
+                logger.info(f"✅ Cliente creado con ID: {id_cliente}")
+                return True, id_cliente
+                
+        except Exception as e:
+            logger.error(f"❌ Error al crear cliente: {str(e)}")
+            return False, None
+    
+    def actualizar(self, id_cliente: int, cliente_data: Dict) -> bool:
         """
+        Actualiza un cliente existente.
         
-        rows = self._ejecutar_consulta(query, (offset, por_pagina))
-        clientes = []
+        Args:
+            id_cliente: ID del cliente a actualizar.
+            cliente_data: Diccionario con los datos actualizados.
+            
+        Returns:
+            bool: True si se actualizó correctamente.
+        """
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                query = """
+                UPDATE Clientes 
+                SET nombre = ?, 
+                    direccion = ?, 
+                    telefono = ?, 
+                    condiciones_pago = ?
+                WHERE id_cliente = ?
+                """
+                
+                valores = (
+                    cliente_data['nombre'],
+                    cliente_data.get('direccion'),
+                    cliente_data.get('telefono'),
+                    cliente_data.get('condiciones_pago'),
+                    id_cliente
+                )
+                
+                cursor.execute(query, valores)
+                conn.commit()
+                
+                if cursor.rowcount > 0:
+                    logger.info(f"✅ Cliente {id_cliente} actualizado")
+                    return True
+                else:
+                    logger.warning(f"⚠️ Cliente {id_cliente} no encontrado para actualizar")
+                    return False
+                    
+        except Exception as e:
+            logger.error(f"❌ Error al actualizar cliente {id_cliente}: {str(e)}")
+            return False
+    
+    def eliminar(self, id_cliente: int) -> bool:
+        """
+        Elimina lógicamente un cliente (soft delete).
         
-        for row in rows:
-            cliente = {
-                'id_cliente': row.id_cliente,
-                'nombre': row.nombre,
-                'direccion': row.direccion,
-                'ciudad': row.ciudad,
-                'estado_provincia': row.estado_provincia,
-                'telefono': row.telefono,
-                'correo': row.correo,
-                'condiciones_pago': row.condiciones_pago,
-                'fecha_registro': self._formatear_fecha(row.fecha_registro),
-                'registrado_por': row.registrado_por_nombre,
-                'activo': bool(row.activo)
-            }
-            clientes.append(cliente)
-        
-        total_paginas = self._calcular_total_paginas(total_registros, por_pagina)
-        
-        resultado = {
-            'clientes': clientes,
-            'total_registros': total_registros,
-            'total_paginas': total_paginas,
-            'pagina_actual': pagina
-        }
-        
-        logger.info(f"Página {pagina}: {len(clientes)} clientes de {total_registros} totales")
-        return resultado
-
-    @cacheable('clientes', key_func=lambda texto: f"buscar_{texto.lower().replace(' ', '_')}", ttl=900)  # 15 min
-    def buscar_por_criterio(self, texto_busqueda):
+        Args:
+            id_cliente: ID del cliente a eliminar.
+            
+        Returns:
+            bool: True si se eliminó correctamente.
+        """
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                query = """
+                UPDATE Clientes 
+                SET activo = 0 
+                WHERE id_cliente = ?
+                """
+                
+                cursor.execute(query, (id_cliente,))
+                conn.commit()
+                
+                if cursor.rowcount > 0:
+                    logger.info(f"✅ Cliente {id_cliente} desactivado")
+                    return True
+                else:
+                    logger.warning(f"⚠️ Cliente {id_cliente} no encontrado para eliminar")
+                    return False
+                    
+        except Exception as e:
+            logger.error(f"❌ Error al eliminar cliente {id_cliente}: {str(e)}")
+            return False
+    
+    # ==================== BÚSQUEDAS ====================
+    
+    def buscar_por_criterio(self, criterio: str) -> List[Dict]:
         """
         Busca clientes que coincidan con el criterio en varios campos.
         
         Args:
-            texto_busqueda (str): Texto a buscar en los campos del cliente.
+            criterio: Texto a buscar.
             
         Returns:
-            list: Lista de diccionarios con los clientes que coinciden con el criterio.
+            List[Dict]: Lista de clientes que coinciden.
         """
-        query = """
-        SELECT c.id_cliente, c.nombre, c.direccion, c.ciudad, c.estado_provincia,
-               c.telefono, c.correo, c.condiciones_pago, c.fecha_registro,
-               u.nombre AS registrado_por_nombre, c.activo
-        FROM Clientes c
-        LEFT JOIN Usuarios u ON c.registrado_por = u.id_usuario
-        WHERE c.activo = 1 AND (
-            c.nombre LIKE ? OR
-            c.direccion LIKE ? OR
-            c.ciudad LIKE ? OR
-            c.estado_provincia LIKE ? OR
-            c.telefono LIKE ? OR
-            c.correo LIKE ?
-        )
-        ORDER BY c.nombre
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                query = """
+                SELECT c.id_cliente, c.nombre, c.direccion, 
+                       c.telefono, c.condiciones_pago, c.fecha_registro, 
+                       u.nombre AS registrado_por_nombre, c.activo
+                FROM Clientes c
+                LEFT JOIN Usuarios u ON c.registrado_por = u.id_usuario
+                WHERE c.activo = 1 AND (
+                    c.nombre LIKE ? OR
+                    c.direccion LIKE ? OR
+                    c.telefono LIKE ?
+                )
+                ORDER BY c.nombre
+                """
+                
+                param = f"%{criterio}%"
+                cursor.execute(query, (param, param, param))
+                
+                clientes = []
+                for row in cursor.fetchall():
+                    fecha_registro = row.fecha_registro.strftime('%Y-%m-%d') if row.fecha_registro else None
+                    
+                    cliente = {
+                        'id_cliente': row.id_cliente,
+                        'nombre': row.nombre,
+                        'direccion': row.direccion,
+                        'telefono': row.telefono,
+                        'condiciones_pago': row.condiciones_pago,
+                        'fecha_registro': fecha_registro,
+                        'registrado_por': row.registrado_por_nombre,
+                        'activo': bool(row.activo)
+                    }
+                    clientes.append(cliente)
+                
+                logger.info(f"🔍 Búsqueda '{criterio}': {len(clientes)} resultados")
+                return clientes
+                
+        except Exception as e:
+            logger.error(f"❌ Error al buscar clientes: {str(e)}")
+            return []
+    
+    def buscar_por_nombre(self, nombre: str) -> List[Dict]:
         """
-        
-        # Parámetro de búsqueda con comodines
-        patron = f"%{texto_busqueda}%"
-        params = (patron, patron, patron, patron, patron, patron)
-        
-        rows = self._ejecutar_consulta(query, params)
-        clientes = []
-        
-        for row in rows:
-            cliente = {
-                'id_cliente': row.id_cliente,
-                'nombre': row.nombre,
-                'direccion': row.direccion,
-                'ciudad': row.ciudad,
-                'estado_provincia': row.estado_provincia,
-                'telefono': row.telefono,
-                'correo': row.correo,
-                'condiciones_pago': row.condiciones_pago,
-                'fecha_registro': self._formatear_fecha(row.fecha_registro),
-                'registrado_por': row.registrado_por_nombre,
-                'activo': bool(row.activo)
-            }
-            clientes.append(cliente)
-        
-        logger.info(f"Búsqueda '{texto_busqueda}': {len(clientes)} resultados")
-        return clientes
-
-    @cacheable('clientes', key_func=lambda dias: f"inactivos_{dias}", ttl=1800)  # 30 min
-    def obtener_clientes_inactivos(self, dias_inactividad=90):
-        """
-        Obtiene los clientes que no han realizado compras en el período especificado.
+        Busca clientes por nombre.
         
         Args:
-            dias_inactividad (int): Número de días sin compras para considerar inactivo.
+            nombre: Nombre a buscar.
             
         Returns:
-            list: Lista de diccionarios con los clientes inactivos.
+            List[Dict]: Lista de clientes que coinciden.
         """
-        fecha_limite = datetime.now().date() - timedelta(days=dias_inactividad)
-        
-        query = """
-        SELECT c.id_cliente, c.nombre, c.telefono, c.correo,
-               MAX(v.fecha_venta) AS ultima_compra,
-               DATEDIFF(day, MAX(v.fecha_venta), GETDATE()) AS dias_inactividad
-        FROM Clientes c
-        LEFT JOIN Ventas v ON c.id_cliente = v.id_cliente
-        WHERE c.activo = 1
-        GROUP BY c.id_cliente, c.nombre, c.telefono, c.correo
-        HAVING MAX(v.fecha_venta) IS NULL OR MAX(v.fecha_venta) <= ?
-        ORDER BY ultima_compra
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                query = """
+                SELECT c.id_cliente, c.nombre, c.direccion, c.telefono, 
+                       c.condiciones_pago, c.fecha_registro, 
+                       u.nombre AS registrado_por_nombre, c.activo
+                FROM Clientes c
+                LEFT JOIN Usuarios u ON c.registrado_por = u.id_usuario
+                WHERE c.activo = 1 AND c.nombre LIKE ?
+                ORDER BY c.nombre
+                """
+                
+                cursor.execute(query, (f"%{nombre}%",))
+                
+                clientes = []
+                for row in cursor.fetchall():
+                    fecha_registro = row.fecha_registro.strftime('%Y-%m-%d') if row.fecha_registro else None
+                    
+                    cliente = {
+                        'id_cliente': row.id_cliente,
+                        'nombre': row.nombre,
+                        'direccion': row.direccion,
+                        'telefono': row.telefono,
+                        'condiciones_pago': row.condiciones_pago,
+                        'fecha_registro': fecha_registro,
+                        'registrado_por': row.registrado_por_nombre,
+                        'activo': bool(row.activo)
+                    }
+                    clientes.append(cliente)
+                
+                return clientes
+                
+        except Exception as e:
+            logger.error(f"❌ Error al buscar por nombre: {str(e)}")
+            return []
+    
+    # ==================== QUERIES ESPECÍFICAS ====================
+    
+    def obtener_con_estadisticas_ventas(self) -> List[Dict]:
         """
-        
-        rows = self._ejecutar_consulta(query, (fecha_limite,))
-        clientes_inactivos = []
-        
-        for row in rows:
-            cliente = {
-                'id_cliente': row.id_cliente,
-                'nombre': row.nombre,
-                'telefono': row.telefono,
-                'correo': row.correo,
-                'ultima_compra': self._formatear_fecha(row.ultima_compra),
-                'dias_inactividad': row.dias_inactividad if row.dias_inactividad else dias_inactividad
-            }
-            clientes_inactivos.append(cliente)
-        
-        logger.info(f"Se obtuvieron {len(clientes_inactivos)} clientes inactivos")
-        return clientes_inactivos
-
-    @cacheable('conteos', key_func=lambda: 'total_clientes_activos', ttl=1800)  # 30 min
-    def _contar_registros_cached(self):
-        """
-        Cuenta total de clientes activos (versión cacheada).
+        Obtiene clientes con sus estadísticas de ventas (JOIN con Ventas).
         
         Returns:
-            int: Número total de clientes activos.
+            List[Dict]: Lista de clientes con estadísticas.
         """
-        return self._contar_registros("Clientes", "activo = 1")
-
-    # ==================== MÉTODOS DE ESCRITURA CON INVALIDACIÓN OPTIMIZADA ====================
-
-    @cache_invalidator('clientes', key='todos_activos')  # Invalidar lista completa
-    @cache_invalidator('clientes', pattern='pagina_')    # Invalidar paginación
-    @cache_invalidator('clientes', pattern='buscar_')    # Invalidar búsquedas
-    @cache_invalidator('conteos', key='total_clientes_activos')  # Invalidar conteos
-    def crear(self, datos_cliente):
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                query = """
+                SELECT c.id_cliente, c.nombre, c.telefono, 
+                       COUNT(v.id_venta) AS total_ventas,
+                       ISNULL(SUM(v.total), 0) AS monto_total,
+                       MAX(v.fecha_venta) AS ultima_compra
+                FROM Clientes c
+                LEFT JOIN Ventas v ON c.id_cliente = v.id_cliente
+                WHERE c.activo = 1
+                GROUP BY c.id_cliente, c.nombre, c.telefono
+                ORDER BY monto_total DESC
+                """
+                
+                cursor.execute(query)
+                clientes = []
+                
+                for row in cursor.fetchall():
+                    ultima_compra = row.ultima_compra.strftime('%Y-%m-%d') if hasattr(row.ultima_compra, 'strftime') else str(row.ultima_compra) if row.ultima_compra else None
+                    
+                    cliente = {
+                        'id_cliente': row.id_cliente,
+                        'nombre': row.nombre,
+                        'telefono': row.telefono,
+                        'total_ventas': row.total_ventas or 0,
+                        'monto_total': float(row.monto_total) if row.monto_total else 0.0,
+                        'ultima_compra': ultima_compra
+                    }
+                    clientes.append(cliente)
+                
+                logger.info(f"📊 Se obtuvieron {len(clientes)} clientes con estadísticas")
+                return clientes
+                
+        except Exception as e:
+            logger.error(f"❌ Error al obtener clientes con estadísticas: {str(e)}")
+            return []
+    
+    def obtener_inactivos_desde(self, fecha_limite: date) -> List[Dict]:
         """
-        Crea un nuevo cliente.
-        OPTIMIZADO: Invalidación granular por tipos de caché.
+        Obtiene clientes que no han comprado desde una fecha específica.
         
         Args:
-            datos_cliente (dict): Datos del cliente.
+            fecha_limite: Fecha límite para considerar inactivo.
             
         Returns:
-            tuple: (True, id_cliente) si fue exitoso.
-            
-        Raises:
-            ErrorValidacion: Si los datos no son válidos.
-            RegistroYaExiste: Si ya existe un cliente con el mismo correo (opcional).
+            List[Dict]: Lista de clientes inactivos.
         """
-        self._validar_datos_cliente(datos_cliente)
-        
-        # Verificar si el correo ya existe (solo si se proporciona)
-        if datos_cliente.get('correo') and self._existe_correo(datos_cliente['correo']):
-            raise RegistroYaExiste(f"Ya existe un cliente con correo {datos_cliente['correo']}")
-        
-        query = """
-        INSERT INTO Clientes (nombre, direccion, ciudad, estado_provincia, telefono, correo,
-                             condiciones_pago, fecha_registro, registrado_por, activo)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                query = """
+                SELECT c.id_cliente, c.nombre, c.telefono,
+                       MAX(v.fecha_venta) AS ultima_compra,
+                       DATEDIFF(day, MAX(v.fecha_venta), GETDATE()) AS dias_inactividad
+                FROM Clientes c
+                LEFT JOIN Ventas v ON c.id_cliente = v.id_cliente
+                WHERE c.activo = 1
+                GROUP BY c.id_cliente, c.nombre, c.telefono
+                HAVING MAX(v.fecha_venta) IS NULL OR MAX(v.fecha_venta) <= ?
+                ORDER BY ultima_compra
+                """
+                
+                cursor.execute(query, (fecha_limite,))
+                clientes = []
+                
+                for row in cursor.fetchall():
+                    ultima_compra = row.ultima_compra.strftime('%Y-%m-%d') if row.ultima_compra else None
+                    
+                    cliente = {
+                        'id_cliente': row.id_cliente,
+                        'nombre': row.nombre,
+                        'telefono': row.telefono,
+                        'ultima_compra': ultima_compra,
+                        'dias_inactividad': row.dias_inactividad if row.dias_inactividad else None
+                    }
+                    clientes.append(cliente)
+                
+                logger.info(f"📊 Se obtuvieron {len(clientes)} clientes inactivos")
+                return clientes
+                
+        except Exception as e:
+            logger.error(f"❌ Error al obtener clientes inactivos: {str(e)}")
+            return []
+    
+    def verificar_tiene_ventas(self, id_cliente: int) -> bool:
         """
-        
-        fecha_actual = datetime.now().date().strftime('%Y-%m-%d')
-        valores = (
-            datos_cliente['nombre'],
-            datos_cliente.get('direccion'),
-            datos_cliente.get('ciudad'),
-            datos_cliente.get('estado_provincia'),
-            datos_cliente.get('telefono'),
-            datos_cliente.get('correo'),
-            datos_cliente.get('condiciones_pago'),
-            fecha_actual,
-            datos_cliente['registrado_por'],  # ID del usuario que registra
-            1  # activo por defecto
-        )
-        
-        self._ejecutar_consulta(query, valores, obtener_resultado=False)
-        id_cliente = self._obtener_ultimo_id()
-        
-        logger.info(f"Cliente creado con ID: {id_cliente}")
-        return True, id_cliente
-
-    @cache_invalidator('clientes', pattern='id_')        # Invalidar caché específico
-    @cache_invalidator('clientes', key='todos_activos')  # Invalidar lista completa
-    @cache_invalidator('clientes', pattern='pagina_')    # Invalidar paginación
-    @cache_invalidator('clientes', pattern='buscar_')    # Invalidar búsquedas
-    def actualizar(self, id_cliente, datos_cliente):
-        """
-        Actualiza un cliente existente.
-        OPTIMIZADO: Invalidación específica del cliente y listas generales.
+        Verifica si un cliente tiene ventas asociadas.
         
         Args:
-            id_cliente (int): ID del cliente.
-            datos_cliente (dict): Datos actualizados.
+            id_cliente: ID del cliente.
             
         Returns:
-            bool: True si se actualizó correctamente.
-            
-        Raises:
-            RegistroNoEncontrado: Si el cliente no existe.
-            ErrorValidacion: Si los datos no son válidos.
+            bool: True si tiene ventas.
         """
-        # Verificar que el cliente existe
-        cliente_actual = self.obtener_por_id(id_cliente)
-        
-        # Construir consulta dinámicamente
-        campos_actualizar = []
-        valores = []
-        
-        if 'nombre' in datos_cliente:
-            campos_actualizar.append("nombre = ?")
-            valores.append(datos_cliente['nombre'])
-            
-        if 'direccion' in datos_cliente:
-            campos_actualizar.append("direccion = ?")
-            valores.append(datos_cliente['direccion'])
-            
-        if 'ciudad' in datos_cliente:
-            campos_actualizar.append("ciudad = ?")
-            valores.append(datos_cliente['ciudad'])
-            
-        if 'estado_provincia' in datos_cliente:
-            campos_actualizar.append("estado_provincia = ?")
-            valores.append(datos_cliente['estado_provincia'])
-            
-        if 'telefono' in datos_cliente:
-            campos_actualizar.append("telefono = ?")
-            valores.append(datos_cliente['telefono'])
-            
-        if 'correo' in datos_cliente:
-            # Verificar que el nuevo correo no exista (excluyendo el registro actual)
-            if self._existe_correo_excepto(datos_cliente['correo'], id_cliente):
-                raise RegistroYaExiste(f"Ya existe otro cliente con correo {datos_cliente['correo']}")
-            campos_actualizar.append("correo = ?")
-            valores.append(datos_cliente['correo'])
-            
-        if 'condiciones_pago' in datos_cliente:
-            campos_actualizar.append("condiciones_pago = ?")
-            valores.append(datos_cliente['condiciones_pago'])
-        
-        if 'activo' in datos_cliente:
-            campos_actualizar.append("activo = ?")
-            valores.append(1 if datos_cliente['activo'] else 0)
-        
-        if not campos_actualizar:
-            logger.warning("No hay campos para actualizar")
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                query = """
+                SELECT COUNT(*) 
+                FROM Ventas 
+                WHERE id_cliente = ?
+                """
+                
+                cursor.execute(query, (id_cliente,))
+                count = cursor.fetchone()[0]
+                
+                return count > 0
+                
+        except Exception as e:
+            logger.error(f"❌ Error al verificar ventas del cliente: {str(e)}")
             return False
-        
-        query = f"UPDATE Clientes SET {', '.join(campos_actualizar)} WHERE id_cliente = ?"
-        valores.append(id_cliente)
-        
-        filas_afectadas = self._ejecutar_consulta(query, valores, obtener_resultado=False)
-        
-        logger.info(f"Cliente {id_cliente} actualizado. Filas afectadas: {filas_afectadas}")
-        return filas_afectadas > 0
-
-    @cache_invalidator('clientes', pattern='id_')        # Invalidar caché específico
-    @cache_invalidator('clientes', key='todos_activos')  # Invalidar lista completa
-    @cache_invalidator('clientes', pattern='pagina_')    # Invalidar paginación
-    @cache_invalidator('clientes', pattern='buscar_')    # Invalidar búsquedas
-    @cache_invalidator('conteos', key='total_clientes_activos')  # Invalidar conteos
-    def desactivar(self, id_cliente):
-        """
-        Desactiva un cliente (eliminación lógica).
-        OPTIMIZADO: Invalidación completa ya que afecta todas las listas.
-        
-        Args:
-            id_cliente (int): ID del cliente.
-            
-        Returns:
-            bool: True si se desactivó correctamente.
-            
-        Raises:
-            RegistroNoEncontrado: Si el cliente no existe.
-        """
-        # Verificar que el cliente existe
-        self.obtener_por_id(id_cliente)
-        
-        # Verificar si el cliente tiene ventas asociadas
-        ventas_count = self._contar_registros("Ventas", "id_cliente = ?", (id_cliente,))
-        
-        if ventas_count > 0:
-            logger.warning(f"Cliente {id_cliente} tiene {ventas_count} ventas asociadas, pero se procede con desactivación lógica")
-        
-        query = "UPDATE Clientes SET activo = 0 WHERE id_cliente = ?"
-        filas_afectadas = self._ejecutar_consulta(query, (id_cliente,), obtener_resultado=False)
-        
-        logger.info(f"Cliente {id_cliente} desactivado. Filas afectadas: {filas_afectadas}")
-        return filas_afectadas > 0
-
-    # ==================== MÉTODOS AUXILIARES ====================
     
-    def _validar_datos_cliente(self, datos):
+    def existe_cliente(self, id_cliente: int) -> bool:
         """
-        Valida los datos del cliente.
+        Verifica si existe un cliente con el ID especificado.
         
         Args:
-            datos (dict): Datos a validar.
-            
-        Raises:
-            ErrorValidacion: Si los datos no son válidos.
-        """
-        if not datos.get('nombre') or not datos.get('nombre').strip():
-            raise ErrorValidacion("El nombre del cliente es obligatorio")
-        
-        # Validar formato de correo si se proporciona
-        if datos.get('correo'):
-            import re
-            email_regex = r'\w+([-+.\']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*'
-            if not re.match(email_regex, datos['correo']):
-                raise ErrorValidacion("El formato del correo electrónico no es válido")
-        
-        # Validar que registrado_por esté presente
-        if not datos.get('registrado_por'):
-            raise ErrorValidacion("El campo registrado_por es obligatorio")
-    
-    def _existe_correo(self, correo):
-        """
-        Verifica si un correo ya existe.
-        
-        Args:
-            correo (str): Correo a verificar.
+            id_cliente: ID del cliente a verificar.
             
         Returns:
             bool: True si existe.
         """
-        if not correo:
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                query = "SELECT COUNT(*) FROM Clientes WHERE id_cliente = ?"
+                cursor.execute(query, (id_cliente,))
+                
+                count = cursor.fetchone()[0]
+                return count > 0
+                
+        except Exception as e:
+            logger.error(f"❌ Error al verificar existencia del cliente: {str(e)}")
             return False
-            
-        count = self._contar_registros("Clientes", "correo = ? AND activo = 1", (correo,))
-        return count > 0
     
-    def _existe_correo_excepto(self, correo, id_excluir):
+    def obtener_activos(self) -> List[Dict]:
         """
-        Verifica si un correo ya existe excluyendo un ID específico.
+        Obtiene solo los clientes activos.
+        Alias para obtener_todos() pero más explícito.
         
-        Args:
-            correo (str): Correo a verificar.
-            id_excluir (int): ID a excluir de la búsqueda.
-            
         Returns:
-            bool: True si existe.
+            List[Dict]: Lista de clientes activos.
         """
-        if not correo:
-            return False
+        return self.obtener_todos()
+
+
+# Ejemplo de uso y testing
+if __name__ == "__main__":
+    try:
+        repo = ClienteRepositorio()
+        repo.test_connection()
+        
+        # Obtener todos los clientes
+        clientes = repo.obtener_todos()
+        print(f"✅ Total de clientes: {len(clientes)}")
+        
+        # Mostrar primeros 3 clientes
+        for cliente in clientes[:3]:
+            print(f"  - {cliente['nombre']} (ID: {cliente['id_cliente']})")
             
-        count = self._contar_registros(
-            "Clientes", 
-            "correo = ? AND activo = 1 AND id_cliente != ?", 
-            (correo, id_excluir)
-        )
-        return count > 0
+    except Exception as e:
+        print(f"❌ Error en prueba: {str(e)}")

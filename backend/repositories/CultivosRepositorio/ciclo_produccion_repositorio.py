@@ -71,7 +71,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         SELECT c.id_ciclo, c.id_parcela, c.id_variedad, c.fecha_siembra, 
                c.fecha_cosecha_estimada, c.area_sembrada,
                c.estado,
-               c.fecha_floracion, c.fecha_poda, c.fecha_limpieza, c.frecuencia_limpieza,
+               c.fecha_floracion, c.fecha_limpieza, c.frecuencia_limpieza,
                p.nombre AS nombre_parcela, 
                v.nombre AS nombre_variedad,
                t.nombre AS nombre_tipo_cultivo,
@@ -106,7 +106,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         SELECT c.id_ciclo, c.id_parcela, c.id_variedad, c.fecha_siembra, 
                c.fecha_cosecha_estimada, c.area_sembrada,
                c.estado,
-               c.fecha_floracion, c.fecha_poda, c.fecha_limpieza, c.frecuencia_limpieza,
+               c.fecha_floracion, c.fecha_limpieza, c.frecuencia_limpieza,
                p.nombre AS nombre_parcela, 
                v.nombre AS nombre_variedad,
                t.nombre AS nombre_tipo_cultivo,
@@ -148,7 +148,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         SELECT c.id_ciclo, c.id_parcela, c.id_variedad, c.fecha_siembra, 
                c.fecha_cosecha_estimada, c.area_sembrada,
                c.estado,
-               c.fecha_floracion, c.fecha_poda, c.fecha_limpieza, c.frecuencia_limpieza,
+               c.fecha_floracion, c.fecha_limpieza, c.frecuencia_limpieza,
                p.nombre AS nombre_parcela, 
                v.nombre AS nombre_variedad,
                t.nombre AS nombre_tipo_cultivo,
@@ -223,7 +223,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         SELECT c.id_ciclo, c.id_parcela, c.id_variedad, c.fecha_siembra, 
                c.fecha_cosecha_estimada, c.area_sembrada,
                c.estado,
-               c.fecha_floracion, c.fecha_poda, c.fecha_limpieza, c.frecuencia_limpieza,
+               c.fecha_floracion, c.fecha_limpieza, c.frecuencia_limpieza,
                p.nombre AS nombre_parcela, 
                v.nombre AS nombre_variedad,
                t.nombre AS nombre_tipo_cultivo,
@@ -274,7 +274,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         SELECT c.id_ciclo, c.id_parcela, c.id_variedad, c.fecha_siembra, 
                c.fecha_cosecha_estimada, c.area_sembrada,
                c.estado,
-               c.fecha_floracion, c.fecha_poda, c.fecha_limpieza, c.frecuencia_limpieza,
+               c.fecha_floracion, c.fecha_limpieza, c.frecuencia_limpieza,
                p.nombre AS nombre_parcela, 
                v.nombre AS nombre_variedad,
                t.nombre AS nombre_tipo_cultivo,
@@ -283,7 +283,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         JOIN Parcelas p ON c.id_parcela = p.id_parcela
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
-        JOIN Productoresa ON p.id_productor = a.id_productor
+        JOIN Productores a ON p.id_productor = a.id_productor
         WHERE c.estado IN ({placeholders}) AND p.activo = 1 AND v.activo = 1 AND t.activo = 1
         ORDER BY c.fecha_siembra DESC
         """
@@ -430,9 +430,9 @@ class CicloProduccionRepositorio(RepositorioBase):
         INSERT INTO CiclosProduccion (
             id_parcela, id_variedad, fecha_siembra, fecha_cosecha_estimada, 
             area_sembrada, estado, 
-            fecha_floracion, fecha_poda, fecha_limpieza, frecuencia_limpieza, activo
+            fecha_floracion, fecha_limpieza, frecuencia_limpieza
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         
         valores = (
@@ -443,10 +443,8 @@ class CicloProduccionRepositorio(RepositorioBase):
             datos_ciclo['area_sembrada'],
             datos_ciclo.get('estado', 'Planificado'),
             datos_ciclo.get('fecha_floracion'),
-            datos_ciclo.get('fecha_poda'),
             datos_ciclo.get('fecha_limpieza'),
-            datos_ciclo.get('frecuencia_limpieza'),
-            1  # activo por defecto
+            datos_ciclo.get('frecuencia_limpieza')
         )
         
         self._ejecutar_consulta(query, valores, obtener_resultado=False)
@@ -484,7 +482,7 @@ class CicloProduccionRepositorio(RepositorioBase):
         campos_permitidos = [
             'id_parcela', 'id_variedad', 'fecha_siembra', 'fecha_cosecha_estimada',
             'area_sembrada', 'estado',
-            'fecha_floracion', 'fecha_poda', 'fecha_limpieza', 'frecuencia_limpieza'
+            'fecha_floracion', 'fecha_limpieza', 'frecuencia_limpieza'
         ]
         
         for campo in campos_permitidos:
@@ -547,23 +545,22 @@ class CicloProduccionRepositorio(RepositorioBase):
     @cache_invalidator('ciclos_produccion', pattern='estado_')         # Por estado
     @cache_invalidator('ciclos_produccion', key='ciclos_activos')      # Ciclos activos
     @cache_invalidator('estadisticas_ciclos')                          # Estadísticas
-    def desactivar(self, id_ciclo):
+    def eliminar_ciclo_produccion(self, id_ciclo):
         """
-        Desactiva un ciclo de producción (eliminación lógica).
-        
+        Elimina físicamente un ciclo de producción de la base de datos.
         Args:
             id_ciclo (int): ID del ciclo.
-            
         Returns:
-            bool: True si se desactivó correctamente.
+            bool: True si se eliminó correctamente.
         """
-        # Verificar que el ciclo existe
+        # Verificar que el ciclo existe (levanta RegistroNoEncontrado si no)
         self.obtener_por_id(id_ciclo)
         
-        query = "UPDATE CiclosProduccion SET activo = 0 WHERE id_ciclo = ?"
+        # Eliminación física
+        query = "DELETE FROM CiclosProduccion WHERE id_ciclo = ?"
         filas_afectadas = self._ejecutar_consulta(query, (id_ciclo,), obtener_resultado=False)
         
-        logger.info(f"Ciclo {id_ciclo} desactivado. Filas afectadas: {filas_afectadas}")
+        logger.info(f"Ciclo {id_ciclo} eliminado físicamente. Filas afectadas: {filas_afectadas}")
         return filas_afectadas > 0
 
     # ==================== MÉTODOS AUXILIARES ====================
@@ -585,7 +582,6 @@ class CicloProduccionRepositorio(RepositorioBase):
             'id_variedad': row.id_variedad,
             'area_sembrada': float(row.area_sembrada),
             'estado': row.estado,
-            'activo': bool(row.activo),
             'frecuencia_limpieza': row.frecuencia_limpieza,
             
             # Fechas formateadas
@@ -915,14 +911,12 @@ class CicloProduccionRepositorio(RepositorioBase):
         """Analiza costos detallados del ciclo."""
         query_costos = """
         SELECT 
-            cc.nombre as categoria,
             SUM(cp.costo_total) as total_categoria,
             COUNT(cp.id_costo) as cantidad_registros,
             AVG(cp.costo_total) as promedio_registro
         FROM CostosProduccion cp
         JOIN CategoriasCostos cc ON cp.id_categoria = cc.id_categoria
         WHERE cp.id_ciclo = ?
-        GROUP BY cc.id_categoria, cc.nombre
         ORDER BY total_categoria DESC
         """
         
