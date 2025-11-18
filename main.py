@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # main.py - AgroIchilo con autenticación integrada
 import sys
 import os
@@ -35,6 +36,17 @@ from backend.models.dashboard_model import DashboardModel
 from backend.models.clientes_model import ClientesModel
 from backend.models.ventas_model import VentasModel
 
+# Generador de PDFs
+# ✅ CORREGIDO: Verificar que la ruta de importación sea correcta según tu estructura
+try:
+    from generar_pdf_agricola import GeneradorReportesAgriculaPDF
+except ImportError:
+    try:
+        from backend.services.reportes.generar_pdf_agricola import GeneradorReportesAgriculaPDF
+    except ImportError:
+        print("⚠️ No se pudo importar GeneradorReportesAgriculaPDF. Verifica la ruta del archivo.")
+        GeneradorReportesAgriculaPDF = None
+
 
 class AppManager(QObject):
     """Gestor principal de la aplicación con autenticación"""
@@ -58,7 +70,7 @@ class AppManager(QObject):
         if self._vista_actual != value:
             self._vista_actual = value
             self.vistaChanged.emit(value)
-            print(f"📱 Vista cambiada a: {value}")
+            print(f"🔄 Vista cambiada a: {value}")
     
     def set_root_object(self, root):
         """Establece el objeto raíz de QML"""
@@ -172,7 +184,7 @@ class ModuleManager(QObject):
     @Slot(int)
     def change_module(self, module_index):
         """Cambia al módulo especificado"""
-        print(f"📂 Cambiando al módulo: {module_index}")
+        print(f"🔌 Cambiando al módulo: {module_index}")
         
         # Obtener el archivo QML correspondiente
         qml_file = self.module_files.get(module_index)
@@ -262,7 +274,7 @@ def main():
     
     # Modelo de autenticación - ✅ CORREGIDO
     try:
-        auth_model = AutoModel()  # ✅ CORREGIDO: Era AuthModel()
+        auth_model = AutoModel()  # ✅ CORREGIDO: AutoModel es el nombre correcto de la clase
         engine.rootContext().setContextProperty("authModel", auth_model)
         print("✅ AutoModel registrado en QML")
     except Exception as e:
@@ -324,8 +336,10 @@ def main():
     try:
         venta_model = VentasModel()
         engine.rootContext().setContextProperty("ventaModel", venta_model)
+        print("✅ VentasModel registrado en QML")
     except Exception as e:
-        print(f"⚠️ No se pudo registrar ClientesVentaModel: {e}")
+        # ✅ CORREGIDO: Mensaje de error correcto
+        print(f"⚠️ No se pudo registrar VentasModel: {e}")
 
     try:
         clientes_model = ClientesModel()
@@ -340,6 +354,17 @@ def main():
         print("✅ MaquinariaModel registrado en QML")
     except Exception as e:
         print(f"⚠️ No se pudo registrar MaquinariaModel: {e}")
+    
+    # ✅ NUEVO: Generador de PDFs para Reportes
+    if GeneradorReportesAgriculaPDF:
+        try:
+            generador_pdf_agricola = GeneradorReportesAgriculaPDF()
+            engine.rootContext().setContextProperty("generador_pdf_agricola", generador_pdf_agricola)
+            print("✅ GeneradorReportesAgriculaPDF registrado en QML")
+        except Exception as e:
+            print(f"⚠️ No se pudo registrar GeneradorReportesAgriculaPDF: {e}")
+    else:
+        print("⚠️ GeneradorReportesAgriculaPDF no disponible")
     
     # Verificar archivos
     print(f"📁 Directorio de trabajo: {os.getcwd()}")
@@ -374,8 +399,9 @@ def main():
     print("   - productoresparcelas (ProductoresParcelasModels)")
     print("   - cultivos (CultivosModel)")
     print("   - agroquimicosModel (AgroquimicosModel)")
-    print("   - ventaModel (ClientesVentaModel)")
+    print("   - ventaModel (VentasModel)")
     print("   - maquinariaModel (MaquinariaModel)")
+    print("   - generador_pdf_agricola (GeneradorReportesAgriculaPDF)")
     
     # Ejecutar la aplicación
     sys.exit(app.exec())
