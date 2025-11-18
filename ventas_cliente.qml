@@ -249,7 +249,7 @@ Rectangle {
     Rectangle {
         id: titleBar
         width: parent.width
-        height: 80
+        height: 60
         color: "transparent"
 
         Text {
@@ -266,9 +266,9 @@ Rectangle {
     Item {
         id: modernTabBar
         width: parent.width - 40
-        height: 90
+        height: 70
         anchors.top: titleBar.bottom
-        anchors.topMargin: 10
+        anchors.topMargin: 5
         anchors.horizontalCenter: parent.horizontalCenter
         
         TabBarComponent {
@@ -293,7 +293,7 @@ Rectangle {
         width: parent.width - 40
         height: parent.height - modernTabBar.y - modernTabBar.height - 20
         anchors.top: modernTabBar.bottom
-        anchors.topMargin: 20
+        anchors.topMargin: 10
         anchors.horizontalCenter: parent.horizontalCenter
         
         // ==================== TAB 1: VENTAS ====================

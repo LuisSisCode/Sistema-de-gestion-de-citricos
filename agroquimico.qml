@@ -102,7 +102,7 @@ Rectangle {
     Rectangle {
         id: titleBar
         width: parent.width
-        height: 80
+        height: 60
         color: "transparent"
 
         Text {
@@ -110,9 +110,7 @@ Rectangle {
             font.pixelSize: 28
             font.bold: true
             color: "#2E7D32"
-            anchors.left: parent.left
-            anchors.leftMargin: 30
-            anchors.verticalCenter: parent.verticalCenter
+            anchors.centerIn: parent
         }
     }
 
@@ -120,9 +118,9 @@ Rectangle {
     Item {
         id: modernTabBar
         width: parent.width - 40
-        height: 90
+        height: 70
         anchors.top: titleBar.bottom
-        anchors.topMargin: 10
+        anchors.topMargin: 5
         anchors.horizontalCenter: parent.horizontalCenter
         
         TabBarComponent {
@@ -149,7 +147,7 @@ Rectangle {
         width: parent.width - 40
         height: parent.height - modernTabBar.y - modernTabBar.height - 20
         anchors.top: modernTabBar.bottom
-        anchors.topMargin: 20
+        anchors.topMargin: 10
         anchors.horizontalCenter: parent.horizontalCenter
         
         // ==================== TAB 1: INVENTARIO ====================
@@ -164,13 +162,13 @@ Rectangle {
             
             ColumnLayout {
                 anchors.fill: parent
-                spacing: 15
+                spacing: 10
                 
                 // Barra de herramientas con FilterHeaderComponent
                 FilterHeaderComponent {
                     id: filterHeaderInventario
                     Layout.fillWidth: true
-                    height: 60
+                    height: 50
                     buttonText: "Nuevo Producto"
                     buttonIcon: "recursos/image/icons/agregar.svg"
                     buttonColor: "#2E7D32"
@@ -220,11 +218,12 @@ Rectangle {
                                 anchors.fill: parent
                                 Text { width: parent.width * 0.10; height: parent.height; text: "Código"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
                                 Text { width: parent.width * 0.18; height: parent.height; text: "Nombre Comercial"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
-                                Text { width: parent.width * 0.14; height: parent.height; text: "Categoría"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
-                                Text { width: parent.width * 0.12; height: parent.height; text: "Precio"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.12; height: parent.height; text: "Categoría"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.10; height: parent.height; text: "Formulación"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.10; height: parent.height; text: "Precio"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
                                 Text { width: parent.width * 0.10; height: parent.height; text: "Stock"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
-                                Text { width: parent.width * 0.14; height: parent.height; text: "Registro"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
-                                Text { width: parent.width * 0.22; height: parent.height; text: "Acciones"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter; color: "#424242" }
+                                Text { width: parent.width * 0.10; height: parent.height; text: "Registro"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.12; height: parent.height; text: "Acciones"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter; color: "#424242" }
                             }
                         }
                         
@@ -246,26 +245,14 @@ Rectangle {
                                 
                                 Text { width: parent.width * 0.10; height: parent.height; text: modelData.codigo; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
                                 Text { width: parent.width * 0.18; height: parent.height; text: modelData.nombre_comercial; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
-                                Text { width: parent.width * 0.14; height: parent.height; text: modelData.categoria; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
-                                Text { width: parent.width * 0.12; height: parent.height; text: "Bs. " + modelData.precio; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12; color: "#2E7D32"; font.bold: true }
-                                Text { width: parent.width * 0.10; height: parent.height; text: modelData.stock; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.12; height: parent.height; text: modelData.categoria; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.10; height: parent.height; text: modelData.formulacion; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.10; height: parent.height; text: "Bs. " + modelData.precio; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12; font.bold: true; color: "#2E7D32" }
+                                Text { width: parent.width * 0.10; height: parent.height; text: modelData.stock + " " + modelData.unidad; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.10; height: parent.height; text: modelData.registro; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
                                 
                                 Rectangle {
-                                    width: parent.width * 0.14
-                                    height: parent.height
-                                    color: "transparent"
-                                    
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: modelData.registro
-                                        font.pixelSize: 11
-                                        color: modelData.registro === "Aprobado" ? "#2E7D32" : modelData.registro === "Pendiente" ? "#F57C00" : "#D32F2F"
-                                        font.bold: true
-                                    }
-                                }
-                                
-                                Rectangle {
-                                    width: parent.width * 0.22
+                                    width: parent.width * 0.12
                                     height: parent.height
                                     color: "transparent"
                                     
@@ -315,10 +302,10 @@ Rectangle {
                     }
                 }
                 
-                // Paginador Inventario - CENTRADO
+                // Paginador Inventario
                 Item {
                     Layout.fillWidth: true
-                    height: 50
+                    height: 40
                     
                     Paginator {
                         id: paginadorInventario
@@ -348,21 +335,20 @@ Rectangle {
             
             ColumnLayout {
                 anchors.fill: parent
-                spacing: 15
+                spacing: 10
                 
-                // Barra de herramientas
                 FilterHeaderComponent {
                     id: filterHeaderCategorias
                     Layout.fillWidth: true
-                    height: 60
+                    height: 50
                     buttonText: "Nueva Categoría"
                     buttonIcon: "recursos/image/icons/agregar.svg"
                     buttonColor: "#FF6F00"
                     searchPlaceholder: "Buscar categoría..."
                     searchIcon: "recursos/image/icons/lupa.png"
-                    filterOptions: null
-                    filterPlaceholder: ""
-                    showFilter: false
+                    filterOptions: ["Todas", "Activas", "Inactivas"]
+                    filterPlaceholder: "Estado..."
+                    filterWidth: 150
                     
                     onButtonClicked: {
                         console.log("Nueva categoría")
@@ -371,9 +357,12 @@ Rectangle {
                     onSearchTextChanged: function(text) {
                         console.log("Buscar categoría:", text)
                     }
+                    
+                    onFilterChanged: function(index) {
+                        console.log("Filtrar categoría")
+                    }
                 }
                 
-                // Tabla de Categorías
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
@@ -398,10 +387,9 @@ Rectangle {
                             
                             Row {
                                 anchors.fill: parent
-                                Text { width: parent.width * 0.15; height: parent.height; text: "ID"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
-                                Text { width: parent.width * 0.25; height: parent.height; text: "Nombre"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
-                                Text { width: parent.width * 0.35; height: parent.height; text: "Descripción"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
-                                Text { width: parent.width * 0.10; height: parent.height; text: "Estado"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.20; height: parent.height; text: "Nombre"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.50; height: parent.height; text: "Descripción"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.15; height: parent.height; text: "Estado"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
                                 Text { width: parent.width * 0.15; height: parent.height; text: "Acciones"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter; color: "#424242" }
                             }
                         }
@@ -422,21 +410,27 @@ Rectangle {
                                 anchors.fill: parent
                                 spacing: 0
                                 
-                                Text { width: parent.width * 0.15; height: parent.height; text: modelData.id; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
-                                Text { width: parent.width * 0.25; height: parent.height; text: modelData.nombre; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12; font.bold: true }
-                                Text { width: parent.width * 0.35; height: parent.height; text: modelData.descripcion; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.20; height: parent.height; text: modelData.nombre; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.50; height: parent.height; text: modelData.descripcion; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
                                 
                                 Rectangle {
-                                    width: parent.width * 0.10
+                                    width: parent.width * 0.15
                                     height: parent.height
                                     color: "transparent"
                                     
-                                    Text {
+                                    Rectangle {
+                                        width: 60
+                                        height: 24
+                                        radius: 12
                                         anchors.centerIn: parent
-                                        text: modelData.activo ? "Activa" : "Inactiva"
-                                        font.pixelSize: 11
-                                        color: modelData.activo ? "#2E7D32" : "#9E9E9E"
-                                        font.bold: true
+                                        color: modelData.activo ? "#E8F5E8" : "#FFEBEE"
+                                        
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: modelData.activo ? "Activa" : "Inactiva"
+                                            font.pixelSize: 11
+                                            color: modelData.activo ? "#2E7D32" : "#C62828"
+                                        }
                                     }
                                 }
                                 
@@ -491,10 +485,9 @@ Rectangle {
                     }
                 }
                 
-                // Paginador Categorías - CENTRADO
                 Item {
                     Layout.fillWidth: true
-                    height: 50
+                    height: 40
                     
                     Paginator {
                         id: paginadorCategorias
@@ -524,13 +517,12 @@ Rectangle {
             
             ColumnLayout {
                 anchors.fill: parent
-                spacing: 15
+                spacing: 10
                 
-                // Barra de herramientas
                 FilterHeaderComponent {
                     id: filterHeaderMezclas
                     Layout.fillWidth: true
-                    height: 60
+                    height: 50
                     buttonText: "Nueva Mezcla"
                     buttonIcon: "recursos/image/icons/agregar.svg"
                     buttonColor: "#1976D2"
@@ -538,7 +530,7 @@ Rectangle {
                     searchIcon: "recursos/image/icons/lupa.png"
                     filterOptions: objetivosFilter
                     filterPlaceholder: "Objetivo..."
-                    filterWidth: 200
+                    filterWidth: 180
                     
                     onButtonClicked: {
                         console.log("Nueva mezcla")
@@ -553,7 +545,6 @@ Rectangle {
                     }
                 }
                 
-                // Tabla de Mezclas
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
@@ -578,12 +569,12 @@ Rectangle {
                             
                             Row {
                                 anchors.fill: parent
-                                Text { width: parent.width * 0.15; height: parent.height; text: "Nombre"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
-                                Text { width: parent.width * 0.18; height: parent.height; text: "Objetivo"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
-                                Text { width: parent.width * 0.12; height: parent.height; text: "Agua (L)"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
-                                Text { width: parent.width * 0.12; height: parent.height; text: "Área (Ha)"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.20; height: parent.height; text: "Nombre"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.25; height: parent.height; text: "Objetivo"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.15; height: parent.height; text: "Agua (L)"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.15; height: parent.height; text: "Área (Ha)"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
                                 Text { width: parent.width * 0.12; height: parent.height; text: "Estado"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
-                                Text { width: parent.width * 0.31; height: parent.height; text: "Acciones"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter; color: "#424242" }
+                                Text { width: parent.width * 0.13; height: parent.height; text: "Acciones"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter; color: "#424242" }
                             }
                         }
                         
@@ -603,27 +594,14 @@ Rectangle {
                                 anchors.fill: parent
                                 spacing: 0
                                 
-                                Text { width: parent.width * 0.15; height: parent.height; text: modelData.nombre; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12; font.bold: true }
-                                Text { width: parent.width * 0.18; height: parent.height; text: modelData.objetivo; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
-                                Text { width: parent.width * 0.12; height: parent.height; text: modelData.cantidadAgua; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
-                                Text { width: parent.width * 0.12; height: parent.height; text: modelData.areaAplicacion; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.20; height: parent.height; text: modelData.nombre; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.25; height: parent.height; text: modelData.objetivo; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.15; height: parent.height; text: modelData.cantidadAgua; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.15; height: parent.height; text: modelData.areaAplicacion; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.12; height: parent.height; text: modelData.estado; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12; color: modelData.estado === "Activa" ? "#2E7D32" : "#C62828" }
                                 
                                 Rectangle {
-                                    width: parent.width * 0.12
-                                    height: parent.height
-                                    color: "transparent"
-                                    
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: modelData.estado
-                                        font.pixelSize: 11
-                                        color: "#1976D2"
-                                        font.bold: true
-                                    }
-                                }
-                                
-                                Rectangle {
-                                    width: parent.width * 0.31
+                                    width: parent.width * 0.13
                                     height: parent.height
                                     color: "transparent"
                                     
@@ -673,10 +651,9 @@ Rectangle {
                     }
                 }
                 
-                // Paginador Mezclas - CENTRADO
                 Item {
                     Layout.fillWidth: true
-                    height: 50
+                    height: 40
                     
                     Paginator {
                         id: paginadorMezclas
@@ -706,13 +683,12 @@ Rectangle {
             
             ColumnLayout {
                 anchors.fill: parent
-                spacing: 15
+                spacing: 10
                 
-                // Barra de herramientas
                 FilterHeaderComponent {
                     id: filterHeaderTratamientos
                     Layout.fillWidth: true
-                    height: 60
+                    height: 50
                     buttonText: "Nuevo Tratamiento"
                     buttonIcon: "recursos/image/icons/agregar.svg"
                     buttonColor: "#D32F2F"
@@ -735,7 +711,6 @@ Rectangle {
                     }
                 }
                 
-                // Tabla de Tratamientos
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
@@ -844,10 +819,9 @@ Rectangle {
                     }
                 }
                 
-                // Paginador Tratamientos - CENTRADO
                 Item {
                     Layout.fillWidth: true
-                    height: 50
+                    height: 40
                     
                     Paginator {
                         id: paginadorTratamientos

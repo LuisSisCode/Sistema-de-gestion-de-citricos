@@ -1493,7 +1493,7 @@ Rectangle {
     Rectangle {
         id: titleBar
         width: parent.width
-        height: 80
+        height: 60
         color: "transparent"
         
 
@@ -1511,9 +1511,9 @@ Rectangle {
     Item {
         id: modernTabBar
         width: parent.width - 40
-        height: 90
+        height: 70
         anchors.top: titleBar.bottom
-        anchors.topMargin: 10
+        anchors.topMargin: 5
         anchors.horizontalCenter: parent.horizontalCenter
         
         TabBarComponent {
@@ -1705,7 +1705,7 @@ Rectangle {
                             color: "transparent"
                             
                             Paginator {
-                                id: paginadorTipos
+                        id: paginadorTipos
                                 width: Math.min(parent.width * 0.6, 400)
                                 height: 40
                                 anchors.centerIn: parent

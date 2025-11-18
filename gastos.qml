@@ -118,79 +118,18 @@ Rectangle {
     
     // Título de la página
     Rectangle {
+
         id: titleBar
         width: parent.width
-        height: 80
+        height: 60
         color: "transparent"
-        anchors.top: parent.top
-        
-        Row {
-            anchors.left: parent.left
-            anchors.leftMargin: 30
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 20
-            
-            // Ícono principal
-            Image {
-                source: "recursos/image/icons/gastos.png"
-                width: 45
-                height: 45
-                fillMode: Image.PreserveAspectFit
-                anchors.verticalCenter: parent.verticalCenter
-            }
-            
-            Column {
-                anchors.verticalCenter: parent.verticalCenter
-                
-                Text {
-                    text: "GESTIÓN DE GASTOS Y COSTOS"
-                    font.pixelSize: 24
-                    font.bold: true
-                    color: "#2E7D32"
-                }
-                
-                Text {
-                    text: "Control detallado de gastos operativos y costos de producción"
-                    font.pixelSize: 12
-                    color: "#666666"
-                }
-            }
-        }
-        
-        // Selector de moneda
-        Rectangle {
-            width: 120
-            height: 35
-            radius: 8
-            color: "#E8F5E9"
-            border.color: "#4CAF50"
-            border.width: 1
-            anchors.right: parent.right
-            anchors.rightMargin: 30
-            anchors.verticalCenter: parent.verticalCenter
-            
-            ComboBox {
-                anchors.fill: parent
-                model: monedas
-                currentIndex: 0
-                
-                contentItem: Text {
-                    text: parent.displayText
-                    font.pixelSize: 13
-                    font.bold: true
-                    color: "#2E7D32"
-                    verticalAlignment: Text.AlignVCenter
-                    leftPadding: 10
-                }
-                
-                background: Rectangle {
-                    color: "transparent"
-                }
-                
-                onActivated: {
-                    monedaSeleccionada = monedas[index]
-                }
-            }
+
+        Text {
+            text: "GESTIÓN DE GASTOS Y COSTOS"
+            font.pixelSize: 28
+            font.bold: true
+            color: "#2E7D32"
+            anchors.centerIn: parent
         }
     }
     
@@ -198,9 +137,9 @@ Rectangle {
     Item {
         id: modernTabBar
         width: parent.width - 40
-        height: 90
+        height: 70
         anchors.top: titleBar.bottom
-        anchors.topMargin: 10
+        anchors.topMargin: 5
         anchors.horizontalCenter: parent.horizontalCenter
         
         TabBarComponent {
@@ -228,7 +167,7 @@ Rectangle {
         width: parent.width - 40
         height: parent.height - modernTabBar.y - modernTabBar.height - 20
         anchors.top: modernTabBar.bottom
-        anchors.topMargin: 20
+        anchors.topMargin: 10
         anchors.horizontalCenter: parent.horizontalCenter
         
         // Contenido de Costos de Producción
@@ -391,7 +330,7 @@ Rectangle {
                 Paginator {
                     id: paginadorCostos
                     width: parent.width
-                    height: 50
+                    height: 40
                     currentPage: paginaActualCostos
                     totalPages: totalPaginasCostos
                     
@@ -581,7 +520,7 @@ Rectangle {
                 Paginator {
                     id: paginadorPagos
                     width: parent.width
-                    height: 50
+                    height: 40
                     currentPage: paginaActualPagos
                     totalPages: totalPaginasPagos
                     
@@ -967,7 +906,7 @@ Rectangle {
                 Paginator {
                     id: paginadorCombustible
                     width: parent.width
-                    height: 50
+                    height: 40
                     currentPage: paginaActualCombustible
                     totalPages: totalPaginasCombustible
                     
@@ -1154,7 +1093,7 @@ Rectangle {
                 Paginator {
                     id: paginadorInventario
                     width: parent.width
-                    height: 50
+                    height: 40
                     currentPage: paginaActualInventario
                     totalPages: totalPaginasInventario
                     
