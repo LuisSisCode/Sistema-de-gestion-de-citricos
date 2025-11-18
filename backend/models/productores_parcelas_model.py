@@ -1,6 +1,6 @@
 from PySide6.QtCore import QObject, Slot, Signal, Property
-#from bd_conecciones.bd_productores_parcelas import GestorAgricultoresParcelas
-from backend import GestionServicio
+from backend.services.ProductorParcelaServ.productor_servicio import ProductorServicio
+from backend.services.ProductorParcelaServ.parcela_servicio import ParcelaServicio
 import json
 
 class ProductoresParcelasModels(QObject):
@@ -11,7 +11,8 @@ class ProductoresParcelasModels(QObject):
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.gestion = GestionServicio()
+        self.productor_servicio = ProductorServicio()
+        self.parcela_servicio = ParcelaServicio()
 
         #Datos
         self._productores = []
@@ -52,17 +53,23 @@ class ProductoresParcelasModels(QObject):
     def cargar_productores_pagina(self, pagina):
         """Carga productores con paginación usando servicios."""
         try:
-            resultado = self.gestion.obtener_datos_paginados('productores', pagina, 10)
+            resultado = self.productor_servicio.obtener_productores_paginado(pagina, 10)
             
-            self._productores = resultado.get('productores', [])
-            self._pagina_actual_productores = resultado.get('pagina_actual', 1)
-            self._total_paginas_productores = resultado.get('total_paginas', 1)
-            
-            self.productoresChanged.emit()
-            print(f"Página {pagina} de productores cargada exitosamente")
+            if resultado['exito']:
+                datos = resultado['datos']
+                self._productores = datos.get('productores', [])
+                self._pagina_actual_productores = datos.get('pagina_actual', 1)
+                self._total_paginas_productores = datos.get('total_paginas', 1)
+                
+                self.productoresChanged.emit()
+                print(f"Página {pagina} de productores cargada exitosamente")
+            else:
+                print(f"Error al cargar productores página {pagina}: {resultado['mensaje']}")
+                self._productores = []
+                self.productoresChanged.emit()
             
         except Exception as e:
-            print(f"Error al cargar productorespágina {pagina}: {str(e)}")
+            print(f"Error al cargar productores página {pagina}: {str(e)}")
             self._productores = []
             self.productoresChanged.emit()
 
@@ -70,15 +77,22 @@ class ProductoresParcelasModels(QObject):
     def cargar_parcelas_pagina(self, pagina, propietario_id=0):
         """Carga parcelas con paginación usando servicios."""
         try:
-            filtros = {'propietario_id': propietario_id} if propietario_id > 0 else None
-            resultado = self.gestion.obtener_datos_paginados('parcelas', pagina, 6, filtros)
+            resultado = self.parcela_servicio.obtener_parcelas_paginado(
+                pagina, 6, propietario_id if propietario_id > 0 else None
+            )
             
-            self._parcelas = resultado.get('parcelas', [])
-            self._pagina_actual_parcelas = resultado.get('pagina_actual', 1)
-            self._total_paginas_parcelas = resultado.get('total_paginas', 1)
-            
-            self.parcelasChanged.emit()
-            print(f"Página {pagina} de parcelas cargada exitosamente")
+            if resultado['exito']:
+                datos = resultado['datos']
+                self._parcelas = datos.get('parcelas', [])
+                self._pagina_actual_parcelas = datos.get('pagina_actual', 1)
+                self._total_paginas_parcelas = datos.get('total_paginas', 1)
+                
+                self.parcelasChanged.emit()
+                print(f"Página {pagina} de parcelas cargada exitosamente")
+            else:
+                print(f"Error al cargar parcelas página {pagina}: {resultado['mensaje']}")
+                self._parcelas = []
+                self.parcelasChanged.emit()
             
         except Exception as e:
             print(f"Error al cargar parcelas página {pagina}: {str(e)}")
@@ -90,7 +104,7 @@ class ProductoresParcelasModels(QObject):
         """Agrega un nuevo productor usando servicios."""
         try:
             datos_productor = json.loads(productor_json)
-            resultado = self.gestion.procesar_operacion_productor('crear', {'productor': datos_productor})
+            resultado = self.productor_servicio.crear_productor(datos_productor)
             
             if resultado['exito']:
                 # Recargar página actual
@@ -112,10 +126,7 @@ class ProductoresParcelasModels(QObject):
         """Actualiza un productor usando servicios."""
         try:
             datos_productor = json.loads(productor_json)
-            resultado = self.gestion.procesar_operacion_productor('actualizar', {
-                'id_productor': id_productor,
-                'productor': datos_productor
-            })
+            resultado = self.productor_servicio.actualizar_productor(id_productor, datos_productor)
             
             if resultado['exito']:
                 self.cargar_productores_pagina(self._pagina_actual_productores)
@@ -135,7 +146,7 @@ class ProductoresParcelasModels(QObject):
     def eliminar_productor(self, id_productor):
         """Elimina un productor usando servicios - retorna resultado detallado."""
         try:
-            resultado = self.gestion.procesar_operacion_productor('eliminar', {'id_productor': id_productor})
+            resultado = self.productor_servicio.eliminar_productor(id_productor)
             
             if resultado['exito']:
                 self.cargar_productores_pagina(self._pagina_actual_productores)
@@ -160,10 +171,11 @@ class ProductoresParcelasModels(QObject):
     def desactivar_productor(self, id_productor):
         """Desactiva un productor en lugar de eliminarlo físicamente"""
         try:
-            success = self._gestor.desactivar_productor(id_productor)
-            if success:
-                self.cargar_productores()
-            return success
+            # Nota: El servicio actual usa desactivar como eliminación lógica
+            resultado = self.productor_servicio.eliminar_productor(id_productor)
+            if resultado['exito']:
+                self.cargar_productores_pagina(self._pagina_actual_productores)
+            return resultado['exito']
         except Exception as e:
             print(f"Error al desactivar productor: {str(e)}")
             return False
@@ -173,7 +185,7 @@ class ProductoresParcelasModels(QObject):
         """Agrega una nueva parcela usando servicios."""
         try:
             datos_parcela = json.loads(parcela_json)
-            resultado = self.gestion.procesar_operacion_parcela('crear', {'parcela': datos_parcela})
+            resultado = self.parcela_servicio.crear_parcela(datos_parcela)
             
             if resultado['exito']:
                 self.cargar_parcelas_pagina(self._pagina_actual_parcelas)
@@ -188,17 +200,12 @@ class ProductoresParcelasModels(QObject):
             self.operacionCompleta.emit('crear_parcela', False, 'Error interno del sistema')
             return False
     
-    
-    
     @Slot(int, str, result=bool)
     def actualizar_parcela(self, id_parcela, parcela_json):
         """Actualiza una parcela usando servicios."""
         try:
             datos_parcela = json.loads(parcela_json)
-            resultado = self.gestion.procesar_operacion_parcela('actualizar', {
-                'id_parcela': id_parcela,
-                'parcela': datos_parcela
-            })
+            resultado = self.parcela_servicio.actualizar_parcela(id_parcela, datos_parcela)
             
             if resultado['exito']:
                 self.cargar_parcelas_pagina(self._pagina_actual_parcelas)
@@ -212,11 +219,12 @@ class ProductoresParcelasModels(QObject):
             print(f"Error al actualizar parcela: {str(e)}")
             self.operacionCompleta.emit('actualizar_parcela', False, 'Error interno del sistema')
             return False
+    
     @Slot(int, result=bool)
     def eliminar_parcela(self, id_parcela):
         """Elimina una parcela usando servicios."""
         try:
-            resultado = self.gestion.procesar_operacion_parcela('eliminar', {'id_parcela': id_parcela})
+            resultado = self.parcela_servicio.eliminar_parcela(id_parcela)
             
             if resultado['exito']:
                 self.cargar_parcelas_pagina(self._pagina_actual_parcelas)
@@ -232,13 +240,13 @@ class ProductoresParcelasModels(QObject):
             return False
     
     # ----------METODOS DE BUSQUEDA --------------------
-    # Métodos adicionales para filtrado que pueden ser útiles desde QML
     
     @Slot(str, result=list)
     def filtrar_productores_por_nombre(self, texto):
         """Busca productores usando servicios."""
         try:
-            return self.gestion.buscar_datos('productores', texto)
+            resultado = self.productor_servicio.buscar_productores(texto)
+            return resultado.get('datos', []) if resultado['exito'] else []
         except Exception as e:
             print(f"Error en búsqueda de productores: {str(e)}")
             return []
@@ -247,7 +255,8 @@ class ProductoresParcelasModels(QObject):
     def filtrar_parcelas_por_nombre(self, texto):
         """Busca parcelas usando servicios."""
         try:
-            return self.gestion.buscar_datos('parcelas', texto)
+            resultado = self.parcela_servicio.buscar_parcelas(texto)
+            return resultado.get('datos', []) if resultado['exito'] else []
         except Exception as e:
             print(f"Error en búsqueda de parcelas: {str(e)}")
             return []
@@ -256,10 +265,12 @@ class ProductoresParcelasModels(QObject):
     def obtener_parcelas_por_propietario(self, propietario_id):
         """Obtiene parcelas de un propietario específico."""
         try:
-            return self.gestion.parcela_servicio.obtener_parcelas_por_propietario(propietario_id)
+            resultado = self.parcela_servicio.obtener_parcelas_por_propietario(propietario_id)
+            return resultado.get('datos', []) if resultado['exito'] else []
         except Exception as e:
             print(f"Error al obtener parcelas por propietario: {str(e)}")
             return []
+    
     # -------------- METODOS DE CARGA INICIAL --------------
     @Slot()
     def cargar_productores(self):
@@ -280,7 +291,7 @@ class ProductoresParcelasModels(QObject):
 
     @Slot()
     def pagina_siguiente_productores(self):
-        if self._pagina_actual_productores< self._total_paginas_productores:
+        if self._pagina_actual_productores < self._total_paginas_productores:
             self.cargar_productores_pagina(self._pagina_actual_productores + 1)
         
     @Slot()
@@ -298,7 +309,18 @@ class ProductoresParcelasModels(QObject):
     def obtener_dashboard_completo(self):
         """Obtiene información completa para dashboard."""
         try:
-            return self.gestion.obtener_dashboard_completo()
+            # Combinar estadísticas de productores y parcelas
+            stats_productores = self.productor_servicio.obtener_estadisticas_productores()
+            stats_parcelas = self.parcela_servicio.obtener_estadisticas_parcelas()
+            
+            dashboard = {
+                'productores': stats_productores.get('datos', {}) if stats_productores['exito'] else {},
+                'parcelas': stats_parcelas.get('datos', {}) if stats_parcelas['exito'] else {},
+                'timestamp': self._get_timestamp()
+            }
+            
+            return dashboard
+            
         except Exception as e:
             print(f"Error al obtener dashboard: {str(e)}")
             return {}
@@ -307,7 +329,28 @@ class ProductoresParcelasModels(QObject):
     def analizar_propietario(self, id_propietario):
         """Analiza estado completo de un propietario."""
         try:
-            return self.gestion.analizar_estado_propietario(id_propietario)
+            # Obtener información del productor
+            resultado_productor = self.productor_servicio.obtener_productor_por_id(id_propietario)
+            
+            if not resultado_productor['exito']:
+                return {}
+            
+            # Obtener parcelas del propietario
+            resultado_parcelas = self.parcela_servicio.obtener_parcelas_por_propietario(id_propietario)
+            
+            analisis = {
+                'productor': resultado_productor.get('datos', {}),
+                'parcelas': resultado_parcelas.get('datos', []),
+                'estadisticas': {
+                    'total_parcelas': len(resultado_parcelas.get('datos', [])),
+                    'area_total': sum(p.get('area', 0) for p in resultado_parcelas.get('datos', [])),
+                    'parcelas_con_coordenadas': sum(1 for p in resultado_parcelas.get('datos', []) 
+                                                  if p.get('tiene_coordenadas', False))
+                }
+            }
+            
+            return analisis
+            
         except Exception as e:
             print(f"Error al analizar propietario: {str(e)}")
             return {}
@@ -316,13 +359,25 @@ class ProductoresParcelasModels(QObject):
     def generar_reporte_completo(self):
         """Genera reporte completo del sistema."""
         try:
-            return self.gestion.generar_reporte_completo()
+            # Obtener reportes de productores y parcelas
+            reporte_productores = self.productor_servicio.obtener_reporte_productores_parcelas()
+            reporte_parcelas = self.parcela_servicio.obtener_resumen_parcelas()
+            
+            reporte_completo = {
+                'productores': reporte_productores.get('datos', []) if reporte_productores['exito'] else [],
+                'parcelas': reporte_parcelas.get('datos', {}) if reporte_parcelas['exito'] else {},
+                'top_productores': self.productor_servicio.obtener_top_productores_por_area(10).get('datos', []),
+                'parcelas_sin_coordenadas': self.parcela_servicio.obtener_parcelas_sin_coordenadas().get('datos', []),
+                'timestamp': self._get_timestamp()
+            }
+            
+            return reporte_completo
+            
         except Exception as e:
             print(f"Error al generar reporte: {str(e)}")
             return {}
     
-    # Para que 
-    @Slot(str, result=bool)  # ✅ CORRECTO
+    @Slot(str, result=bool)
     def agregar_problema(self, problema_json):
         """Agrega un nuevo problema reportado"""
         try:
@@ -333,7 +388,8 @@ class ProductoresParcelasModels(QObject):
         except Exception as e:
             print(f"Error al agregar problema: {e}")
             return False
-    @Slot(str, result=bool)  # ✅ CORRECTO  
+    
+    @Slot(str, result=bool)  
     def agregar_cosecha_programada(self, cosecha_json):
         """Agrega una nueva cosecha programada"""
         try:
@@ -345,7 +401,7 @@ class ProductoresParcelasModels(QObject):
             print(f"Error al programar cosecha: {e}")
             return False
 
-    @Slot(result=str)
-    def obtener_wms_url(self):
-        """Devuelve la URL WMS de GeoServer"""
-        return "http://localhost:8080/geoserver/wms"
+    def _get_timestamp(self):
+        """Obtiene timestamp actual en formato ISO."""
+        from datetime import datetime
+        return datetime.now().isoformat()

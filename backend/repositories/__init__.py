@@ -12,7 +12,6 @@ from .UsuariosRep.auto_repositorio import AutoRepositorio
 # Repositorios de Agricultores y Parcelas
 from .Productor_Parcelas_rep.productor_repositorio import ProductorRepositorio
 from .Productor_Parcelas_rep.parcela_repositorio import ParcelaRepositorio
-from .Productor_Parcelas_rep.relacion_AgriPar_repositorio import RelacionRepositorio
 
 # Repositorios de Cultivos
 from .CultivosRepositorio.tipo_cultivo_repositorio import TipoCultivoRepositorio
@@ -38,7 +37,6 @@ __all__ = [
     # Agricultores y Parcelas
     'ProductorRepositorio',
     'ParcelaRepositorio', 
-    'RelacionRepositorio',
     
     # Cultivos
     'TipoCultivoRepositorio',

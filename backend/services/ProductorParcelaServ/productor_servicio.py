@@ -2,7 +2,7 @@
 
 import logging
 from ...repositories.Productor_Parcelas_rep.productor_repositorio import ProductorRepositorio
-from ...repositories.Productor_Parcelas_rep.relacion_AgriPar_repositorio import RelacionRepositorio
+from ...repositories.Productor_Parcelas_rep.parcela_repositorio import ParcelaRepositorio
 from ...core.excepciones_bd import (
     ErrorValidacion, 
     RegistroNoEncontrado, 
@@ -18,13 +18,12 @@ class ProductorServicio:
     
     def __init__(self):
         self.productor_repo = ProductorRepositorio()
-        self.relacion_repo = RelacionRepositorio()
+        self.parcela_repo = ParcelaRepositorio()
     
-    @cacheable('servicio_productores', key_func=lambda pagina, por_pagina=8: f"paginado_{pagina}_{por_pagina}", ttl=900)  # 15 min
+    @cacheable('servicio_productores', key_func=lambda pagina, por_pagina=8: f"paginado_{pagina}_{por_pagina}", ttl=900)
     def obtener_productores_paginado(self, pagina, por_pagina=8):
         """
         Obtiene productores con paginación y lógica de negocio aplicada.
-        ⭐ MUY OPTIMIZADO: Elimina el problema de N+1 queries cacheando el resultado completo enriquecido
         
         Args:
             pagina (int): Número de página.
@@ -36,37 +35,50 @@ class ProductorServicio:
         try:
             resultado = self.productor_repo.obtener_paginado(pagina, por_pagina)
             
-            # Enriquecer datos con información adicional (OPTIMIZADO: resultado completo cacheado)
+            # Enriquecer datos con información adicional
             productores_enriquecidos = []
             for productor in resultado['productores']:
                 productor_enriquecido = productor.copy()
                 
-                # Obtener datos adicionales (estos métodos ya están cacheados en repositorios)
-                productor_enriquecido['cantidad_parcelas'] = self.relacion_repo.contar_parcelas_por_productor(productor['id_productor'])
-                productor_enriquecido['puede_eliminar'] = self._puede_eliminar_productorcached(productor['id_productor'])
+                # Obtener datos adicionales
+                productor_enriquecido['cantidad_parcelas'] = self.productor_repo.contar_parcelas_por_productor(productor['id_productor'])
+                productor_enriquecido['puede_eliminar'] = self._puede_eliminar_productor_cached(productor['id_productor'])
                 
                 # Agregar metadatos de negocio
                 productor_enriquecido['tiene_parcelas'] = productor_enriquecido['cantidad_parcelas'] > 0
+                productor_enriquecido['categoria'] = self._categorizar_productor(productor_enriquecido)
                 
                 productores_enriquecidos.append(productor_enriquecido)
             
-            # Actualizar resultado con datos enriquecidos
             resultado['productores'] = productores_enriquecidos
+            resultado['metadatos'] = {
+                'timestamp': self._get_timestamp(),
+                'total_con_parcelas': sum(1 for p in productores_enriquecidos if p['tiene_parcelas'])
+            }
             
             logger.info(f"Servicio: página {pagina} procesada con {len(resultado['productores'])} productores")
-            return resultado
+            return {
+                'exito': True,
+                'mensaje': f'Página {pagina} de productores obtenida',
+                'datos': resultado,
+                'metadatos': resultado['metadatos']
+            }
             
         except Exception as e:
             logger.error(f"Error en servicio obtener_productores_paginado: {str(e)}")
-            raise
+            return {
+                'exito': False,
+                'mensaje': 'Error al obtener productores',
+                'datos': None
+            }
 
-    @cache_invalidator('servicio_productores', pattern='paginado_')  # Invalidar paginación
-    @cache_invalidator('servicio_productores', pattern='busqueda_') # Invalidar búsquedas
-    @cache_invalidator('validaciones')                               # Invalidar validaciones
+    @cache_invalidator('servicio_productores', pattern='paginado_')
+    @cache_invalidator('servicio_productores', pattern='busqueda_')
+    @cache_invalidator('estadisticas_productores')
+    @cache_invalidator('reportes_productores')
     def crear_productor(self, datos_productor):
         """
         Crea un nuevo productor con validaciones de negocio.
-        OPTIMIZADO: Invalidación granular del caché afectado.
         
         Args:
             datos_productor (dict): Datos del productor.
@@ -75,7 +87,7 @@ class ProductorServicio:
             dict: Resultado con éxito e información adicional.
         """
         try:
-            # Validaciones de negocio adicionales
+            # Validaciones de negocio
             self._validar_reglas_negocio_creacion(datos_productor)
             
             # Normalizar datos
@@ -87,31 +99,49 @@ class ProductorServicio:
             if exito:
                 resultado = {
                     'exito': True,
-                    'id_productor': id_productor,
-                    'mensaje': f"Agricultor creado exitosamente con ID {id_productor}",
-                    'requiere_actualizacion_listas': True
+                    'mensaje': f"Productor creado exitosamente con ID {id_productor}",
+                    'datos': {
+                        'id_productor': id_productor,
+                        'productor': datos_normalizados
+                    },
+                    'metadatos': {
+                        'timestamp': self._get_timestamp(),
+                        'requiere_actualizacion_listas': True
+                    }
                 }
                 
                 logger.info(f"Servicio: productor creado con ID {id_productor}")
                 return resultado
             else:
-                return {'exito': False, 'mensaje': 'Error al crear productor'}
+                return {
+                    'exito': False,
+                    'mensaje': 'Error al crear productor',
+                    'datos': None
+                }
                 
         except (ErrorValidacion, RegistroYaExiste) as e:
             logger.error(f"Error de validación en crear_productor: {str(e)}")
-            return {'exito': False, 'mensaje': str(e)}
+            return {
+                'exito': False,
+                'mensaje': str(e),
+                'datos': None
+            }
         except Exception as e:
             logger.error(f"Error en servicio crear_productor: {str(e)}")
-            return {'exito': False, 'mensaje': 'Error interno del sistema'}
+            return {
+                'exito': False,
+                'mensaje': 'Error interno del sistema',
+                'datos': None
+            }
 
-    @cache_invalidator('servicio_productores', pattern='paginado_')  # Invalidar paginación
-    @cache_invalidator('servicio_productores', pattern='busqueda_') # Invalidar búsquedas
-    @cache_invalidator('validaciones')                               # Invalidar validaciones
-    @cache_invalidator('estados_productor')                         # Invalidar estados
+    @cache_invalidator('servicio_productores', pattern='paginado_')
+    @cache_invalidator('servicio_productores', pattern='busqueda_')
+    @cache_invalidator('servicio_productores', pattern='id_')
+    @cache_invalidator('estadisticas_productores')
+    @cache_invalidator('reportes_productores')
     def actualizar_productor(self, id_productor, datos_productor):
         """
         Actualiza un productor con validaciones de negocio.
-        OPTIMIZADO: Invalidación específica del productor actualizado.
         
         Args:
             id_productor (int): ID del productor.
@@ -134,37 +164,51 @@ class ProductorServicio:
             exito = self.productor_repo.actualizar(id_productor, datos_normalizados)
             
             if exito:
-                # Verificar si cambió el estado de propietario
-                cambio_propietario = self._verificar_cambio_propietario(productor_actual, datos_normalizados)
-                
                 resultado = {
                     'exito': True,
-                    'mensaje': 'Agricultor actualizado exitosamente',
-                    'cambio_propietario': cambio_propietario,
-                    'requiere_actualizacion_propietarios': cambio_propietario,
-                    'requiere_actualizacion_listas': True
+                    'mensaje': 'Productor actualizado exitosamente',
+                    'datos': {
+                        'id_productor': id_productor,
+                        'cambios': datos_normalizados
+                    },
+                    'metadatos': {
+                        'timestamp': self._get_timestamp(),
+                        'requiere_actualizacion_listas': True
+                    }
                 }
                 
                 logger.info(f"Servicio: productor {id_productor} actualizado")
                 return resultado
             else:
-                return {'exito': False, 'mensaje': 'Error al actualizar productor'}
+                return {
+                    'exito': False,
+                    'mensaje': 'Error al actualizar productor',
+                    'datos': None
+                }
                 
         except (ErrorValidacion, RegistroNoEncontrado, RegistroYaExiste) as e:
             logger.error(f"Error en actualizar_productor: {str(e)}")
-            return {'exito': False, 'mensaje': str(e)}
+            return {
+                'exito': False,
+                'mensaje': str(e),
+                'datos': None
+            }
         except Exception as e:
             logger.error(f"Error en servicio actualizar_productor: {str(e)}")
-            return {'exito': False, 'mensaje': 'Error interno del sistema'}
+            return {
+                'exito': False,
+                'mensaje': 'Error interno del sistema',
+                'datos': None
+            }
 
-    @cache_invalidator('servicio_productores', pattern='paginado_')  # Invalidar paginación
-    @cache_invalidator('servicio_productores', pattern='busqueda_') # Invalidar búsquedas
-    @cache_invalidator('validaciones')                               # Invalidar validaciones
-    @cache_invalidator('estados_productor')                         # Invalidar estados
+    @cache_invalidator('servicio_productores', pattern='paginado_')
+    @cache_invalidator('servicio_productores', pattern='busqueda_')
+    @cache_invalidator('servicio_productores', pattern='id_')
+    @cache_invalidator('estadisticas_productores')
+    @cache_invalidator('reportes_productores')
     def eliminar_productor(self, id_productor):
         """
         Elimina un productor verificando dependencias y reglas de negocio.
-        OPTIMIZADO: Invalidación completa ya que afecta listas y estadísticas.
         
         Args:
             id_productor (int): ID del productor.
@@ -176,17 +220,19 @@ class ProductorServicio:
             # Obtener información del productor
             productor = self.productor_repo.obtener_por_id(id_productor)
             
-            # Verificar dependencias usando RelacionRepositorio (ya cacheado)
-            dependencias = self.relacion_repo.verificar_dependencias_productor(id_productor)
+            # Verificar dependencias
+            dependencias = self.productor_repo.verificar_dependencias_productor(id_productor)
             
             # Si tiene dependencias, no se puede eliminar
             if not dependencias['puede_eliminar']:
                 return {
                     'exito': False,
                     'mensaje': f"No se puede eliminar a {productor['nombre']} {productor['apellido']}",
-                    'razon': 'Tiene parcelas asociadas',
-                    'dependencias': dependencias,
-                    'tipo_error': 'dependencias'
+                    'datos': {
+                        'razon': 'Tiene parcelas asociadas',
+                        'dependencias': dependencias,
+                        'tipo_error': 'dependencias'
+                    }
                 }
             
             # Proceder con eliminación
@@ -195,205 +241,386 @@ class ProductorServicio:
             if exito:
                 resultado = {
                     'exito': True,
-                    'mensaje': f"Agricultor {productor['nombre']} {productor['apellido']} eliminado exitosamente",
-                    'era_propietario': productor['esPropietario'],
-                    'requiere_actualizacion_propietarios': productor['esPropietario'],
-                    'requiere_actualizacion_listas': True
+                    'mensaje': f"Productor {productor['nombre']} {productor['apellido']} eliminado exitosamente",
+                    'datos': {
+                        'productor_eliminado': productor,
+                        'dependencias_verificadas': dependencias
+                    },
+                    'metadatos': {
+                        'timestamp': self._get_timestamp(),
+                        'requiere_actualizacion_listas': True
+                    }
                 }
                 
                 logger.info(f"Servicio: productor {id_productor} eliminado")
                 return resultado
             else:
-                return {'exito': False, 'mensaje': 'Error al eliminar productor'}
+                return {
+                    'exito': False,
+                    'mensaje': 'Error al eliminar productor',
+                    'datos': None
+                }
                 
         except RegistroTieneDependencias as e:
             logger.error(f"No se puede eliminar productor: {str(e)}")
             return {
                 'exito': False,
                 'mensaje': str(e),
-                'razon': 'Tiene dependencias',
-                'dependencias': {'parcelas': e.cantidad_dependencias},
-                'tipo_error': 'dependencias'
+                'datos': {
+                    'razon': 'Tiene dependencias',
+                    'dependencias': {'parcelas': e.cantidad_dependencias},
+                    'tipo_error': 'dependencias'
+                }
             }
         except RegistroNoEncontrado as e:
-            logger.error(f"Agricultor no encontrado: {str(e)}")
-            return {'exito': False, 'mensaje': str(e), 'tipo_error': 'no_encontrado'}
+            logger.error(f"Productor no encontrado: {str(e)}")
+            return {
+                'exito': False,
+                'mensaje': str(e),
+                'datos': {'tipo_error': 'no_encontrado'}
+            }
         except Exception as e:
             logger.error(f"Error en servicio eliminar_productor: {str(e)}")
-            return {'exito': False, 'mensaje': 'Error interno del sistema', 'tipo_error': 'interno'}
+            return {
+                'exito': False,
+                'mensaje': 'Error interno del sistema',
+                'datos': {'tipo_error': 'interno'}
+            }
 
-    @cacheable('servicio_productores', key_func=lambda texto: f"busqueda_{texto.lower().replace(' ', '_')}", ttl=600)  # 10 min
+    @cacheable('servicio_productores', key_func=lambda texto: f"busqueda_{texto.lower().replace(' ', '_')}", ttl=600)
     def buscar_productores(self, texto_busqueda):
         """
         Busca productores con lógica de negocio aplicada.
-        ⭐ OPTIMIZADO: Resultado enriquecido completo cacheado para evitar N+1 queries
         
         Args:
             texto_busqueda (str): Texto a buscar.
             
         Returns:
-            list: Lista de productores encontrados con información adicional.
+            dict: Lista de productores encontrados con información adicional.
         """
         try:
             if not texto_busqueda or len(texto_busqueda.strip()) < 2:
-                return []
+                return {
+                    'exito': True,
+                    'mensaje': 'Texto de búsqueda muy corto',
+                    'datos': [],
+                    'metadatos': {'total_resultados': 0}
+                }
             
             productores = self.productor_repo.buscar_por_nombre(texto_busqueda.strip())
             
-            # Enriquecer resultados (OPTIMIZADO: resultado completo cacheado)
+            # Enriquecer resultados
             productores_enriquecidos = []
             for productor in productores:
                 productor_enriquecido = productor.copy()
                 
-                # Agregar información adicional (métodos ya cacheados en repositorios)
-                productor_enriquecido['cantidad_parcelas'] = self.relacion_repo.contar_parcelas_por_productor(productor['id_productor'])
+                # Agregar información adicional
+                productor_enriquecido['cantidad_parcelas'] = self.productor_repo.contar_parcelas_por_productor(productor['id_productor'])
                 productor_enriquecido['puede_eliminar'] = self._puede_eliminar_productor_cached(productor['id_productor'])
-                
-                # Metadatos de negocio
                 productor_enriquecido['tiene_parcelas'] = productor_enriquecido['cantidad_parcelas'] > 0
+                productor_enriquecido['categoria'] = self._categorizar_productor(productor_enriquecido)
                 
                 productores_enriquecidos.append(productor_enriquecido)
             
             logger.info(f"Servicio: búsqueda '{texto_busqueda}' retornó {len(productores_enriquecidos)} resultados")
-            return productores_enriquecidos
+            
+            return {
+                'exito': True,
+                'mensaje': f'Búsqueda completada con {len(productores_enriquecidos)} resultados',
+                'datos': productores_enriquecidos,
+                'metadatos': {
+                    'total_resultados': len(productores_enriquecidos),
+                    'termino_busqueda': texto_busqueda,
+                    'timestamp': self._get_timestamp()
+                }
+            }
             
         except Exception as e:
             logger.error(f"Error en servicio buscar_productores: {str(e)}")
-            return []
+            return {
+                'exito': False,
+                'mensaje': 'Error en la búsqueda',
+                'datos': [],
+                'metadatos': {'total_resultados': 0}
+            }
 
-    @cacheable('estados_productor', key_func=lambda id_agr: f"estado_completo_{id_agr}", ttl=1200)  # 20 min
-    def verificar_estado_productor(self, id_productor):
+    @cacheable('servicio_productores', key_func=lambda id_prod: f"id_{id_prod}", ttl=1200)
+    def obtener_productor_por_id(self, id_productor):
         """
-        Verifica el estado completo de un productor.
-        ⭐ OPTIMIZADO: Estado completo cacheado para evitar múltiples consultas
+        Obtiene un productor específico con información enriquecida.
         
         Args:
             id_productor (int): ID del productor.
             
         Returns:
-            dict: Estado completo del productor.
+            dict: Información completa del productor.
         """
         try:
-            # Estos métodos ya están cacheados en repositorios
             productor = self.productor_repo.obtener_por_id(id_productor)
-            cantidad_parcelas = self.relacion_repo.contar_parcelas_por_productor(id_productor)
             
-            estado = {
-                'productor': productor,
-                'cantidad_parcelas': cantidad_parcelas,
-                'puede_eliminar': cantidad_parcelas == 0,
-                'tiene_parcelas': cantidad_parcelas > 0,
-                'timestamp_verificacion': self._get_timestamp(),
-                
-                # Información adicional de negocio
-                'categoria': self._categorizar_productor(productor, cantidad_parcelas),
-                'requiere_atencion': self._requiere_atencion_productor(productor, cantidad_parcelas)
+            # Enriquecer con información adicional
+            productor['cantidad_parcelas'] = self.productor_repo.contar_parcelas_por_productor(id_productor)
+            productor['puede_eliminar'] = self._puede_eliminar_productor_cached(id_productor)
+            productor['tiene_parcelas'] = productor['cantidad_parcelas'] > 0
+            productor['categoria'] = self._categorizar_productor(productor)
+            productor['estado'] = self._evaluar_estado_productor(productor)
+            
+            return {
+                'exito': True,
+                'mensaje': 'Productor obtenido exitosamente',
+                'datos': productor,
+                'metadatos': {
+                    'timestamp': self._get_timestamp(),
+                    'tiene_parcelas': productor['tiene_parcelas']
+                }
             }
             
-            return estado
-            
         except RegistroNoEncontrado as e:
-            logger.error(f"Agricultor no encontrado: {str(e)}")
-            return None
+            logger.error(f"Productor no encontrado: {str(e)}")
+            return {
+                'exito': False,
+                'mensaje': str(e),
+                'datos': None
+            }
         except Exception as e:
-            logger.error(f"Error en servicio verificar_estado_productor: {str(e)}")
-            return None
+            logger.error(f"Error en servicio obtener_productor_por_id: {str(e)}")
+            return {
+                'exito': False,
+                'mensaje': 'Error al obtener productor',
+                'datos': None
+            }
+
+    @cacheable('servicio_productores', key_func=lambda texto: f"con_parcelas_{texto.lower().replace(' ', '_')}", ttl=900)
+    def obtener_productores_con_parcelas(self, texto_busqueda=None):
+        """
+        Obtiene productores que tienen parcelas, con información de sus propiedades.
+        
+        Args:
+            texto_busqueda (str, optional): Texto para filtrar productores.
+            
+        Returns:
+            dict: Lista de productores con información de parcelas.
+        """
+        try:
+            if texto_busqueda:
+                productores = self.productor_repo.buscar_productores_con_parcelas(texto_busqueda)
+            else:
+                # Obtener todos los productores con parcelas
+                distribucion = self.obtener_distribucion_parcelas_por_productor()['datos']
+                productores = [item for item in distribucion if item['cantidad_parcelas'] > 0]
+            
+            return {
+                'exito': True,
+                'mensaje': f'{len(productores)} productores con parcelas encontrados',
+                'datos': productores,
+                'metadatos': {
+                    'total_productores': len(productores),
+                    'filtro_busqueda': texto_busqueda,
+                    'timestamp': self._get_timestamp()
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error en servicio obtener_productores_con_parcelas: {str(e)}")
+            return {
+                'exito': False,
+                'mensaje': 'Error al obtener productores con parcelas',
+                'datos': [],
+                'metadatos': {'total_productores': 0}
+            }
+
+    # ==================== ESTADÍSTICAS Y REPORTES ====================
+
+    @cacheable('estadisticas_productores', key_func=lambda: 'completas', ttl=1800)
+    def obtener_estadisticas_productores(self):
+        """
+        Obtiene estadísticas completas de productores.
+        
+        Returns:
+            dict: Estadísticas detalladas de productores.
+        """
+        try:
+            # Obtener estadísticas básicas
+            total_productores = self.productor_repo._contar_registros_cached()
+            distribucion = self.obtener_distribucion_parcelas_por_productor()['datos']
+            
+            # Calcular métricas
+            productores_con_parcelas = len([p for p in distribucion if p['cantidad_parcelas'] > 0])
+            productores_sin_parcelas = total_productores - productores_con_parcelas
+            
+            area_total = sum(p['area_total'] for p in distribucion)
+            area_promedio = area_total / productores_con_parcelas if productores_con_parcelas > 0 else 0
+            
+            estadisticas = {
+                'totales': {
+                    'productores': total_productores,
+                    'productores_con_parcelas': productores_con_parcelas,
+                    'productores_sin_parcelas': productores_sin_parcelas
+                },
+                'areas': {
+                    'area_total': round(area_total, 2),
+                    'area_promedio': round(area_promedio, 2),
+                    'area_maxima': max([p['area_total'] for p in distribucion]) if distribucion else 0,
+                    'area_minima': min([p['area_total'] for p in distribucion if p['area_total'] > 0]) if distribucion else 0
+                },
+                'distribucion': {
+                    'porcentaje_con_parcelas': round((productores_con_parcelas / total_productores * 100), 1) if total_productores > 0 else 0,
+                    'concentracion_tierras': self._calcular_concentracion_tierras(distribucion)
+                }
+            }
+            
+            return {
+                'exito': True,
+                'mensaje': 'Estadísticas de productores generadas',
+                'datos': estadisticas,
+                'metadatos': {
+                    'timestamp': self._get_timestamp(),
+                    'total_calculos': len(estadisticas)
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error en servicio obtener_estadisticas_productores: {str(e)}")
+            return {
+                'exito': False,
+                'mensaje': 'Error al generar estadísticas',
+                'datos': {},
+                'metadatos': {}
+            }
+
+    @cacheable('estadisticas_productores', key_func=lambda: 'distribucion_parcelas', ttl=2400)
+    def obtener_distribucion_parcelas_por_productor(self):
+        """
+        Obtiene la distribución de parcelas por productor.
+        
+        Returns:
+            dict: Distribución detallada de parcelas.
+        """
+        try:
+            distribucion = self.productor_repo.obtener_distribucion_parcelas_por_productor()
+            
+            return {
+                'exito': True,
+                'mensaje': 'Distribución de parcelas obtenida',
+                'datos': distribucion,
+                'metadatos': {
+                    'total_productores': len(distribucion),
+                    'productores_con_parcelas': len([p for p in distribucion if p['cantidad_parcelas'] > 0]),
+                    'timestamp': self._get_timestamp()
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error en servicio obtener_distribucion_parcelas_por_productor: {str(e)}")
+            return {
+                'exito': False,
+                'mensaje': 'Error al obtener distribución',
+                'datos': [],
+                'metadatos': {'total_productores': 0}
+            }
+
+    @cacheable('reportes_productores', key_func=lambda: 'completo', ttl=3600)
+    def obtener_reporte_productores_parcelas(self):
+        """
+        Genera un reporte completo de productores y sus parcelas.
+        
+        Returns:
+            dict: Reporte detallado por productor.
+        """
+        try:
+            reporte = self.productor_repo.obtener_reporte_productores_parcelas()
+            
+            # Enriquecer reporte con métricas adicionales
+            for item in reporte:
+                item['categoria'] = self._categorizar_productor_por_area(item['area_total'])
+                item['antiguedad'] = self._calcular_antiguedad(item['primera_adquisicion'])
+            
+            return {
+                'exito': True,
+                'mensaje': f'Reporte generado para {len(reporte)} productores',
+                'datos': reporte,
+                'metadatos': {
+                    'total_productores': len(reporte),
+                    'timestamp': self._get_timestamp(),
+                    'resumen': {
+                        'area_total_sistema': sum(item['area_total'] for item in reporte),
+                        'parcelas_totales': sum(item['total_parcelas'] for item in reporte)
+                    }
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error en servicio obtener_reporte_productores_parcelas: {str(e)}")
+            return {
+                'exito': False,
+                'mensaje': 'Error al generar reporte',
+                'datos': [],
+                'metadatos': {'total_productores': 0}
+            }
+
+    @cacheable('reportes_productores', key_func=lambda limite=10: f"top_productores_{limite}", ttl=2400)
+    def obtener_top_productores_por_area(self, limite=10):
+        """
+        Obtiene los top productores por área total.
+        
+        Args:
+            limite (int): Número máximo de productores a retornar.
+            
+        Returns:
+            dict: Lista de top productores.
+        """
+        try:
+            top_productores = self.productor_repo.obtener_top_productores_por_area(limite)
+            
+            return {
+                'exito': True,
+                'mensaje': f'Top {len(top_productores)} productores por área',
+                'datos': top_productores,
+                'metadatos': {
+                    'limite_aplicado': limite,
+                    'timestamp': self._get_timestamp(),
+                    'area_total_top': sum(p['area_total'] for p in top_productores)
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error en servicio obtener_top_productores_por_area: {str(e)}")
+            return {
+                'exito': False,
+                'mensaje': 'Error al obtener top productores',
+                'datos': [],
+                'metadatos': {'limite_aplicado': limite}
+            }
 
     # ==================== MÉTODOS AUXILIARES OPTIMIZADOS ====================
 
-    @cacheable('validaciones', key_func=lambda id_agr: f"puede_eliminar_{id_agr}", ttl=900)  # 15 min
+    @cacheable('validaciones', key_func=lambda id_prod: f"puede_eliminar_{id_prod}", ttl=900)
     def _puede_eliminar_productor_cached(self, id_productor):
-        """
-        Verifica si un productor puede ser eliminado (versión cacheada).
-        ⭐ OPTIMIZADO: Evita consultar repetidamente la misma validación
-        
-        Args:
-            id_productor (int): ID del productor.
-            
-        Returns:
-            bool: True si puede eliminarse.
-        """
+        """Verifica si un productor puede ser eliminado (versión cacheada)."""
         try:
-            cantidad_parcelas = self.relacion_repo.contar_parcelas_por_productor(id_productor)
+            cantidad_parcelas = self.productor_repo.contar_parcelas_por_productor(id_productor)
             return cantidad_parcelas == 0
         except Exception:
             return False
 
-    @cacheable('validaciones', key_func=lambda datos: f"reglas_negocio_{hash(str(sorted(datos.items())))}", ttl=3600)  # 1 hora
-    def _validar_reglas_negocio_creacion_cached(self, datos):
-        """
-        Valida reglas de negocio específicas para creación (versión cacheada).
-        
-        Args:
-            datos (dict): Datos a validar.
-            
-        Returns:
-            bool: True si pasa todas las validaciones.
-            
-        Raises:
-            ErrorValidacion: Si alguna regla falla.
-        """
-        # Regla: Los propietarios deben tener correo electrónico
-        if datos.get('esPropietario', False) and not datos.get('correo'):
-            raise ErrorValidacion("Los propietarios deben tener correo electrónico registrado")
-        
-        # Regla: Los propietarios deben tener teléfono
-        if datos.get('esPropietario', False) and not datos.get('telefono'):
-            raise ErrorValidacion("Los propietarios deben tener teléfono registrado")
-        
-        return True
-
-    @cacheable('metricas_servicio', key_func=lambda: 'resumen_productores', ttl=1800)  # 30 min
-    def obtener_resumen_productores(self):
-        """
-        Obtiene un resumen completo de productores para dashboard.
-        ⭐ NUEVO: Método optimizado para dashboard
-        
-        Returns:
-            dict: Resumen completo de productores.
-        """
-        try:
-            # Obtener estadísticas básicas (ya cacheadas)
-            estadisticas = self.relacion_repo.obtener_estadisticas_generales()
-            
-            # Calcular métricas adicionales
-            total_productores = estadisticas['productores']['total']
-            total_trabajadores = total_productores
-            
-            resumen = {
-                'totales': {
-                    'productores': total_productores,
-                    'trabajadores': total_trabajadores
-                },
-                'estadisticas': estadisticas,
-                'timestamp': self._get_timestamp(),
-                
-            }
-            
-            logger.info(f"Resumen de productores generado: {total_productores} total")
-            return resumen
-            
-        except Exception as e:
-            logger.error(f"Error generando resumen de productores: {str(e)}")
-            return {}
-
-    # ==================== MÉTODOS AUXILIARES PRIVADOS ====================
-    
     def _validar_reglas_negocio_creacion(self, datos):
         """Valida reglas de negocio específicas para creación."""
-        return self._validar_reglas_negocio_creacion_cached(datos)
-    
+        if not datos.get('nombre') or not datos.get('nombre').strip():
+            raise ErrorValidacion("El nombre es obligatorio")
+            
+        if not datos.get('apellido') or not datos.get('apellido').strip():
+            raise ErrorValidacion("El apellido es obligatorio")
+            
+        if not datos.get('identificacion') or not datos.get('identificacion').strip():
+            raise ErrorValidacion("La identificación es obligatoria")
+
     def _validar_cambios_criticos(self, productor_actual, datos_nuevos):
         """Valida cambios que podrían afectar la integridad del sistema."""
-        # Si está cambiando de propietario a no propietario, verificar que no tenga parcelas
-        if (productor_actual['esPropietario'] and 
-            'esPropietario' in datos_nuevos and 
-            not datos_nuevos['esPropietario']):
-            
-            cantidad_parcelas = self.relacion_repo.contar_parcelas_por_productor(productor_actual['id_productor'])
-            if cantidad_parcelas > 0:
-                raise ErrorValidacion(f"No se puede quitar el estado de propietario. Tiene {cantidad_parcelas} parcelas asociadas")
-    
+        # Validar cambios en identificación
+        if 'identificacion' in datos_nuevos and datos_nuevos['identificacion'] != productor_actual['identificacion']:
+            # La validación de duplicados se hace en el repositorio
+            pass
+
     def _normalizar_datos_productor(self, datos):
         """Normaliza y limpia los datos del productor."""
         datos_normalizados = datos.copy()
@@ -407,40 +634,65 @@ class ProductorServicio:
         if datos_normalizados.get('correo'):
             datos_normalizados['correo'] = datos_normalizados['correo'].lower()
         
-        # Asegurar tipo booleano para esPropietario
-        if 'esPropietario' in datos_normalizados:
-            datos_normalizados['esPropietario'] = bool(datos_normalizados['esPropietario'])
-        
         return datos_normalizados
-    
-    def _verificar_cambio_propietario(self, productor_actual, datos_nuevos):
-        """Verifica si cambió el estado de propietario."""
-        return (productor_actual['esPropietario'] != datos_nuevos.get('esPropietario', productor_actual['esPropietario']))
-    
-    def _categorizar_productor(self, productor, cantidad_parcelas):
+
+    def _categorizar_productor(self, productor):
         """Categoriza un productor según su perfil."""
-        if productor['esPropietario']:
-            if cantidad_parcelas >= 5:
-                return 'gran_propietario'
-            elif cantidad_parcelas >= 2:
-                return 'propietario_medio'
-            else:
-                return 'pequeño_propietario'
+        cantidad_parcelas = productor.get('cantidad_parcelas', 0)
+        
+        if cantidad_parcelas == 0:
+            return 'sin_parcelas'
+        elif cantidad_parcelas == 1:
+            return 'pequeño_productor'
+        elif cantidad_parcelas <= 3:
+            return 'productor_medio'
         else:
-            return 'trabajador'
-    
-    def _requiere_atencion_productor(self, productor, cantidad_parcelas):
-        """Determina si un productor requiere atención especial."""
-        # Propietarios sin parcelas
-        if productor['esPropietario'] and cantidad_parcelas == 0:
-            return True
+            return 'gran_productor'
+
+    def _categorizar_productor_por_area(self, area_total):
+        """Categoriza un productor según el área total."""
+        if area_total <= 5:
+            return 'micro_productor'
+        elif area_total <= 20:
+            return 'pequeño_productor'
+        elif area_total <= 100:
+            return 'productor_medio'
+        else:
+            return 'gran_productor'
+
+    def _evaluar_estado_productor(self, productor):
+        """Evalúa el estado general del productor."""
+        if productor.get('cantidad_parcelas', 0) == 0:
+            return 'sin_parcelas'
+        elif not productor.get('telefono') or not productor.get('correo'):
+            return 'informacion_incompleta'
+        else:
+            return 'activo'
+
+    def _calcular_concentracion_tierras(self, distribucion):
+        """Calcula la concentración de tierras."""
+        if not distribucion or len(distribucion) < 2:
+            return 0
         
-        # Agricultores sin contacto completo
-        if productor['esPropietario'] and (not productor.get('telefono') or not productor.get('correo')):
-            return True
+        area_total = sum(p['area_total'] for p in distribucion)
+        area_top_20 = sum(p['area_total'] for p in distribucion[:max(1, len(distribucion)//5)])
         
-        return False
-    
+        return round((area_top_20 / area_total * 100), 1) if area_total > 0 else 0
+
+    def _calcular_antiguedad(self, fecha_adquisicion):
+        """Calcula la antigüedad en años."""
+        if not fecha_adquisicion:
+            return 0
+        
+        from datetime import datetime
+        try:
+            fecha = datetime.strptime(fecha_adquisicion, '%Y-%m-%d')
+            hoy = datetime.now()
+            antiguedad = hoy.year - fecha.year
+            return max(0, antiguedad)
+        except:
+            return 0
+
     def _get_timestamp(self):
         """Obtiene timestamp actual en formato ISO."""
         from datetime import datetime

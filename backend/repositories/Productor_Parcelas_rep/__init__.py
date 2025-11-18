@@ -1,20 +1,18 @@
-# bd_conecciones/repositorio/Agricultor_Parcelas_rep/__init__.py
+# bd_conecciones/repositorios/__init__.py
 
 """
 Repositorios para gestión de productores y parcelas.
 
 Este módulo contiene los repositorios que manejan las operaciones CRUD
-para productores, parcelas y sus relaciones.
+para productores y parcelas.
 """
 
 from .productor_repositorio import ProductorRepositorio
 from .parcela_repositorio import ParcelaRepositorio
-from .relacion_AgriPar_repositorio import RelacionRepositorio
 
 __all__ = [
     'ProductorRepositorio',
-    'ParcelaRepositorio', 
-    'RelacionRepositorio'
+    'ParcelaRepositorio'
 ]
 
 __version__ = "1.0.0"

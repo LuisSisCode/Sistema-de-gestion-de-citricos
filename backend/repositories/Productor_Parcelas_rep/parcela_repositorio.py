@@ -9,58 +9,40 @@ from ...core.cache_system import cacheable, cache_invalidator, get_ttl
 logger = logging.getLogger(__name__)
 
 class ParcelaRepositorio(RepositorioBase):
-    """Repositorio para operaciones CRUD de parcelas con caché optimizado."""
+    """Repositorio para operaciones CRUD de parcelas con funcionalidades extendidas."""
     
     @cacheable('parcelas', key_func=lambda: 'todas_activas', ttl=1800)  # 30 min
     def obtener_todas(self):
         """
-        Obtiene todas las parcelas activas con información de propietarios.
-        ⭐ OPTIMIZADO: Para evitar reconstrucción constante de listas completas
+        Obtiene todas las parcelas activas con información de productores.
         
         Returns:
             list: Lista de diccionarios con información de parcelas.
         """
-        # CONSULTA CORREGIDA: Usar nombres exactos de las columnas de la BD
         query = """
         SELECT 
             p.id_parcela, 
             p.nombre, 
             p.ubicacion, 
             p.area_total,
-            p.fuente_agua,
             p.fecha_adquisicion, 
             p.activo, 
             p.id_productor,
-            a.nombre as nombre_productor,
-            a.apellido as apellido_productor,
-            CONCAT(a.nombre, ' ', a.apellido) AS nombre_propietario
+            prod.nombre as nombre_productor,
+            prod.apellido as apellido_productor,
+            CONCAT(prod.nombre, ' ', prod.apellido) AS nombre_productor_completo
         FROM Parcelas p
-        JOIN Productores a ON p.id_productor = a.id_productor
-        WHERE p.activo = 1 AND a.activo = 1
-        ORDER BY p.id_parcela
+        JOIN Productores prod ON p.id_productor = prod.id_productor
+        WHERE p.activo = 1 AND prod.activo = 1
+        ORDER BY p.nombre
         """
         
         try:
             rows = self._ejecutar_consulta(query)
             parcelas = []
             
-            # Log para debugging
-            logger.info(f"Consulta ejecutada, {len(rows)} filas obtenidas")
-            
-            for i, row in enumerate(rows):
-                # Log de debugging para los primeros registros
-                if i < 3:
-                    logger.info(f"Fila {i}: id_parcela={getattr(row, 'id_parcela', 'N/A')}, "
-                            f"nombre={getattr(row, 'nombre', 'N/A')}, "
-                            f"area_total={getattr(row, 'area_total', 'N/A')}, "
-                            f"nombre_productor={getattr(row, 'nombre_productor', 'N/A')}")
-                
-                parcela = self._construir_objeto_parcela_cached(row)
-                
-                # Log del objeto construido
-                if i < 3:
-                    logger.info(f"Objeto construido {i}: {parcela}")
-                    
+            for row in rows:
+                parcela = self._construir_objeto_parcela(row)
                 parcelas.append(parcela)
             
             logger.info(f"Se obtuvieron {len(parcelas)} parcelas correctamente")
@@ -68,13 +50,6 @@ class ParcelaRepositorio(RepositorioBase):
             
         except Exception as e:
             logger.error(f"Error en obtener_todas: {str(e)}")
-            # Intentar una consulta más simple para debugging
-            try:
-                simple_query = "SELECT COUNT(*) as total FROM Parcelas WHERE activo = 1"
-                result = self._ejecutar_consulta(simple_query)
-                logger.info(f"Total de parcelas activas en BD: {result[0].total if result else 'Error'}")
-            except Exception as e2:
-                logger.error(f"Error en consulta simple: {str(e2)}")
             raise
 
     @cacheable('parcelas', key_func=lambda id_parcela: f"id_{id_parcela}", ttl=3600)  # 1 hora
@@ -92,12 +67,20 @@ class ParcelaRepositorio(RepositorioBase):
             RegistroNoEncontrado: Si la parcela no existe.
         """
         query = """
-        SELECT p.id_parcela, p.nombre, p.ubicacion, p.area_total,
-            p.fecha_adquisicion, p.activo, 
-            a.id_productor, a.nombre + ' ' + a.apellido AS nombre_propietario
+        SELECT 
+            p.id_parcela, 
+            p.nombre, 
+            p.ubicacion, 
+            p.area_total,
+            p.fecha_adquisicion, 
+            p.activo, 
+            p.id_productor,
+            prod.nombre as nombre_productor,
+            prod.apellido as apellido_productor,
+            CONCAT(prod.nombre, ' ', prod.apellido) AS nombre_productor_completo
         FROM Parcelas p
-        JOIN Productores a ON p.id_productor = a.id_productor
-        WHERE p.id_parcela = ? AND p.activo = 1 AND a.activo = 1
+        JOIN Productores prod ON p.id_productor = prod.id_productor
+        WHERE p.id_parcela = ? AND p.activo = 1 AND prod.activo = 1
         """
         
         rows = self._ejecutar_consulta(query, (id_parcela,))
@@ -105,50 +88,56 @@ class ParcelaRepositorio(RepositorioBase):
         if not rows:
             raise RegistroNoEncontrado(f"Parcela con ID {id_parcela} no encontrada")
         
-        return self._construir_objeto_parcela_cached(rows[0])
+        return self._construir_objeto_parcela(rows[0])
 
-    @cacheable('parcelas', key_func=lambda id_prop: f"propietario_{id_prop}", ttl=1800)  # 30 min
-    def obtener_por_propietario(self, id_propietario):
+    @cacheable('parcelas', key_func=lambda id_prod: f"productor_{id_prod}", ttl=1800)  # 30 min
+    def obtener_por_productor(self, id_productor):
         """
-        Obtiene parcelas de un propietario específico.
-        ⭐ OPTIMIZADO: Consultado frecuentemente para filtros
+        Obtiene parcelas de un productor específico.
         
         Args:
-            id_propietario (int): ID del propietario.
+            id_productor (int): ID del productor.
             
         Returns:
-            list: Lista de parcelas del propietario.
+            list: Lista de parcelas del productor.
         """
         query = """
-        SELECT p.id_parcela, p.nombre, p.ubicacion, p.area_total,
-            p.fecha_adquisicion, p.activo, 
-            a.id_productor, a.nombre + ' ' + a.apellido AS nombre_propietario
+        SELECT 
+            p.id_parcela, 
+            p.nombre, 
+            p.ubicacion, 
+            p.area_total,
+            p.fecha_adquisicion, 
+            p.activo, 
+            p.id_productor,
+            prod.nombre as nombre_productor,
+            prod.apellido as apellido_productor,
+            CONCAT(prod.nombre, ' ', prod.apellido) AS nombre_productor_completo
         FROM Parcelas p
-        JOIN Productores a ON p.id_productor = a.id_productor
-        WHERE p.id_productor= ? AND p.activo = 1 AND a.activo = 1
+        JOIN Productores prod ON p.id_productor = prod.id_productor
+        WHERE p.id_productor = ? AND p.activo = 1 AND prod.activo = 1
         ORDER BY p.nombre
         """
         
-        rows = self._ejecutar_consulta(query, (id_propietario,))
+        rows = self._ejecutar_consulta(query, (id_productor,))
         parcelas = []
         
         for row in rows:
-            parcela = self._construir_objeto_parcela_cached(row)
+            parcela = self._construir_objeto_parcela(row)
             parcelas.append(parcela)
         
-        logger.info(f"Se obtuvieron {len(parcelas)} parcelas del propietario {id_propietario}")
+        logger.info(f"Se obtuvieron {len(parcelas)} parcelas del productor {id_productor}")
         return parcelas
 
-    @cacheable('parcelas', key_func=lambda pagina, por_pagina=6, prop_id=None: f"pag_{pagina}_{por_pagina}_{prop_id or 'all'}", ttl=1200)  # 20 min
-    def obtener_paginado(self, pagina, por_pagina=6, propietario_id=None):
+    @cacheable('parcelas', key_func=lambda pagina, por_pagina=6, prod_id=None: f"pag_{pagina}_{por_pagina}_{prod_id or 'all'}", ttl=1200)  # 20 min
+    def obtener_paginado(self, pagina, por_pagina=6, productor_id=None):
         """
-        Obtiene parcelas con paginación y filtro opcional por propietario.
-        ⭐ MUY OPTIMIZADO: "Página 1: 6 parcelas de 19 totales" era muy repetida en logs
+        Obtiene parcelas con paginación y filtro opcional por productor.
         
         Args:
             pagina (int): Número de página.
             por_pagina (int): Registros por página.
-            propietario_id (int, optional): ID del propietario para filtrar.
+            productor_id (int, optional): ID del productor para filtrar.
             
         Returns:
             dict: Parcelas, total_registros, total_paginas, pagina_actual.
@@ -156,27 +145,35 @@ class ParcelaRepositorio(RepositorioBase):
         pagina, por_pagina, offset = self._validar_parametros_paginacion(pagina, por_pagina)
         
         # Construir condiciones WHERE
-        where_clause = "p.activo = 1 AND a.activo = 1"
+        where_clause = "p.activo = 1 AND prod.activo = 1"
         params_count = []
         params_data = []
         
-        if propietario_id and propietario_id != 0:
+        if productor_id and productor_id != 0:
             where_clause += " AND p.id_productor = ?"
-            params_count.append(propietario_id)
-            params_data.append(propietario_id)
+            params_count.append(productor_id)
+            params_data.append(productor_id)
         
         # Contar total de registros (ahora cacheado)
-        total_registros = self._contar_registros_cached(propietario_id)
+        total_registros = self._contar_registros_cached(productor_id)
         
         # Obtener registros paginados
         data_query = f"""
-        SELECT p.id_parcela, p.nombre, p.ubicacion, p.area_total,
-            p.fecha_adquisicion, p.activo, 
-            a.id_productor a.nombre + ' ' + a.apellido AS nombre_propietario
+        SELECT 
+            p.id_parcela, 
+            p.nombre, 
+            p.ubicacion, 
+            p.area_total,
+            p.fecha_adquisicion, 
+            p.activo, 
+            p.id_productor,
+            prod.nombre as nombre_productor,
+            prod.apellido as apellido_productor,
+            CONCAT(prod.nombre, ' ', prod.apellido) AS nombre_productor_completo
         FROM Parcelas p
-        JOIN Productores a ON p.id_productor = a.id_productor
+        JOIN Productores prod ON p.id_productor = prod.id_productor
         WHERE {where_clause}
-        ORDER BY p.id_parcela
+        ORDER BY p.nombre
         OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
         """
         
@@ -185,7 +182,7 @@ class ParcelaRepositorio(RepositorioBase):
         
         parcelas = []
         for row in rows:
-            parcela = self._construir_objeto_parcela_cached(row)
+            parcela = self._construir_objeto_parcela(row)
             parcelas.append(parcela)
         
         total_paginas = self._calcular_total_paginas(total_registros, por_pagina)
@@ -196,7 +193,7 @@ class ParcelaRepositorio(RepositorioBase):
             'total_paginas': total_paginas,
             'pagina_actual': pagina
         }
-        print(f"Total páginas calculadas: {total_paginas}")
+        
         logger.info(f"Página {pagina}: {len(parcelas)} parcelas de {total_registros} totales")
         return resultado
 
@@ -212,12 +209,20 @@ class ParcelaRepositorio(RepositorioBase):
             list: Lista de parcelas que coinciden.
         """
         query = """
-        SELECT p.id_parcela, p.nombre, p.ubicacion, p.area_total,
-            p.fecha_adquisicion, p.activo, 
-            a.id_productor a.nombre + ' ' + a.apellido AS nombre_propietario
+        SELECT 
+            p.id_parcela, 
+            p.nombre, 
+            p.ubicacion, 
+            p.area_total,
+            p.fecha_adquisicion, 
+            p.activo, 
+            p.id_productor,
+            prod.nombre as nombre_productor,
+            prod.apellido as apellido_productor,
+            CONCAT(prod.nombre, ' ', prod.apellido) AS nombre_productor_completo
         FROM Parcelas p
-        JOIN Productores a ON p.id_productor = a.id_productor
-        WHERE p.activo = 1 AND a.activo = 1 
+        JOIN Productores prod ON p.id_productor = prod.id_productor
+        WHERE p.activo = 1 AND prod.activo = 1 
         AND (p.nombre LIKE ? OR p.ubicacion LIKE ?)
         ORDER BY p.nombre
         """
@@ -227,7 +232,7 @@ class ParcelaRepositorio(RepositorioBase):
         
         parcelas = []
         for row in rows:
-            parcela = self._construir_objeto_parcela_cached(row)
+            parcela = self._construir_objeto_parcela(row)
             parcelas.append(parcela)
         
         logger.info(f"Búsqueda '{texto_busqueda}': {len(parcelas)} resultados")
@@ -237,7 +242,6 @@ class ParcelaRepositorio(RepositorioBase):
     def obtener_estadisticas_basicas(self):
         """
         Obtiene estadísticas básicas de las parcelas.
-        ⭐ MUY OPTIMIZADO: "Estadísticas calculadas" se repetía en logs
         
         Returns:
             dict: Estadísticas de parcelas.
@@ -247,7 +251,7 @@ class ParcelaRepositorio(RepositorioBase):
             COUNT(*) as total_parcelas,
             COALESCE(SUM(area_total), 0) as area_total,
             COALESCE(AVG(area_total), 0) as area_promedio,
-            COUNT(DISTINCT id_productor) as propietarios_distintos
+            COUNT(DISTINCT id_productor) as productores_distintos
         FROM Parcelas 
         WHERE activo = 1
         """
@@ -258,99 +262,122 @@ class ParcelaRepositorio(RepositorioBase):
             'total_parcelas': row.total_parcelas,
             'area_total': float(row.area_total),
             'area_promedio': float(row.area_promedio),
-            'propietarios_distintos': row.propietarios_distintos
+            'productores_distintos': row.productores_distintos
         }
         
         logger.info(f"Estadísticas calculadas: {estadisticas}")
         return estadisticas
 
-    # ==================== MÉTODOS AUXILIARES OPTIMIZADOS ====================
-
-    @cacheable('conteos', key_func=lambda prop_id=None: f"total_{prop_id or 'all'}", ttl=1800)  # 30 min
-    def _contar_registros_cached(self, propietario_id=None):
+    @cacheable('estadisticas', key_func=lambda: 'generales_completas', ttl=1800)  # 30 min
+    def obtener_estadisticas_generales(self):
         """
-        Cuenta registros de parcelas (versión cacheada).
+        Obtiene estadísticas generales del sistema.
         
-        Args:
-            propietario_id (int, optional): ID del propietario para filtrar.
-            
         Returns:
-            int: Número total de parcelas.
+            dict: Estadísticas completas del sistema.
         """
-        if propietario_id and propietario_id != 0:
-            count_query = """
-            SELECT COUNT(*)
-            FROM Parcelas p
-            JOIN Productores a ON p.id_productor= a.id_productor
-            WHERE p.activo = 1 AND a.activo = 1 AND p.id_productor = ?
-            """
-            return self._ejecutar_consulta_escalar(count_query, (propietario_id,))
-        else:
-            count_query = """
-            SELECT COUNT(*)
-            FROM Parcelas p
-            JOIN Productores a ON p.id_productor = a.id_productor
-            WHERE p.activo = 1 AND a.activo = 1
-            """
-            return self._ejecutar_consulta_escalar(count_query)
-
-    def _construir_objeto_parcela_cached(self, row):
+        query = """
+        SELECT 
+            (SELECT COUNT(*) FROM Productores WHERE activo = 1) as total_productores,
+            (SELECT COUNT(*) FROM Parcelas WHERE activo = 1) as total_parcelas,
+            (SELECT COALESCE(SUM(area_total), 0) FROM Parcelas WHERE activo = 1) as area_total,
+            (SELECT COALESCE(AVG(area_total), 0) FROM Parcelas WHERE activo = 1) as area_promedio
         """
-        Construye un objeto parcela a partir de una fila de la base de datos.
-        ⭐ OPTIMIZADO: Construcción más eficiente de objetos parcela
         
-        Args:
-            row: Fila de la consulta.
-            
-        Returns:
-            dict: Objeto parcela estructurado.
-        """
-        # Extraer coordenadas GPS - OPTIMIZADO con caché local
+        row = self._ejecutar_consulta(query)[0]
         
-        # Calcular porcentaje de uso (temporal - debería venir de cultivos)
-        from random import randint
-        porcentaje_uso = randint(50, 100)
-        
-        # Construcción optimizada del objeto
-        area_total = float(row.area_total) if row.area_total else 0.0
-        
-        return {
-            'id_parcela': row.id_parcela,
-            'id': row.id_parcela,
-            'parcelaId': row.id_parcela,
-            'nombre': row.nombre or 'Sin nombre',
-            
-            # Información del propietario
-            'propietario': row.nombre_propietario or 'Propietario desconocido',
-            'nombre_productor': getattr(row, 'nombre_productor', ''),
-            'apellido_productor': getattr(row, 'apellido_productor', ''),
-            'propietarioId': row.id_productor,
-            'id_productor': row.id_productor,
-            
-            # Ubicación y área
-            'ubicacion': row.ubicacion or '',
-            'area': area_total,
-            'area_total': area_total,
-            'area_texto': f"{area_total:,.2f} ha",
-
-
-            'fechaAdquisicion': self._formatear_fecha(row.fecha_adquisicion),
-            'fecha_adquisicion': self._formatear_fecha(row.fecha_adquisicion),
-            'porcentajeUso': porcentaje_uso,
-            'activo': bool(row.activo)
+        estadisticas = {
+            'productores': {
+                'total': row.total_productores
+            },
+            'parcelas': {
+                'total': row.total_parcelas,
+                'area_total': float(row.area_total),
+                'area_promedio': float(row.area_promedio)
+            }
         }
+        
+        logger.info(f"Estadísticas generales calculadas: {estadisticas}")
+        return estadisticas
+
+    @cacheable('validaciones', key_func=lambda id_parcela, nuevo_prod: f"transfer_{id_parcela}_{nuevo_prod}", ttl=300)  # 5 min
+    def validar_transferencia_parcela(self, id_parcela, nuevo_productor_id):
+        """
+        Valida si se puede transferir una parcela a un nuevo productor.
+        
+        Args:
+            id_parcela (int): ID de la parcela.
+            nuevo_productor_id (int): ID del nuevo productor.
+            
+        Returns:
+            dict: Información de validación.
+            
+        Raises:
+            RegistroNoEncontrado: Si la parcela o productor no existen.
+        """
+        # Verificar que la parcela existe y está activa
+        parcela_query = "SELECT id_productor, nombre FROM Parcelas WHERE id_parcela = ? AND activo = 1"
+        parcela_rows = self._ejecutar_consulta(parcela_query, (id_parcela,))
+        
+        if not parcela_rows:
+            raise RegistroNoEncontrado(f"Parcela con ID {id_parcela} no encontrada")
+        
+        productor_actual_id = parcela_rows[0].id_productor
+        nombre_parcela = parcela_rows[0].nombre
+        
+        # Verificar que el nuevo productor existe y está activo
+        productor_query = """
+        SELECT nombre, apellido 
+        FROM Productores
+        WHERE id_productor = ? AND activo = 1
+        """
+        productor_rows = self._ejecutar_consulta(productor_query, (nuevo_productor_id,))
+        
+        if not productor_rows:
+            raise RegistroNoEncontrado(f"Productor con ID {nuevo_productor_id} no encontrado")
+        
+        nuevo_productor_nombre = f"{productor_rows[0].nombre} {productor_rows[0].apellido}"
+        
+        # Obtener información del productor actual
+        productor_actual_query = """
+        SELECT nombre, apellido 
+        FROM Productores 
+        WHERE id_productor = ?
+        """
+        productor_actual_rows = self._ejecutar_consulta(productor_actual_query, (productor_actual_id,))
+        productor_actual_nombre = f"{productor_actual_rows[0].nombre} {productor_actual_rows[0].apellido}"
+        
+        validacion = {
+            'puede_transferir': productor_actual_id != nuevo_productor_id,
+            'parcela_nombre': nombre_parcela,
+            'productor_actual': {
+                'id': productor_actual_id,
+                'nombre': productor_actual_nombre
+            },
+            'nuevo_productor': {
+                'id': nuevo_productor_id,
+                'nombre': nuevo_productor_nombre
+            }
+        }
+        
+        if not validacion['puede_transferir']:
+            logger.warning(f"Intento de transferir parcela {id_parcela} al mismo productor")
+        else:
+            logger.info(f"Transferencia validada: parcela {id_parcela} puede pasar de {productor_actual_nombre} a {nuevo_productor_nombre}")
+        
+        return validacion
 
     # ==================== MÉTODOS DE ESCRITURA CON INVALIDACIÓN OPTIMIZADA ====================
 
     @cache_invalidator('parcelas', key='todas_activas')           # Lista completa
     @cache_invalidator('parcelas', pattern='pag_')               # Paginación
-    @cache_invalidator('parcelas', pattern='propietario_')       # Por propietario
+    @cache_invalidator('parcelas', pattern='productor_')         # Por productor
     @cache_invalidator('estadisticas', key='parcelas_basicas')   # Estadísticas
+    @cache_invalidator('estadisticas', key='generales_completas') # Estadísticas generales
     @cache_invalidator('conteos')                                # Conteos
     def crear(self, datos_parcela):
         """
         Crea una nueva parcela.
-        OPTIMIZADO: Invalidación granular del caché afectado.
         
         Args:
             datos_parcela (dict): Datos de la parcela.
@@ -364,20 +391,18 @@ class ParcelaRepositorio(RepositorioBase):
         self._validar_datos_parcela(datos_parcela)
         
         query = """
-        INSERT INTO Parcelas (id_productor nombre, ubicacion, area_total,
+        INSERT INTO Parcelas (id_productor, nombre, ubicacion, area_total,
                             fecha_adquisicion, activo)
         VALUES (?, ?, ?, ?, ?, ?)
         """
         
         fecha_actual = datetime.now().date().strftime('%Y-%m-%d')
         valores = (
-            datos_parcela['propietarioId'],
+            datos_parcela['id_productor'],
             datos_parcela['nombre'],
             datos_parcela['ubicacion'],
-            datos_parcela['area'],
-            datos_parcela.get('tipoSuelo'),
-            datos_parcela.get('fuenteAgua'),
-            fecha_actual,
+            datos_parcela['area_total'],
+            datos_parcela.get('fecha_adquisicion', fecha_actual),
             1  # activo por defecto
         )
         
@@ -390,14 +415,13 @@ class ParcelaRepositorio(RepositorioBase):
     @cache_invalidator('parcelas', pattern='id_')                # Específica
     @cache_invalidator('parcelas', key='todas_activas')          # Lista completa
     @cache_invalidator('parcelas', pattern='pag_')              # Paginación
-    @cache_invalidator('parcelas', pattern='propietario_')      # Por propietario
-    @cache_invalidator('parcelas_geo', key='coordenadas_validas') # GeoJSON
+    @cache_invalidator('parcelas', pattern='productor_')        # Por productor
     @cache_invalidator('estadisticas', key='parcelas_basicas')  # Estadísticas
+    @cache_invalidator('estadisticas', key='generales_completas') # Estadísticas generales
     @cache_invalidator('conteos')                               # Conteos
     def actualizar(self, id_parcela, datos_parcela):
         """
         Actualiza una parcela existente.
-        OPTIMIZADO: Invalidación específica y general.
         
         Args:
             id_parcela (int): ID de la parcela.
@@ -421,17 +445,21 @@ class ParcelaRepositorio(RepositorioBase):
             campos_actualizar.append("nombre = ?")
             valores.append(datos_parcela['nombre'])
             
-        if 'propietarioId' in datos_parcela:
-            campos_actualizar.append("id_productor= ?")
-            valores.append(datos_parcela['propietarioId'])
+        if 'id_productor' in datos_parcela:
+            campos_actualizar.append("id_productor = ?")
+            valores.append(datos_parcela['id_productor'])
             
         if 'ubicacion' in datos_parcela:
             campos_actualizar.append("ubicacion = ?")
             valores.append(datos_parcela['ubicacion'])
             
-        if 'area' in datos_parcela:
+        if 'area_total' in datos_parcela:
             campos_actualizar.append("area_total = ?")
-            valores.append(datos_parcela['area'])
+            valores.append(datos_parcela['area_total'])
+            
+        if 'fecha_adquisicion' in datos_parcela:
+            campos_actualizar.append("fecha_adquisicion = ?")
+            valores.append(datos_parcela['fecha_adquisicion'])
         
         if not campos_actualizar:
             logger.warning("No hay campos para actualizar")
@@ -448,13 +476,13 @@ class ParcelaRepositorio(RepositorioBase):
     @cache_invalidator('parcelas', pattern='id_')                # Específica
     @cache_invalidator('parcelas', key='todas_activas')          # Lista completa
     @cache_invalidator('parcelas', pattern='pag_')              # Paginación  
-    @cache_invalidator('parcelas', pattern='propietario_')      # Por propietario
+    @cache_invalidator('parcelas', pattern='productor_')        # Por productor
     @cache_invalidator('estadisticas', key='parcelas_basicas')  # Estadísticas
+    @cache_invalidator('estadisticas', key='generales_completas') # Estadísticas generales
     @cache_invalidator('conteos')                               # Conteos
     def desactivar(self, id_parcela):
         """
         Desactiva una parcela (eliminación lógica).
-        OPTIMIZADO: Invalidación completa ya que afecta todas las listas.
         
         Args:
             id_parcela (int): ID de la parcela.
@@ -474,6 +502,76 @@ class ParcelaRepositorio(RepositorioBase):
         logger.info(f"Parcela {id_parcela} desactivada. Filas afectadas: {filas_afectadas}")
         return filas_afectadas > 0
 
+    # ==================== MÉTODOS AUXILIARES OPTIMIZADOS ====================
+
+    @cacheable('conteos', key_func=lambda prod_id=None: f"total_{prod_id or 'all'}", ttl=1800)  # 30 min
+    def _contar_registros_cached(self, productor_id=None):
+        """
+        Cuenta registros de parcelas (versión cacheada).
+        
+        Args:
+            productor_id (int, optional): ID del productor para filtrar.
+            
+        Returns:
+            int: Número total de parcelas.
+        """
+        if productor_id and productor_id != 0:
+            count_query = """
+            SELECT COUNT(*)
+            FROM Parcelas p
+            JOIN Productores prod ON p.id_productor = prod.id_productor
+            WHERE p.activo = 1 AND prod.activo = 1 AND p.id_productor = ?
+            """
+            return self._ejecutar_consulta_escalar(count_query, (productor_id,))
+        else:
+            count_query = """
+            SELECT COUNT(*)
+            FROM Parcelas p
+            JOIN Productores prod ON p.id_productor = prod.id_productor
+            WHERE p.activo = 1 AND prod.activo = 1
+            """
+            return self._ejecutar_consulta_escalar(count_query)
+
+    def _construir_objeto_parcela(self, row):
+        """
+        Construye un objeto parcela a partir de una fila de la base de datos.
+        
+        Args:
+            row: Fila de la consulta.
+            
+        Returns:
+            dict: Objeto parcela estructurado.
+        """
+        # Calcular porcentaje de uso (temporal - debería venir de cultivos)
+        from random import randint
+        porcentaje_uso = randint(50, 100)
+        
+        # Construcción optimizada del objeto
+        area_total = float(row.area_total) if row.area_total else 0.0
+        
+        return {
+            'id_parcela': row.id_parcela,
+            'id': row.id_parcela,
+            'parcelaId': row.id_parcela,
+            'nombre': row.nombre or 'Sin nombre',
+            
+            # Información del productor
+            'productor': getattr(row, 'nombre_productor_completo', '') or 'Productor desconocido',
+            'nombre_productor': getattr(row, 'nombre_productor', ''),
+            'apellido_productor': getattr(row, 'apellido_productor', ''),
+            'id_productor': row.id_productor,
+            
+            # Ubicación y área
+            'ubicacion': row.ubicacion or '',
+            'area': area_total,
+            'area_total': area_total,
+            'area_texto': f"{area_total:,.2f} ha",
+
+            'fecha_adquisicion': self._formatear_fecha(row.fecha_adquisicion),
+            'porcentaje_uso': porcentaje_uso,
+            'activo': bool(row.activo)
+        }
+
     # ==================== MÉTODOS DE VALIDACIÓN ====================
     
     def _validar_datos_parcela(self, datos):
@@ -492,30 +590,8 @@ class ParcelaRepositorio(RepositorioBase):
         if not datos.get('ubicacion') or not datos.get('ubicacion').strip():
             raise ErrorValidacion("La ubicación es obligatoria")
         
-        if not datos.get('propietarioId'):
-            raise ErrorValidacion("El propietario es obligatorio")
+        if not datos.get('id_productor'):
+            raise ErrorValidacion("El productor es obligatorio")
         
-        if not datos.get('area') or datos.get('area') <= 0:
-            raise ErrorValidacion("El área debe ser mayor a 0")
-        
-        # Validar coordenadas si se proporcionan
-        if datos.get('latitud') is not None or datos.get('longitud') is not None:
-            lat = datos.get('latitud')
-            lng = datos.get('longitud')
-            
-            if lat is None or lng is None:
-                raise ErrorValidacion("Si proporciona coordenadas, debe incluir latitud y longitud")
-            
-            try:
-                lat = float(lat)
-                lng = float(lng)
-                
-                # Validar rangos aproximados para Bolivia
-                if not (-25 <= lat <= -9):
-                    raise ErrorValidacion("La latitud debe estar entre -25 y -9 grados")
-                    
-                if not (-70 <= lng <= -57):
-                    raise ErrorValidacion("La longitud debe estar entre -70 y -57 grados")
-                    
-            except (ValueError, TypeError):
-                raise ErrorValidacion("Las coordenadas deben ser números válidos")
+        if not datos.get('area_total') or datos.get('area_total') <= 0:
+            raise ErrorValidacion("El área total debe ser mayor a 0")

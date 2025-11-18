@@ -22,7 +22,7 @@ Rectangle {
     property var filterOptions: []
     property string filterPlaceholder: "Seleccione..."
     property int filterCurrentIndex: -1
-    property string filterIcon: "recursos/image/icons/filter.png"
+    property string filterIcon: "recursos/image/icons/filtro.svg"
     property color filterSelectedColor: "#5C6BC0"
     property color filterHoverColor: "#E8EAF6"
     property int filterWidth: 200
