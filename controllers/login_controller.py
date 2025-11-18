@@ -4,7 +4,7 @@ Controlador para la vista de login
 """
 
 from PySide6.QtCore import QObject, Slot, Signal, Property
-from backend.services.auth_service import auth_service
+from backend.services.UsuarioServ.auth_service import auth_service
 from backend.core.config import Config
 
 

@@ -21,6 +21,13 @@ from .CultivosServ.analisis_rentabilidad_servicio import AnalisisRentabilidadSer
 from .ClientesVentasServ.cliente_service import ClienteService
 from .ClientesVentasServ.venta_servicie import VentaService
 
+# Servicios de Agroquímicos
+from .AgroquimicosSer.producto_service import ProductoService
+from .AgroquimicosSer.categoria_service import CategoriaService
+from .AgroquimicosSer.mezcla_service import MezclaService
+from .AgroquimicosSer.tratamiento_service import TratamientoService
+
+
 __all__ = [
     # Agricultores y Parcelas
     'ProductorServicio',
@@ -36,5 +43,5 @@ __all__ = [
     
     # Clientes y Ventas
     'ClienteService',
-    'VentaServices',
+    'VentaService',
 ]

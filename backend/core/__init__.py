@@ -30,8 +30,8 @@ __all__ = [
 Repositorios para acceso a datos
 """
 
-from backend.repositories.usuario_repositorio import UsuarioRepositorio
-from backend.repositories.rol_repositorio import RolRepositorio
+from backend.repositories.UsuariosRep.usuario_repositorio import UsuarioRepositorio
+from backend.repositories.UsuariosRep.rol_repositorio import RolRepositorio
 
 __all__ = [
     'UsuarioRepositorio',
@@ -46,7 +46,7 @@ __all__ = [
 Servicios de lógica de negocio
 """
 
-from backend.services.auth_service import AuthService, auth_service
+from backend.services.UsuarioServ.auth_service import AuthService, auth_service
 
 __all__ = [
     'AuthService',

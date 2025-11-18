@@ -6,8 +6,8 @@ Contiene todos los repositorios organizados por módulos.
 """
 
 # Repositorios de Usuarios y Autentificación
-from .usuario_repositorio import UsuarioRepositorio
-from .auto_repositorio import AutoRepositorio
+from .UsuariosRep.usuario_repositorio import UsuarioRepositorio
+from .UsuariosRep.auto_repositorio import AutoRepositorio
 
 # Repositorios de Agricultores y Parcelas
 from .Productor_Parcelas_rep.productor_repositorio import ProductorRepositorio

@@ -17,7 +17,7 @@ from PySide6.QtWebEngineQuick import QtWebEngineQuick
 from PySide6.QtWebEngineCore import QWebEngineSettings
 
 # Importar AuthService y LoginController
-from backend.services.auth_service import auth_service
+from backend.services.UsuarioServ.auth_service import auth_service
 from controllers.login_controller import LoginController
 
 # Modelos existentes

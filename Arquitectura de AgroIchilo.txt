@@ -39,6 +39,9 @@ C:\AgroIchilo\
 │   ├── 📁 repositories/                 # ✅ Repositorios (Acceso a Datos)
 │   │   ├── 📁 AgroquimicosRep/
 │   │   ├── 📁 ClientesVentasRep/        # Cliente y Venta repositorios
+│   │   │   ├── __init__.py
+│   │   │   ├── cliente_repositorio.py
+│   │   │   └── venta_repositorio.py
 │   │   ├── 📁 CultivosRepositorio/      # Ciclo, Lote, Tipo, Variedad
 │   │   ├── 📁 GastosRep/
 │   │   ├── 📁 MaquinariaRep/
@@ -50,10 +53,14 @@ C:\AgroIchilo\
 │   │       └── usuario_repositorio.py
 │   │
 │   ├── 📁 services/                     # ✅ Lógica de Negocio (Servicios)
+│   │   ├── __init__.py
 │   │   ├── 📁 AgricultorParcelaServ/    # Gestión parcelas y productores
 │   │   ├── 📁 ClientesVentasServ/       # Lógica de ventas
 │   │   ├── 📁 CultivosServ/             # Gestión completa de cultivos
-│   │   ├── auth_service.py              # Servicio de autenticación
+│   │   ├── 📁 UsuarioServ/             # Gestión completa de cultivos
+│   │   │   ├── __init__.py
+│   │   │   ├── auth_service.py
+│   │   │   └── usuario_service.py
 │   │   └── [Otros servicios por módulo]
 │   │
 │   └── 📁 utils/                        # ✅ Utilidades de Backend (Base de Datos)

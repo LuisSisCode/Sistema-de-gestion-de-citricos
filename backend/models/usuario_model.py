@@ -1,5 +1,5 @@
 from PySide6.QtCore import QObject, Slot, Signal, Property
-from backend.bd_usuario_roles import GestorUsuariosRoles
+from backend.services.UsuarioServ.usuario_servicie import UsuarioServicio
 import json
 
 class UsuariosRolesModel(QObject):
@@ -10,7 +10,7 @@ class UsuariosRolesModel(QObject):
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._gestor = GestorUsuariosRoles()
+        self._gestor = UsuarioServicio()
         self._usuarios = []
         self._usuarios_filtrados = []
         self._roles = []

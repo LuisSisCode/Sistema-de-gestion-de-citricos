@@ -4,8 +4,8 @@ Servicio de autenticación y gestión de sesión
 """
 
 from typing import Optional, Dict, Tuple
-from backend.repositories.usuario_repositorio import UsuarioRepositorio
-from backend.repositories.rol_repositorio import RolRepositorio
+from backend.repositories.UsuariosRep.usuario_repositorio import UsuarioRepositorio
+from backend.repositories.UsuariosRep.rol_repositorio import RolRepositorio
 
 
 class AuthService:
