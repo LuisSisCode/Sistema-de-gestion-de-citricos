@@ -104,7 +104,6 @@ class TratamientoService:
                 - fecha_aplicacion (date): Fecha de aplicación
                 - area_tratada (float): Área tratada en hectáreas
                 - metodo_aplicacion (str, optional): Método usado
-                - condiciones_climaticas (str, optional): Condiciones del clima
                 - id_mezcla (int, optional): ID de la mezcla utilizada
                 - cantidad_agua (float, optional): Cantidad de agua en litros
                 - costo_total (float, optional): Costo total

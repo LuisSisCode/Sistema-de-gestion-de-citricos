@@ -76,7 +76,7 @@ class MezclaService:
         Args:
             datos: Diccionario con los datos de la mezcla
                 - nombre (str): Nombre de la mezcla
-                - proposito (str, optional): Propósito de la mezcla
+                - descripcion (str, optional): Propósito de la mezcla
                 - activo (bool, optional): Estado activo
             productos: Lista de productos (opcional)
                 Cada producto debe tener:
@@ -431,8 +431,8 @@ class MezclaService:
             return False, "El nombre de la mezcla no puede exceder 200 caracteres"
         
         # Validar propósito si está presente
-        if 'proposito' in datos and datos['proposito']:
-            if len(datos['proposito']) > 500:
+        if 'descripcion' in datos and datos['descripcion']:
+            if len(datos['descripcion']) > 500:
                 return False, "El propósito no puede exceder 500 caracteres"
         
         return True, "Validación exitosa"

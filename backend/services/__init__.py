@@ -6,9 +6,9 @@ Contiene toda la lógica de negocio organizada por módulos.
 """
 
 # Servicios de Agricultores y Parcelas
-from .AgricultorParcelaServ.productor_servicio import ProductorServicio
-from .AgricultorParcelaServ.parcela_servicio import ParcelaServicio
-from .AgricultorParcelaServ.gestion_servicio import GestionServicio
+from .ProductorParcelaServ.productor_servicio import ProductorServicio
+from .ProductorParcelaServ.parcela_servicio import ParcelaServicio
+from .ProductorParcelaServ.gestion_servicio import GestionServicio
 
 # Servicios de Cultivos
 from .CultivosServ.tipo_cultivo_servicio import TipoCultivoServicio
@@ -44,4 +44,10 @@ __all__ = [
     # Clientes y Ventas
     'ClienteService',
     'VentaService',
+
+    # Agroquímicos
+    'ProductoService',
+    'CategoriaService',
+    'MezclaService',
+    'TratamientoService',
 ]

@@ -33,8 +33,8 @@ class TratamientoRepositorio(RepositorioBase):
         """
         query = """
         SELECT t.id_tratamiento, t.id_ciclo, t.id_tipo_plaga, t.fecha_aplicacion,
-               t.area_tratada, t.metodo_aplicacion, t.condiciones_climaticas,
-               t.id_mezcla, t.cantidad_agua, t.costo_total, t.realizado_por,
+               t.area_tratada, t.metodo_aplicacion, t.id_mezcla, 
+               t.cantidad_agua, t.costo_total, t.realizado_por,
                t.observaciones,
                tp.nombre as nombre_plaga, tp.categoria as categoria_plaga,
                m.nombre as nombre_mezcla,
@@ -77,7 +77,6 @@ class TratamientoRepositorio(RepositorioBase):
                         'fecha_aplicacion': fecha_aplicacion,
                         'area_tratada': float(row.area_tratada) if row.area_tratada else 0.0,
                         'metodo_aplicacion': row.metodo_aplicacion,
-                        'condiciones_climaticas': row.condiciones_climaticas,
                         'id_mezcla': row.id_mezcla,
                         'cantidad_agua': float(row.cantidad_agua) if row.cantidad_agua else 0.0,
                         'costo_total': float(row.costo_total) if row.costo_total else 0.0,
@@ -110,8 +109,8 @@ class TratamientoRepositorio(RepositorioBase):
         """
         query = """
         SELECT t.id_tratamiento, t.id_ciclo, t.id_tipo_plaga, t.fecha_aplicacion,
-               t.area_tratada, t.metodo_aplicacion, t.condiciones_climaticas,
-               t.id_mezcla, t.cantidad_agua, t.costo_total, t.realizado_por,
+               t.area_tratada, t.metodo_aplicacion, t.id_mezcla, 
+               t.cantidad_agua, t.costo_total, t.realizado_por,
                t.observaciones,
                tp.nombre as nombre_plaga, tp.categoria as categoria_plaga,
                m.nombre as nombre_mezcla,
@@ -155,7 +154,6 @@ class TratamientoRepositorio(RepositorioBase):
                     'fecha_aplicacion': fecha_aplicacion,
                     'area_tratada': float(row.area_tratada) if row.area_tratada else 0.0,
                     'metodo_aplicacion': row.metodo_aplicacion,
-                    'condiciones_climaticas': row.condiciones_climaticas,
                     'id_mezcla': row.id_mezcla,
                     'cantidad_agua': float(row.cantidad_agua) if row.cantidad_agua else 0.0,
                     'costo_total': float(row.costo_total) if row.costo_total else 0.0,
@@ -341,7 +339,7 @@ class TratamientoRepositorio(RepositorioBase):
         JOIN Parcelas p ON c.id_parcela = p.id_parcela
         JOIN VariedadesCultivo v ON c.id_variedad = v.id_variedad
         JOIN TiposCultivo t ON v.id_tipo_cultivo = t.id_tipo_cultivo
-        WHERE c.activo = 1 AND c.estado NOT IN ('Finalizado', 'Cancelado')
+        WHERE c.estado NOT IN ('Finalizado', 'Cancelado')
         ORDER BY c.fecha_siembra DESC
         """
         
@@ -394,7 +392,6 @@ class TratamientoRepositorio(RepositorioBase):
                 - fecha_aplicacion (date): Fecha de aplicación
                 - area_tratada (float): Área tratada en hectáreas
                 - metodo_aplicacion (str, optional): Método usado
-                - condiciones_climaticas (str, optional): Condiciones del clima
                 - id_mezcla (int, optional): ID de la mezcla utilizada
                 - cantidad_agua (float, optional): Cantidad de agua en litros
                 - costo_total (float, optional): Costo total del tratamiento
@@ -407,9 +404,9 @@ class TratamientoRepositorio(RepositorioBase):
         query = """
         INSERT INTO TratamientosFitosanitarios 
         (id_ciclo, id_tipo_plaga, fecha_aplicacion, area_tratada, metodo_aplicacion,
-         condiciones_climaticas, id_mezcla, cantidad_agua, costo_total, 
+         id_mezcla, cantidad_agua, costo_total, 
          realizado_por, observaciones)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         
         try:
@@ -419,7 +416,6 @@ class TratamientoRepositorio(RepositorioBase):
                 datos['fecha_aplicacion'],
                 datos['area_tratada'],
                 datos.get('metodo_aplicacion'),
-                datos.get('condiciones_climaticas'),
                 datos.get('id_mezcla'),
                 datos.get('cantidad_agua'),
                 datos.get('costo_total', 0.0),
@@ -465,7 +461,7 @@ class TratamientoRepositorio(RepositorioBase):
             # Construir dinámicamente los campos a actualizar
             campos_permitidos = [
                 'id_tipo_plaga', 'fecha_aplicacion', 'area_tratada', 
-                'metodo_aplicacion', 'condiciones_climaticas', 'id_mezcla',
+                'metodo_aplicacion', 'id_mezcla',
                 'cantidad_agua', 'costo_total', 'realizado_por', 'observaciones'
             ]
             

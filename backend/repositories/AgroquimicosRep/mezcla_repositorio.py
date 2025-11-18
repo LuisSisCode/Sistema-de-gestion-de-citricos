@@ -31,7 +31,7 @@ class MezclaRepositorio(RepositorioBase):
             List[Dict]: Lista de mezclas con sus datos
         """
         query = """
-        SELECT id_mezcla, nombre, proposito, fecha_creacion, activo
+        SELECT id_mezcla, nombre, descripcion, fecha_creacion, activo
         FROM MezclasAgroquimicos
         ORDER BY fecha_creacion DESC
         """
@@ -54,7 +54,7 @@ class MezclaRepositorio(RepositorioBase):
                     mezcla = {
                         'id_mezcla': row.id_mezcla,
                         'nombre': row.nombre,
-                        'proposito': row.proposito,
+                        'descripcion': row.descripcion,
                         'fecha_creacion': fecha_creacion,
                         'activo': bool(row.activo)
                     }
@@ -78,7 +78,7 @@ class MezclaRepositorio(RepositorioBase):
             Dict: Datos de la mezcla o None si no existe
         """
         query = """
-        SELECT id_mezcla, nombre, proposito, fecha_creacion, activo
+        SELECT id_mezcla, nombre, descripcion, fecha_creacion, activo
         FROM MezclasAgroquimicos
         WHERE id_mezcla = ?
         """
@@ -103,7 +103,7 @@ class MezclaRepositorio(RepositorioBase):
                 return {
                     'id_mezcla': row.id_mezcla,
                     'nombre': row.nombre,
-                    'proposito': row.proposito,
+                    'descripcion': row.descripcion,
                     'fecha_creacion': fecha_creacion,
                     'activo': bool(row.activo)
                 }
@@ -120,7 +120,7 @@ class MezclaRepositorio(RepositorioBase):
             List[Dict]: Lista de mezclas activas
         """
         query = """
-        SELECT id_mezcla, nombre, proposito, fecha_creacion, activo
+        SELECT id_mezcla, nombre, descripcion, fecha_creacion, activo
         FROM MezclasAgroquimicos
         WHERE activo = 1
         ORDER BY fecha_creacion DESC
@@ -143,7 +143,7 @@ class MezclaRepositorio(RepositorioBase):
                     mezcla = {
                         'id_mezcla': row.id_mezcla,
                         'nombre': row.nombre,
-                        'proposito': row.proposito,
+                        'descripcion': row.descripcion,
                         'fecha_creacion': fecha_creacion,
                         'activo': bool(row.activo)
                     }
@@ -231,7 +231,7 @@ class MezclaRepositorio(RepositorioBase):
         Args:
             datos: Diccionario con los datos de la mezcla
                 - nombre (str): Nombre de la mezcla
-                - proposito (str, optional): Propósito de la mezcla
+                - descripcion (str, optional): Propósito de la mezcla
                 - fecha_creacion (date, optional): Fecha de creación (default: hoy)
                 - activo (bool, optional): Estado activo (default: True)
             detalles: Lista de productos que componen la mezcla (opcional)
@@ -244,7 +244,7 @@ class MezclaRepositorio(RepositorioBase):
             Tuple[bool, Optional[int]]: (Éxito, ID de la mezcla creada)
         """
         query_mezcla = """
-        INSERT INTO MezclasAgroquimicos (nombre, proposito, fecha_creacion, activo)
+        INSERT INTO MezclasAgroquimicos (nombre, descripcion, fecha_creacion, activo)
         VALUES (?, ?, ?, ?)
         """
         
@@ -253,7 +253,7 @@ class MezclaRepositorio(RepositorioBase):
             
             valores = (
                 datos['nombre'],
-                datos.get('proposito'),
+                datos.get('descripcion'),
                 fecha_actual,
                 1 if datos.get('activo', True) else 0
             )
@@ -353,7 +353,7 @@ class MezclaRepositorio(RepositorioBase):
             valores = []
             
             # Construir dinámicamente los campos a actualizar
-            campos_permitidos = ['nombre', 'proposito', 'activo']
+            campos_permitidos = ['nombre', 'descripcion', 'activo']
             
             for campo in campos_permitidos:
                 if campo in datos:

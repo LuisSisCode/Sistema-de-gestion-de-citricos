@@ -25,6 +25,12 @@ from .CultivosRepositorio.relacion_cultivo_repositorio import RelacionCultivoRep
 from .ClientesVentasRep.cliente_repositorio import ClienteRepositorio
 from .ClientesVentasRep.venta_repositorio import VentaRepositorio
 
+# Agroquímicos y Tratamientos
+from .AgroquimicosRep.categoria_repositorio import CategoriaRepositorio
+from .AgroquimicosRep.mezcla_repositorio import MezclaRepositorio
+from .AgroquimicosRep.tratamiento_repositorio import TratamientoRepositorio
+from .AgroquimicosRep.producto_repositorio import ProductoRepositorio
+
 __all__ = [
     # Usuarios y autentificacion
     'UsuarioRepositorio',
@@ -44,4 +50,10 @@ __all__ = [
     # Clientes y Ventas
     'ClienteRepositorio',
     'VentaRepositorio',
+
+    # Agroquímicos y Tratamientos
+    'CategoriaRepositorio',
+    'MezclaRepositorio',
+    'TratamientoRepositorio',
+    'ProductoRepositorio',
 ]

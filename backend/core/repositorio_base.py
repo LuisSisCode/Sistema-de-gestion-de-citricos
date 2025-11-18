@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 from backend.core.database import DatabaseConnection
-from backend.core.config import Config  # ✅ IMPORTAR Config
+from backend.core.config import Config
 from backend.core.excepciones_bd import (
     ErrorConexion,
     ErrorConsulta,
@@ -18,14 +18,9 @@ class RepositorioBase(ABC):
     def __init__(self, server=None, database=None, trusted_connection=None):
         """
         Inicializa la conexión a la base de datos.
-        
-        Args:
-            server (str, optional): Nombre del servidor SQL Server.
-            database (str, optional): Nombre de la base de datos.
-            trusted_connection (bool, optional): Usar autenticación de Windows.
         """
         try:
-            # ✅ USAR Config PARA VALORES POR DEFECTO (desde .env)
+            # Usar Config para valores por defecto
             if server is None:
                 server = Config.DB_SERVER
             if database is None:
@@ -33,7 +28,7 @@ class RepositorioBase(ABC):
             if trusted_connection is None:
                 trusted_connection = Config.DB_TRUSTED_CONNECTION.lower() in ['yes', 'true', '1']
             
-            # Crear conexión
+            # Crear instancia de conexión (Singleton)
             self.db = DatabaseConnection(server, database, trusted_connection)
             
             # Configurar namespace de caché basado en el nombre de la clase
@@ -48,21 +43,20 @@ class RepositorioBase(ABC):
         except Exception as e:
             print(f"Error al establecer conexión en {self.__class__.__name__}: {str(e)}")
             raise ErrorConexion(f"No se pudo conectar a la base de datos: {str(e)}")
+
+    def get_connection(self):
+        """
+        Obtiene el objeto de conexión de la instancia de base de datos.
+        Este método es crucial para que los repositorios hijos puedan usar 'with self.get_connection()'.
+        """
+        return self.db.get_connection()
     
     def _ejecutar_consulta(self, query, params=None, obtener_resultado=True):
         """
         Ejecuta una consulta de manera segura.
-        
-        Args:
-            query (str): Consulta SQL a ejecutar.
-            params (tuple, optional): Parámetros para la consulta.
-            obtener_resultado (bool): Si debe retornar resultados.
-            
-        Returns:
-            list o int: Resultados de la consulta o número de filas afectadas.
         """
         try:
-            with self.db.get_connection() as conn:
+            with self.get_connection() as conn:
                 cursor = conn.cursor()
                 
                 if params:
@@ -82,16 +76,9 @@ class RepositorioBase(ABC):
     def _ejecutar_consulta_escalar(self, query, params=None):
         """
         Ejecuta una consulta que retorna un solo valor.
-        
-        Args:
-            query (str): Consulta SQL a ejecutar.
-            params (tuple, optional): Parámetros para la consulta.
-            
-        Returns:
-            any: Valor único retornado por la consulta.
         """
         try:
-            with self.db.get_connection() as conn:
+            with self.get_connection() as conn:
                 cursor = conn.cursor()
                 
                 if params:
@@ -106,26 +93,11 @@ class RepositorioBase(ABC):
             raise ErrorConsulta(f"Error en la consulta escalar: {str(e)}")
     
     def _obtener_ultimo_id(self):
-        """
-        Obtiene el último ID insertado.
-        
-        Returns:
-            int: ID del último registro insertado.
-        """
+        """Obtiene el último ID insertado."""
         return self._ejecutar_consulta_escalar("SELECT @@IDENTITY AS ID")
     
     def _contar_registros(self, tabla, condicion=None, params=None):
-        """
-        Cuenta registros en una tabla con condición opcional.
-        
-        Args:
-            tabla (str): Nombre de la tabla.
-            condicion (str, optional): Condición WHERE.
-            params (tuple, optional): Parámetros para la condición.
-            
-        Returns:
-            int: Número de registros.
-        """
+        """Cuenta registros en una tabla con condición opcional."""
         query = f"SELECT COUNT(*) FROM {tabla}"
         if condicion:
             query += f" WHERE {condicion}"
@@ -133,15 +105,7 @@ class RepositorioBase(ABC):
         return self._ejecutar_consulta_escalar(query, params)
     
     def _formatear_fecha(self, fecha):
-        """
-        Formatea una fecha de la base de datos a string.
-        
-        Args:
-            fecha: Fecha de la base de datos.
-            
-        Returns:
-            str: Fecha formateada como string.
-        """
+        """Formatea una fecha de la base de datos a string."""
         if not fecha:
             return None
             
@@ -154,16 +118,7 @@ class RepositorioBase(ABC):
                 return str(fecha)
     
     def _validar_parametros_paginacion(self, pagina, por_pagina):
-        """
-        Valida parámetros de paginación.
-        
-        Args:
-            pagina (int): Número de página.
-            por_pagina (int): Registros por página.
-            
-        Returns:
-            tuple: (pagina_validada, por_pagina_validada, offset)
-        """
+        """Valida parámetros de paginación."""
         pagina = max(1, pagina or 1)
         por_pagina = max(1, min(100, por_pagina or 10))
         offset = (pagina - 1) * por_pagina
@@ -171,16 +126,7 @@ class RepositorioBase(ABC):
         return pagina, por_pagina, offset
     
     def _calcular_total_paginas(self, total_registros, por_pagina):
-        """
-        Calcula el número total de páginas.
-        
-        Args:
-            total_registros (int): Total de registros.
-            por_pagina (int): Registros por página.
-            
-        Returns:
-            int: Número total de páginas.
-        """
+        """Calcula el número total de páginas."""
         return (total_registros + por_pagina - 1) // por_pagina
     
     # Métodos de caché
@@ -201,61 +147,32 @@ class RepositorioBase(ABC):
 class RelacionRepositorio(RepositorioBase):
     """Repositorio para consultas que involucran múltiples tablas."""
     
-    # IMPLEMENTAR MÉTODOS ABSTRACTOS (aunque no los usemos)
     def obtener_todos(self):
-        """No aplicable para RelacionRepositorio."""
         return []
     
     def obtener_por_id(self, id_registro):
-        """No aplicable para RelacionRepositorio."""
         return {}
     
     def crear(self, datos):
-        """No aplicable para RelacionRepositorio."""
         return True, None
     
     def actualizar(self, id_registro, datos):
-        """No aplicable para RelacionRepositorio."""
         return True
     
     def desactivar(self, id_registro):
-        """No aplicable para RelacionRepositorio."""
         return True
     
     # MÉTODOS REALES DE RELACIONES
     def contar_parcelas_por_productor(self, id_productor):
-        """
-        Cuenta las parcelas activas de un productor específico.
-        
-        Args:
-            id_productor (int): ID del productor.
-            
-        Returns:
-            int: Número de parcelas activas del productor.
-        """
         count = self._contar_registros(
             "Parcelas", 
             "id_productor = ? AND activo = 1", 
             (id_productor,)
         )
-        
         print(f"Agricultor {id_productor} tiene {count} parcelas activas")
         return count
     
     def verificar_dependencias_productor(self, id_productor):
-        """
-        Verifica todas las dependencias de un productor antes de eliminarlo.
-        
-        Args:
-            id_productor (int): ID del productor.
-            
-        Returns:
-            dict: Información detallada de dependencias.
-            
-        Raises:
-            RegistroTieneDependencias: Si tiene dependencias que impiden la eliminación.
-        """
-        # Contar parcelas
         parcelas = self.contar_parcelas_por_productor(id_productor)
         
         dependencias = {
