@@ -33,6 +33,7 @@ from backend.models.gastos_model import GastosModel
 from backend.models.reportes_model import *
 from backend.models.dashboard_model import DashboardModel
 from backend.models.clientes_model import ClientesModel
+from backend.models.ventas_model import VentasModel
 
 
 class AppManager(QObject):
@@ -320,7 +321,11 @@ def main():
     except Exception as e:
         print(f"⚠️ No se pudo registrar AgroquimicosModel: {e}")
     
-
+    try:
+        venta_model = VentasModel()
+        engine.rootContext().setContextProperty("ventaModel", venta_model)
+    except Exception as e:
+        print(f"⚠️ No se pudo registrar ClientesVentaModel: {e}")
 
     try:
         clientes_model = ClientesModel()
