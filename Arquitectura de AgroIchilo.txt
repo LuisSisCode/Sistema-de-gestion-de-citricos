@@ -1,8 +1,7 @@
 ╔════════════════════════════════════════════════════════════════════════════╗
 ║              ARQUITECTURA REAL DEL SISTEMA AGROICHILO                      ║
-║              Sistema de Gestión Agrícola - Cítricos v1.0                   ║
-║                    Actualizado: Octubre 2025                               ║
-║                                                                            ║
+║              Sistema de Gestión Agrícola - Cítricos v1.1                   ║
+║                    Actualizado: Noviembre 2025                             ║
 ╚════════════════════════════════════════════════════════════════════════════╝
 
 ═══════════════════════════════════════════════════════════════════════════
@@ -11,160 +10,131 @@
 
 C:\AgroIchilo\
 │
-├── 📁 backend/                          # Backend Python
+├── 📁 backend/                          # Lógica de negocio y datos (Python)
 │   ├── 📁 core/                         # ✅ Núcleo del sistema
-│   │   ├── __init__.py                  # ⚠️ CORREGIR importaciones
-│   │   ├── config.py                    # ✅ Sprint 1.1
-│   │   ├── config_manager.py            # ✅ Sprint 1.1
-│   │   ├── database.py                  # ✅ Sprint 1.1 (actualizado)
-│   │   ├── db_installer.py              # ✅ Sprint 1.1
-│   │   ├── cache_system.py              # ✅ Existente
-│   │   ├── cache_config.py              # ✅ Existente
-│   │   ├── excepciones_bd.py            # ✅ Existente
-│   │   └── repositorio_base.py          # ✅ Existente
-│   │
-│   ├── 📁 models/                       # Modelos QObject para Qt/QML
 │   │   ├── __init__.py
-│   │   └── [tus modelos actuales]
+│   │   ├── cache_config.py              # Configuración de caché
+│   │   ├── cache_system.py              # Sistema de caché
+│   │   ├── config.py                    # Configuraciones globales
+│   │   ├── config_manager.py            # Gestor de configuración
+│   │   ├── database.py                  # Conexión a BD
+│   │   ├── db_installer.py              # Instalador de BD
+│   │   ├── excepciones_bd.py            # Manejo de errores BD
+│   │   └── repositorio_base.py          # Clase padre para repositorios
 │   │
-│   ├── 📁 repositories/                 # ✅ Sprint 1.2
-│   │   ├── __init__.py                  # ✅ Nuevo
-│   │   ├── usuario_repositorio.py       # ✅ Sprint 1.2
-│   │   ├── rol_repositorio.py           # ✅ Sprint 1.2
-│   │   └── [otros repositorios...]
+│   ├── 📁 models/                       # ✅ Modelos de datos (QObject/Python)
+│   │   ├── __init__.py
+│   │   ├── agroquimicos_model.py
+│   │   ├── auth_model.py
+│   │   ├── clientes_model.py
+│   │   ├── cultivos_model.py
+│   │   ├── dashboard_model.py
+│   │   ├── gastos_model.py
+│   │   ├── maquinaria_model.py
+│   │   ├── productores_parcelas_model.py
+│   │   ├── reportes_model.py
+│   │   ├── usuario_model.py
+│   │   └── ventas_model.py
 │   │
-│   ├── 📁 services/                     # ✅ Sprint 1.2
-│   │   ├── __init__.py                  # ✅ Nuevo
-│   │   └── auth_service.py              # ✅ Sprint 1.2
+│   ├── 📁 repositories/                 # ✅ Repositorios (Acceso a Datos)
+│   │   ├── 📁 AgroquimicosRep/
+│   │   ├── 📁 ClientesVentasRep/        # Cliente y Venta repositorios
+│   │   ├── 📁 CultivosRepositorio/      # Ciclo, Lote, Tipo, Variedad
+│   │   ├── 📁 GastosRep/
+│   │   ├── 📁 MaquinariaRep/
+│   │   ├── 📁 Productor_Parcelas_rep/   # Productor, Parcela, Relación
+│   │   ├── 📁 ReportesRep/
+│   │   └── 📁 UsuariosRep/              # Usuario, Rol, Auth
+│   │       ├── auto_repositorio.py
+│   │       ├── rol_repositorio.py
+│   │       └── usuario_repositorio.py
 │   │
-│   └── 📁 utils/                        # ✅ Sprint 1.2 (backend)
-│       ├── __init__.py                  # ✅ Nuevo
-│       └── password_utils.py            # ✅ Sprint 1.2
+│   ├── 📁 services/                     # ✅ Lógica de Negocio (Servicios)
+│   │   ├── 📁 AgricultorParcelaServ/    # Gestión parcelas y productores
+│   │   ├── 📁 ClientesVentasServ/       # Lógica de ventas
+│   │   ├── 📁 CultivosServ/             # Gestión completa de cultivos
+│   │   ├── auth_service.py              # Servicio de autenticación
+│   │   └── [Otros servicios por módulo]
+│   │
+│   └── 📁 utils/                        # ✅ Utilidades de Backend (Base de Datos)
+│       ├── __init__.py
+│       ├── bd_agroquimicos.py
+│       ├── bd_clientes.py
+│       ├── bd_cultivos.py
+│       ├── bd_maquinaria.py
+│       ├── bd_usuario_roles.py
+│       ├── bd_ventas.py
+│       └── bd_ventas_clientes_integrado.py
 │
 ├── 📁 components/                       # ✅ Componentes QML reutilizables
-│   ├── MenuButton.qml # con estructura
-│   ├── MenuSeparator.qml # con estructura
-│   ├── DataCard.qml #Sin nada
-│   ├── CustomButton.qml #Sin nada
-│   ├── CustomTextField.qml #Sin nada
-│   ├── NotificationPopup.qml #Sin nada
-│   └──TabBarComponent #pestañas
+│   ├── MenuButton.qml
+│   ├── MenuSeparator.qml
+│   ├── DataCard.qml
+│   ├── CustomButton.qml
+│   ├── CustomTextField.qml
+│   ├── NotificationPopup.qml
+│   └── TabBarComponent.qml
 │
 ├── 📁 controllers/                      # ✅ Controladores Python para QML
-│   ├── __init__.py                      # ✅ Sprint 1.2
-│   ├── login_controller.py              # ✅ Sprint 1.2
-│   └── [otros controladores...]
+│   ├── __init__.py
+│   └── [Controladores puente UI-Backend]
 │
-├── 📁 database/                         # ✅ Scripts SQL
-│   ├── 📁 scripts/
-│   │   ├── 01_schema_creation.sql       # ✅ Tu Produccion_Agro
-│   │   └── 02_datos_iniciales.sql       # 📝 Pendiente
-│   └── 📁 backups/                      # Para respaldos
+├── 📁 database/                         # ✅ Gestión de Base de Datos
+│   ├── 📁 backups/
+│   │   └── Produccion_Agro_Backup
+│   └── 📁 scripts/
+│       ├── 01_schema_creation.sql
+│       └── 02_initial_data.sql
 │
-├── 📁 dialogs/                          # ✅ Diálogos QML
-│   ├── DatePicker.qml #sin nada
-│   ├── ConfirmDialog.qml # Sin nada
-│   └── [otros diálogos...]
+├── 📁 dialogs/                          # ✅ Ventanas de Diálogo QML
+│   ├── ConfirmDialog.qml
+│   └── DatePicker.qml
 │
-├── 📁 logs/                             # ✅ Logs del sistema
-│   └── [archivos .log generados]
+├── 📁 logs/                             # ✅ Registros de actividad
 │
-├── 📁 resources/                        # ✅ Recursos estáticos
-│   ├── 📁 images/
+├── 📁 recursos/                         # ✅ Recursos estáticos (Renombrado)
+│   ├── 📁 image/
+│   │   ├── 📁 backgrounds/
 │   │   ├── 📁 icons/
-│   │   ├── 📁 logos/
-│   │   └── 📁 backgrounds/
-│   └── 📁 maps/
-│       ├── 📁 styles/
-│       └── 📁 data/
+│   │   └── 📁 logos/
+│   └── 📁 reportes/                     # Plantillas o salidas de reportes
 │
-├── 📁 scripts/                          # ✅ Sprint 1.2
-│   ├── migrar_passwords.py              # ✅ Sprint 1.2
-│   └── crear_usuario_admin.py           # ✅ Sprint 1.2
-│
-├── 📁 styles/                           # ✅ Estilos QML
-│   ├── Colors.qml #Sin nada
-│   ├── AppTheme.qml # Sin nada
-│   └── [otros estilos...]
+├── 📁 styles/                           # ✅ Estilos Visuales
+│   ├── AppTheme.qml
+│   ├── Colors.qml
+│   └── qmldir
 │
 ├── 📁 temp/                             # ✅ Archivos temporales
-│   └── [archivos temporales]
 │
-├── 📁 utils/                            # ✅ Sprint 1.1 (utilidades generales)
-│   ├── __init__.py                      # ✅ Sprint 1.1 -Sin nada
-│   ├── validators.py                    # ✅ Sprint 1.1 - Sin nada
-│   ├── formatters.py                    # ✅ Sprint 1.1 - Sin nada
-│   └── export_utils.py                  # 📝 Futuro - Sin nada
+├── 📁 utils/                            # ✅ Utilidades Generales (Root)
+│   ├── __init__.py
+│   ├── export_utils.py                  # Exportación a Excel/PDF
+│   ├── formatters.py                    # Formateo de texto/fechas
+│   └── validators.py                    # Validaciones de entrada
 │
+├── 📁 venv/                             # ✅ Entorno Virtual
 │
-├── 📁 venv/                             # ✅ Entorno virtual Python
-│   └── [NO subir a Git]
-│
-│
-├── 📄 ARCHIVOS QML EN RAÍZ (Reorganizar en Sprint futuro)
-│   ├── main.qml                         # Ventana principal
-│   ├── login.qml                        # Login
-│   ├── productores_parcela.qml         # Agricultores
-│   ├── agroquimico.qml                  # Agroquímicos
-│   ├── configuracion.qml                # Configuración
-│   ├── cultivos.qml                     # Cultivos
-│   ├── dashboard.qml                    # Dashboard (si existe)
-│   ├── gastos.qml                       # Gastos
-│   ├── maquinaria.qml                   # Maquinaria
-│   ├── reportesAgricola.qml             # Reportes
-│   ├── usuario_roles.qml                # Usuarios y roles
-│   └── ventas_cliente.qml               # Ventas
-│   └── app_container.qml                # navega entre el login y el main de la app
+├── 📄 ARCHIVOS QML EN RAÍZ (Vistas Principales)
+│   ├── main.qml                         # Ventana contenedora principal
+│   ├── app_container.qml                # Navegación (StackView principal)
+│   ├── login.qml                        # Pantalla de acceso
+│   ├── dashboard.qml                    # Panel de control
+│   ├── MapaInteractivo.qml              # ✅ Nuevo: Visualización de mapas
+│   ├── agroquimico.qml                  # Gestión de insumos
+│   ├── configuracion.qml                # Ajustes del sistema
+│   ├── cultivos.qml                     # Gestión de cultivos
+│   ├── gastos.qml                       # Registro de gastos
+│   ├── maquinaria.qml                   # Gestión de maquinaria
+│   ├── productores_parcela.qml          # Gestión de agricultores
+│   ├── reportesAgricola.qml             # Módulo de reportes
+│   ├── usuario_roles.qml                # Administración de usuarios
+│   └── ventas_cliente.qml               # Módulo de ventas
 │
 ├── 📄 ARCHIVOS DE CONFIGURACIÓN
-│   ├── .env                            
-│   ├── .env.example                     
-│   ├── .gitignore                       
-│   ├── requirements.txt              
-│   ├── Arquitectura de AgroI...txt     
-│   └── README.md                        # 📝 Pendiente
+│   ├── .env
+│   ├── .gitignore
+│   ├── requirements.txt
+│   └── Arquitectura de AgroIchilo.txt
 │
 └── 📄 PUNTO DE ENTRADA
-    ├── main.py                          # ✅ Archivo principal Python
-    └── agroichilo.spec                  # 📝 Futuro (PyInstaller)
-
-
-
-
-═══════════════════════════════════════════════════════════════════════════
-
-🎯 TIPOS DE USUARIOS SUGERIDOS:
-
-┌──────────────┬─────────────────────────────────────────────────────┐
-│ ROL          │ PERMISOS                                             │
-├──────────────┼─────────────────────────────────────────────────────┤
-│              │ ✅ Acceso total al sistema                          │
-│ ADMINISTRADOR│ ✅ Gestión de usuarios                              │
-│              │ ✅ Configuración del sistema                        │
-│              │ ✅ Ver/editar/eliminar todo                         │
-│              │ ✅ Generar todos los reportes                       │
-├──────────────┼─────────────────────────────────────────────────────┤
-│              │ ✅ Dashboard (solo lectura)                         │
-│ SUPERVISOR   │ ✅ Agricultores/Parcelas (lectura/escritura)       │
-│              │ ✅ Cultivos (lectura/escritura)                     │
-│              │ ✅ Ventas (lectura/escritura)                       │
-│              │ ✅ Reportes (solo generación, no config)           │
-│              │ ❌ NO puede eliminar registros importantes         │
-│              │ ❌ NO puede gestionar usuarios                     │
-├──────────────┼─────────────────────────────────────────────────────┤
-│              │ ✅ Dashboard (solo lectura)                         │
-│ OPERADOR     │ ✅ Registro de tratamientos                        │
-│              │ ✅ Registro de costos operativos                   │
-│              │ ✅ Uso de maquinaria                               │
-│              │ ✅ Inventario agroquímicos (consulta)              │
-│              │ ❌ NO puede ver reportes financieros               │
-│              │ ❌ NO puede eliminar                               │
-├──────────────┼─────────────────────────────────────────────────────┤
-│              │ ✅ Dashboard (solo lectura)                         │
-│ CONTADOR     │ ✅ Ventas (lectura)                                │
-│              │ ✅ Gastos (lectura/escritura)                      │
-│              │ ✅ Reportes financieros completos                  │
-│              │ ✅ Exportar a Excel/PDF                            │
-│              │ ❌ NO acceso a agroquímicos                        │
-│              │ ❌ NO acceso a maquinaria                          │
-└──────────────┴─────────────────────────────────────────────────────┘
+    └── main.py                          # Ejecutable principal
