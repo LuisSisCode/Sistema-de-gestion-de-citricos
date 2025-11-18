@@ -52,7 +52,7 @@ Rectangle {
     Rectangle {
         id: titleBar
         width: parent.width
-        height: 80
+        height: 60
         color: "transparent"
 
         Text {
@@ -60,9 +60,7 @@ Rectangle {
             font.pixelSize: 28
             font.bold: true
             color: "#2E7D32"
-            anchors.left: parent.left
-            anchors.leftMargin: 30
-            anchors.verticalCenter: parent.verticalCenter
+            anchors.centerIn: parent
         }
     }
 
@@ -70,9 +68,9 @@ Rectangle {
     Item {
         id: modernTabBar
         width: parent.width - 40
-        height: 90
+        height: 70
         anchors.top: titleBar.bottom
-        anchors.topMargin: 10
+        anchors.topMargin: 5
         anchors.horizontalCenter: parent.horizontalCenter
         
         TabBarComponent {
@@ -97,7 +95,7 @@ Rectangle {
         width: parent.width - 40
         height: parent.height - modernTabBar.y - modernTabBar.height - 20
         anchors.top: modernTabBar.bottom
-        anchors.topMargin: 20
+        anchors.topMargin: 10
         anchors.horizontalCenter: parent.horizontalCenter
         
         // ==================== TAB 1: AGRICULTORES ====================
@@ -112,13 +110,13 @@ Rectangle {
             
             ColumnLayout {
                 anchors.fill: parent
-                spacing: 15
+                spacing: 10
                 
                 // Barra de herramientas con FilterHeaderComponent
                 FilterHeaderComponent {
                     id: filterHeaderAgricultores
                     Layout.fillWidth: true
-                    height: 60
+                    height: 50
                     buttonText: "Nuevo Agricultor"
                     buttonIcon: "recursos/image/icons/agregar.svg"
                     buttonColor: "#2E7D32"
@@ -274,7 +272,7 @@ Rectangle {
                 // Paginador Agricultores - CENTRADO
                 Item {
                     Layout.fillWidth: true
-                    height: 50
+                    height: 40
                     
                     Paginator {
                         id: paginadorAgricultores
@@ -304,13 +302,13 @@ Rectangle {
             
             ColumnLayout {
                 anchors.fill: parent
-                spacing: 15
+                spacing: 10
                 
                 // Barra de herramientas con FilterHeaderComponent
                 FilterHeaderComponent {
                     id: filterHeaderParcelas
                     Layout.fillWidth: true
-                    height: 60
+                    height: 50
                     buttonText: "Nueva Parcela"
                     buttonIcon: "recursos/image/icons/agregar.svg"
                     buttonColor: "#F57C00"
@@ -484,7 +482,7 @@ Rectangle {
                 // Paginador Parcelas - CENTRADO
                 Item {
                     Layout.fillWidth: true
-                    height: 50
+                    height: 40
                     
                     Paginator {
                         id: paginadorParcelas

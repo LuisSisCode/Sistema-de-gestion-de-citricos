@@ -83,7 +83,7 @@ Rectangle {
     Rectangle {
         id: titleBar
         width: parent.width
-        height: 80
+        height: 60
         color: "transparent"
 
         Text {
@@ -91,9 +91,7 @@ Rectangle {
             font.pixelSize: 28
             font.bold: true
             color: "#2E7D32"
-            anchors.left: parent.left
-            anchors.leftMargin: 30
-            anchors.verticalCenter: parent.verticalCenter
+            anchors.centerIn: parent
         }
     }
 
@@ -101,9 +99,9 @@ Rectangle {
     Item {
         id: modernTabBar
         width: parent.width - 40
-        height: 90
+        height: 70
         anchors.top: titleBar.bottom
-        anchors.topMargin: 10
+        anchors.topMargin: 5
         anchors.horizontalCenter: parent.horizontalCenter
         
         TabBarComponent {
@@ -129,7 +127,7 @@ Rectangle {
         width: parent.width - 40
         height: parent.height - modernTabBar.y - modernTabBar.height - 20
         anchors.top: modernTabBar.bottom
-        anchors.topMargin: 20
+        anchors.topMargin: 10
         anchors.horizontalCenter: parent.horizontalCenter
         
         // ==================== TAB 1: EQUIPOS ====================
@@ -144,13 +142,13 @@ Rectangle {
             
             ColumnLayout {
                 anchors.fill: parent
-                spacing: 15
+                spacing: 10
                 
                 // Barra de herramientas con FilterHeaderComponent
                 FilterHeaderComponent {
                     id: filterHeaderEquipos
                     Layout.fillWidth: true
-                    height: 60
+                    height: 50
                     buttonText: "Nuevo Equipo"
                     buttonIcon: "recursos/image/icons/agregar.svg"
                     buttonColor: "#2E7D32"
@@ -198,13 +196,13 @@ Rectangle {
                             
                             Row {
                                 anchors.fill: parent
-                                Text { width: parent.width * 0.11; height: parent.height; text: "Código"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
-                                Text { width: parent.width * 0.2; height: parent.height; text: "Nombre"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
-                                Text { width: parent.width * 0.12; height: parent.height; text: "Tipo"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
-                                Text { width: parent.width * 0.14; height: parent.height; text: "Marca"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.10; height: parent.height; text: "Código"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.18; height: parent.height; text: "Nombre"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.15; height: parent.height; text: "Tipo"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.12; height: parent.height; text: "Marca"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
                                 Text { width: parent.width * 0.15; height: parent.height; text: "Combustible"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
-                                Text { width: parent.width * 0.14; height: parent.height; text: "Estado"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
-                                Text { width: parent.width * 0.14; height: parent.height; text: "Acciones"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter; color: "#424242" }
+                                Text { width: parent.width * 0.12; height: parent.height; text: "Estado"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.18; height: parent.height; text: "Acciones"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter; color: "#424242" }
                             }
                         }
                         
@@ -216,7 +214,7 @@ Rectangle {
                             MouseArea {
                                 anchors.fill: parent
                                 hoverEnabled: true
-                                onEntered: parent.color = "#E8F4F8"
+                                onEntered: parent.color = "#E8F5E9"
                                 onExited: parent.color = index % 2 === 0 ? "#FFFFFF" : "#FAFAFA"
                             }
                             
@@ -224,59 +222,21 @@ Rectangle {
                                 anchors.fill: parent
                                 spacing: 0
                                 
-                                Text { width: parent.width * 0.11; height: parent.height; text: modelData.codigo; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
-                                Text { width: parent.width * 0.2; height: parent.height; text: modelData.nombre; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
-                                Text { width: parent.width * 0.12; height: parent.height; text: modelData.tipo; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
-                                Text { width: parent.width * 0.14; height: parent.height; text: modelData.marca; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.10; height: parent.height; text: modelData.codigo; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.18; height: parent.height; text: modelData.nombre; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.15; height: parent.height; text: modelData.tipo; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.12; height: parent.height; text: modelData.marca; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
                                 Text { width: parent.width * 0.15; height: parent.height; text: modelData.tipo_combustible; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.12; height: parent.height; text: modelData.estado; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12; color: modelData.estado === "Activo" ? "#2E7D32" : "#F57C00" }
                                 
                                 Rectangle {
-                                    width: parent.width * 0.14
-                                    height: parent.height
-                                    color: "transparent"
-                                    
-                                    Rectangle {
-                                        width: 80
-                                        height: 24
-                                        radius: 12
-                                        anchors.centerIn: parent
-                                        color: modelData.estado === "Activo" ? "#E8F5E8" : (modelData.estado === "En mantenimiento" ? "#FFF3CD" : "#FFEBEE")
-                                        
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: modelData.estado
-                                            font.pixelSize: 11
-                                            color: modelData.estado === "Activo" ? "#2E7D32" : (modelData.estado === "En mantenimiento" ? "#B8860B" : "#D32F2F")
-                                        }
-                                    }
-                                }
-                                
-                                Rectangle {
-                                    width: parent.width * 0.14
+                                    width: parent.width * 0.18
                                     height: parent.height
                                     color: "transparent"
                                     
                                     Row {
                                         spacing: 5
                                         anchors.centerIn: parent
-                                        
-                                        Button {
-                                            width: 32; height: 32
-                                            background: Rectangle {
-                                                color: parent.hovered ? "#E3F2FD" : "transparent"
-                                                radius: 4
-                                            }
-                                            contentItem: Image {
-                                                source: "recursos/image/icons/ojo.svg"
-                                                width: 16
-                                                height: 16
-                                                anchors.centerIn: parent
-                                                fillMode: Image.PreserveAspectFit
-                                            }
-                                            ToolTip.visible: hovered
-                                            ToolTip.text: "Ver detalles"
-                                            onClicked: console.log("Ver", modelData.id)
-                                        }
                                         
                                         Button {
                                             width: 32; height: 32
@@ -320,10 +280,10 @@ Rectangle {
                     }
                 }
                 
-                // Paginador Equipos - CENTRADO
+                // Paginador Equipos
                 Item {
                     Layout.fillWidth: true
-                    height: 50
+                    height: 40
                     
                     Paginator {
                         id: paginadorEquipos
@@ -353,21 +313,20 @@ Rectangle {
             
             ColumnLayout {
                 anchors.fill: parent
-                spacing: 15
+                spacing: 10
                 
-                // Barra de herramientas con FilterHeaderComponent
                 FilterHeaderComponent {
                     id: filterHeaderMantenimiento
                     Layout.fillWidth: true
-                    height: 60
+                    height: 50
                     buttonText: "Nuevo Mantenimiento"
                     buttonIcon: "recursos/image/icons/agregar.svg"
                     buttonColor: "#F57C00"
                     searchPlaceholder: "Buscar mantenimiento..."
                     searchIcon: "recursos/image/icons/lupa.png"
                     filterOptions: tiposMantenimiento
-                    filterPlaceholder: "Tipo de mantenimiento..."
-                    filterWidth: 200
+                    filterPlaceholder: "Tipo..."
+                    filterWidth: 150
                     
                     onButtonClicked: {
                         console.log("Nuevo mantenimiento")
@@ -382,7 +341,6 @@ Rectangle {
                     }
                 }
                 
-                // Tabla de Mantenimiento
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
@@ -407,13 +365,12 @@ Rectangle {
                             
                             Row {
                                 anchors.fill: parent
-                                Text { width: parent.width * 0.18; height: parent.height; text: "Equipo"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.20; height: parent.height; text: "Equipo"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
                                 Text { width: parent.width * 0.15; height: parent.height; text: "Tipo"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
-                                Text { width: parent.width * 0.14; height: parent.height; text: "Fecha"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
-                                Text { width: parent.width * 0.18; height: parent.height; text: "Descripción"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.15; height: parent.height; text: "Fecha"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
                                 Text { width: parent.width * 0.15; height: parent.height; text: "Costo"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
-                                Text { width: parent.width * 0.12; height: parent.height; text: "Estado"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
-                                Text { width: parent.width * 0.08; height: parent.height; text: "Acciones"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter; color: "#424242" }
+                                Text { width: parent.width * 0.20; height: parent.height; text: "Descripción"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.15; height: parent.height; text: "Acciones"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter; color: "#424242" }
                             }
                         }
                         
@@ -433,35 +390,14 @@ Rectangle {
                                 anchors.fill: parent
                                 spacing: 0
                                 
-                                Text { width: parent.width * 0.18; height: parent.height; text: modelData.equipo; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.20; height: parent.height; text: modelData.equipo; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
                                 Text { width: parent.width * 0.15; height: parent.height; text: modelData.tipo; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
-                                Text { width: parent.width * 0.14; height: parent.height; text: modelData.fecha; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
-                                Text { width: parent.width * 0.18; height: parent.height; text: modelData.descripcion; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
-                                Text { width: parent.width * 0.15; height: parent.height; text: "Bs. " + modelData.costo.toFixed(2); verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12; font.bold: true; color: "#2E7D32" }
+                                Text { width: parent.width * 0.15; height: parent.height; text: modelData.fecha; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Text { width: parent.width * 0.15; height: parent.height; text: "Bs. " + modelData.costo; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12; font.bold: true; color: "#F57C00" }
+                                Text { width: parent.width * 0.20; height: parent.height; text: modelData.descripcion; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
                                 
                                 Rectangle {
-                                    width: parent.width * 0.12
-                                    height: parent.height
-                                    color: "transparent"
-                                    
-                                    Rectangle {
-                                        width: 80
-                                        height: 24
-                                        radius: 12
-                                        anchors.centerIn: parent
-                                        color: modelData.estado === "Completado" ? "#E8F5E8" : "#FFF3CD"
-                                        
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: modelData.estado
-                                            font.pixelSize: 11
-                                            color: modelData.estado === "Completado" ? "#2E7D32" : "#B8860B"
-                                        }
-                                    }
-                                }
-                                
-                                Rectangle {
-                                    width: parent.width * 0.08
+                                    width: parent.width * 0.15
                                     height: parent.height
                                     color: "transparent"
                                     
@@ -511,10 +447,9 @@ Rectangle {
                     }
                 }
                 
-                // Paginador Mantenimiento - CENTRADO
                 Item {
                     Layout.fillWidth: true
-                    height: 50
+                    height: 40
                     
                     Paginator {
                         id: paginadorMantenimiento
@@ -544,13 +479,12 @@ Rectangle {
             
             ColumnLayout {
                 anchors.fill: parent
-                spacing: 15
+                spacing: 10
                 
-                // Barra de herramientas con FilterHeaderComponent
                 FilterHeaderComponent {
                     id: filterHeaderCombustible
                     Layout.fillWidth: true
-                    height: 60
+                    height: 50
                     buttonText: "Nuevo Registro"
                     buttonIcon: "recursos/image/icons/agregar.svg"
                     buttonColor: "#0288D1"
@@ -573,7 +507,6 @@ Rectangle {
                     }
                 }
                 
-                // Tabla de Combustible
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
@@ -682,10 +615,9 @@ Rectangle {
                     }
                 }
                 
-                // Paginador Combustible - CENTRADO
                 Item {
                     Layout.fillWidth: true
-                    height: 50
+                    height: 40
                     
                     Paginator {
                         id: paginadorCombustible
