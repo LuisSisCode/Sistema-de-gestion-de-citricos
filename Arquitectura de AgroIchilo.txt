@@ -29,24 +29,38 @@ C:\AgroIchilo\
 │   │   ├── clientes_model.py
 │   │   ├── cultivos_model.py
 │   │   ├── dashboard_model.py
-│   │   ├── gastos_model.py
 │   │   ├── maquinaria_model.py
 │   │   ├── productores_parcelas_model.py
 │   │   ├── reportes_model.py
 │   │   ├── usuario_model.py
+│   │   ├── movimientos_financieros_model.py.py
 │   │   └── ventas_model.py
 │   │
 │   ├── 📁 repositories/                 # ✅ Repositorios (Acceso a Datos)
+│   │   ├── __init__.py
 │   │   ├── 📁 AgroquimicosRep/
 │   │   ├── 📁 ClientesVentasRep/        # Cliente y Venta repositorios
 │   │   │   ├── __init__.py
 │   │   │   ├── cliente_repositorio.py
 │   │   │   └── venta_repositorio.py
 │   │   ├── 📁 CultivosRepositorio/      # Ciclo, Lote, Tipo, Variedad
-│   │   ├── 📁 GastosRep/
+│   │   │   ├── __init__.py
+│   │   │   ├── ciclo_produccion_repositorio.py
+│   │   │   ├── lote_cosecha_repositorio.py
+│   │   │   ├── relacion_cultivo_reppositorio.py
+│   │   │   ├── tipo_cultivo_repositorio.py
+│   │   │   └── variedad_cultivo_repositorio.py
+│   │   ├── 📁 FinanzasRep/
+│   │   │   ├── __init__.py
+│   │   │   └── movimineto_financiero_repositorio.py
 │   │   ├── 📁 MaquinariaRep/
-│   │   ├── 📁 Productor_Parcelas_rep/   # Productor, Parcela, Relación
+│   │   ├── 📁 Productor_Parcelas_rep/   # Productor, Parcela
+│   │   │   ├── __init__.py
+│   │   │   ├── parcela_repositorio.py
+│   │   │   ├── productor_repositorio.py
+│   │   │   └── relacion_agriPar_repositorio.py
 │   │   ├── 📁 ReportesRep/
+            Sin nada por ahora
 │   │   └── 📁 UsuariosRep/              # Usuario, Rol, Auth
 │   │       ├── auto_repositorio.py
 │   │       ├── rol_repositorio.py
@@ -130,7 +144,7 @@ C:\AgroIchilo\
 │   ├── agroquimico.qml                  # Gestión de insumos
 │   ├── configuracion.qml                # Ajustes del sistema
 │   ├── cultivos.qml                     # Gestión de cultivos
-│   ├── gastos.qml                       # Registro de gastos
+│   ├── finanzas.qml                       # Registro de gastos
 │   ├── maquinaria.qml                   # Gestión de maquinaria
 │   ├── productores_parcela.qml          # Gestión de agricultores
 │   ├── reportesAgricola.qml             # Módulo de reportes

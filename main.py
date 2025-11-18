@@ -29,11 +29,11 @@ from backend.models.maquinaria_model import MaquinariaModel
 
 # Nuevos modelos a incluir
 from backend.models.auth_model import AutoModel 
-from backend.models.gastos_model import GastosModel
 from backend.models.reportes_model import *
 from backend.models.dashboard_model import DashboardModel
 from backend.models.clientes_model import ClientesModel
 from backend.models.ventas_model import VentasModel
+from backend.models.movimientos_financieros_model import MovimientosFinancierosModel
 
 
 class AppManager(QObject):
@@ -152,7 +152,7 @@ class ModuleManager(QObject):
             6: "maquinaria.qml",
             7: "configuracion.qml",
             8: "reportesAgricola.qml",
-            9: "gastos.qml"
+            9: "finanzas.qml"
         }
     
     def set_root_object(self, root):
@@ -340,6 +340,13 @@ def main():
         print("✅ MaquinariaModel registrado en QML")
     except Exception as e:
         print(f"⚠️ No se pudo registrar MaquinariaModel: {e}")
+
+    try:
+        movimientos_financieros_model = MovimientosFinancierosModel()
+        engine.rootContext().setContextProperty("movimientosFinancierosModel", movimientos_financieros_model)
+        print("✅ MovimientosFinancierosModel registrado en QML")
+    except Exception as e:
+        print(f"⚠️ No se pudo registrar MovimientosFinancierosModel: {e}")
     
     # Verificar archivos
     print(f"📁 Directorio de trabajo: {os.getcwd()}")

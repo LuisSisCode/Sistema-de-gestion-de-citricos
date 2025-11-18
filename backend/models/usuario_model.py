@@ -41,12 +41,21 @@ class UsuariosRolesModel(QObject):
     def cargar_usuarios(self):
         """Carga la lista de usuarios desde la base de datos"""
         try:
-            self._usuarios = self._gestor.obtener_usuarios()
-            self._usuarios_filtrados = self._usuarios
+            # ⭐ CORRECCIÓN DE LA FUNCIÓN: Ahora llama a 'obtener_usuarios()'
+            self._usuarios = self._gestor.obtener_usuarios() 
+            
+            # ⭐ NUEVO: Añadir 'nombre_completo'
+            for u in self._usuarios:
+                u['nombre_completo'] = f"{u.get('nombre', '')} {u.get('apellido', '')}".strip()
+                
+            self._usuarios_filtrados = self._usuarios # Inicializa los filtrados
             self.usuariosChanged.emit()
             self.usuariosFiltradosChanged.emit()
+            return True
         except Exception as e:
-            print(f"Error al cargar usuarios: {str(e)}")
+            # Aquí aparecerá el error anterior si no se corrige el nombre de la función
+            print(f"Error al cargar usuarios: {str(e)}") 
+            return False
     
     @Slot()
     def cargar_roles(self):
@@ -161,7 +170,18 @@ class UsuariosRolesModel(QObject):
             self._usuarios_filtrados = [u for u in self._usuarios if 
                                        texto_busqueda in u['nombre'].lower() or 
                                        texto_busqueda in u['apellido'].lower() or 
+                                       # ⭐ NUEVO: Incluir nombre_completo en el filtro
+                                       texto_busqueda in u.get('nombre_completo', '').lower() or
                                        texto_busqueda in u['usuario'].lower() or 
                                        texto_busqueda in u['email'].lower() or 
                                        texto_busqueda in u['rol'].lower()]
         self.usuariosFiltradosChanged.emit()
+
+    @Slot(int, result=str)
+    def obtener_nombre_rol(self, id_rol):
+        """Devuelve el nombre del rol dado su ID."""
+        for rol in self._roles:
+            # Asumo que las claves son 'id_rol' y 'nombre_rol' o 'rol'
+            if rol.get('id_rol') == id_rol: 
+                return rol.get('nombre_rol', 'Rol Desconocido') # Cambia a 'rol' si es necesario
+        return 'Rol Desconocido'

@@ -4,13 +4,14 @@ import QtQuick.Layouts 1.15
 import "./components"
 
 Rectangle {
-    id: gastosRoot
+    id: finanzasRoot
     anchors.fill: parent
     color: "#F8F9FA"
     
     // Estado para controlar la pestaña activa
-    property int tabActiva: 1
+    property int tabActiva: 0
     property var tabsInfo: [
+        {"text": "Flujo de Caja", "icon": "recursos/image/icons/moneda.png", "color": "#009688"},
         {"text": "Costos de Producción", "icon": "recursos/image/icons/costoproduccion.png", "color": "#FF9800"},
         {"text": "Pagos a Agricultores", "icon": "recursos/image/icons/pagosagricultures.png", "color": "#4CAF50"},
         {"text": "Combustible y Maquinaria", "icon": "recursos/image/icons/combustible.png", "color": "#2196F3"},
@@ -18,86 +19,12 @@ Rectangle {
     ]
     
     // Propiedades para manejar datos dinámicos
-    property var costosProduccion: [
-        {
-            "id": 1, "fecha": "15/07/2025", "ciclo": "Ciclo Naranja 2025-A", "parcela": "Parcela Norte", 
-            "categoria": "Semillas", "concepto": "Semillas de naranja valencia", "cantidad": 50, 
-            "unidad": "Kg", "costo_unitario": 25.00, "total": 1250.00, "comprobante": "FAC-001"
-        },
-        {
-            "id": 2, "fecha": "16/07/2025", "ciclo": "Ciclo Mandarina 2025-B", "parcela": "Parcela Sur", 
-            "categoria": "Fertilizantes", "concepto": "Fertilizante NPK", "cantidad": 100, 
-            "unidad": "Kg", "costo_unitario": 15.50, "total": 1550.00, "comprobante": "FAC-002"
-        },
-        {
-            "id": 3, "fecha": "17/07/2025", "ciclo": "Ciclo Naranja 2025-A", "parcela": "Parcela Este", 
-            "categoria": "Mano de Obra", "concepto": "Jornales de siembra", "cantidad": 8, 
-            "unidad": "Días", "costo_unitario": 120.00, "total": 960.00, "comprobante": "REC-003"
-        }
-    ]
-    
-    property var pagosAgricultores: [
-        {
-            "id": 1, "fecha": "10/07/2025", "agricultor": "Juan Pérez", "concepto": "Pago cosecha naranja", 
-            "monto": 2500.00, "metodo": "Efectivo", "estado": "Confirmado", "referencia": "PAG-001"
-        },
-        {
-            "id": 2, "fecha": "12/07/2025", "agricultor": "María González", "concepto": "Anticipo siembra", 
-            "monto": 1800.00, "metodo": "Transferencia", "estado": "Pendiente", "referencia": "PAG-002"
-        },
-        {
-            "id": 3, "fecha": "14/07/2025", "agricultor": "Carlos Mendoza", "concepto": "Pago por mantenimiento", 
-            "monto": 950.00, "metodo": "Cheque", "estado": "Confirmado", "referencia": "PAG-003"
-        }
-    ]
-    
-    property var comprasCombustible: [
-        {
-            "id": 1, "fecha": "08/07/2025", "tipo": "Diésel", "cantidad": 200, "unidad": "L", 
-            "precio_unitario": 3.74, "total": 748.00, "proveedor": "Estación El Sol"
-        },
-        {
-            "id": 2, "fecha": "11/07/2025", "tipo": "Gasolina", "cantidad": 150, "unidad": "L", 
-            "precio_unitario": 3.72, "total": 558.00, "proveedor": "Petrobras"
-        }
-    ]
-    
-    property var usoMaquinaria: [
-        {
-            "id": 1, "fecha": "09/07/2025", "maquinaria": "Tractor John Deere", "usuario": "Pedro Ramos", 
-            "actividad": "Arado de terreno", "combustible": 45.5, "costo": 170.27
-        },
-        {
-            "id": 2, "fecha": "13/07/2025", "maquinaria": "Cosechadora", "usuario": "Ana Silva", 
-            "actividad": "Cosecha de naranja", "combustible": 78.2, "costo": 292.45
-        }
-    ]
-    
-    property var mantenimientos: [
-        {
-            "id": 1, "fecha": "05/07/2025", "maquinaria": "Tractor John Deere", "tipo": "Preventivo", 
-            "descripcion": "Cambio de aceite y filtros", "costo": 450.00, "estado": "Completado"
-        },
-        {
-            "id": 2, "fecha": "15/07/2025", "maquinaria": "Bomba de agua", "tipo": "Correctivo", 
-            "descripcion": "Reparación de motor", "costo": 680.00, "estado": "Programado"
-        }
-    ]
-    
-    property var inventarioAgroquimicos: [
-        {
-            "id": 1, "producto": "Roundup", "categoria": "Herbicida", "stock": 25.5, "unidad": "L", 
-            "precio_unitario": 45.00, "valor_total": 1147.50, "estado": "Normal"
-        },
-        {
-            "id": 2, "producto": "Fungicida Copper", "categoria": "Fungicida", "stock": 8.2, "unidad": "Kg", 
-            "precio_unitario": 35.80, "valor_total": 293.56, "estado": "Bajo"
-        },
-        {
-            "id": 3, "producto": "Insecticida BT", "categoria": "Insecticida", "stock": 45.0, "unidad": "L", 
-            "precio_unitario": 28.50, "valor_total": 1282.50, "estado": "Normal"
-        }
-    ]
+    property var costosProduccion: []
+    property var pagosAgricultores: []
+    property var comprasCombustible: []
+    property var usoMaquinaria: []
+    property var mantenimientos: []
+    property var inventarioAgroquimicos: []
     
     property var categoriasCostos: ["Semillas", "Fertilizantes", "Agroquímicos", "Mano de Obra", "Maquinaria", "Otros"]
     property var metodosPago: ["Efectivo", "Transferencia", "Cheque", "Depósito"]
@@ -108,27 +35,40 @@ Rectangle {
     
     // Propiedades para paginación
     property int paginaActualCostos: 1
-    property int totalPaginasCostos: 5
+    property int totalPaginasCostos: 1
     property int paginaActualPagos: 1
-    property int totalPaginasPagos: 3
+    property int totalPaginasPagos: 1
     property int paginaActualCombustible: 1
-    property int totalPaginasCombustible: 4
+    property int totalPaginasCombustible: 1
     property int paginaActualInventario: 1
-    property int totalPaginasInventario: 2
+    property int totalPaginasInventario: 1
+    property int paginaActualFlujo: 1
+    property int totalPaginasFlujo: 1
+
+    // Inicialización del componente
+    Component.onCompleted: {
+        console.log("💰 Inicializando módulo de finanzas...")
+        if (typeof finanzasModel !== 'undefined') {
+            finanzasModel.obtenerBalance()
+            finanzasModel.obtenerCategorias()
+            finanzasModel.obtenerMovimientos()
+        } else {
+            console.error("❌ finanzasModel no está disponible en el contexto QML")
+        }
+    }
     
     // Título de la página
     Rectangle {
-
         id: titleBar
         width: parent.width
         height: 60
         color: "transparent"
 
         Text {
-            text: "GESTIÓN DE GASTOS Y COSTOS"
+            text: "GESTIÓN FINANCIERA Y FLUJO DE CAJA"
             font.pixelSize: 28
             font.bold: true
-            color: "#2E7D32"
+            color: "#009688"
             anchors.centerIn: parent
         }
     }
@@ -147,16 +87,17 @@ Rectangle {
             anchors.centerIn: parent
             width: parent.width
             height: parent.height
-            tabsData: gastosRoot.tabsInfo
-            tabActiva: gastosRoot.tabActiva
+            tabsData: finanzasRoot.tabsInfo
+            tabActiva: finanzasRoot.tabActiva
             
             onTabChanged: function(index) {
-                gastosRoot.tabActiva = index
+                finanzasRoot.tabActiva = index
                 // Resetear páginas al cambiar de tab
                 paginaActualCostos = 1
                 paginaActualPagos = 1
                 paginaActualCombustible = 1
                 paginaActualInventario = 1
+                paginaActualFlujo = 1
             }
         }
     }
@@ -170,11 +111,292 @@ Rectangle {
         anchors.topMargin: 10
         anchors.horizontalCenter: parent.horizontalCenter
         
-        // Contenido de Costos de Producción
+        // ============================================
+        // CONTENIDO DE FLUJO DE CAJA (NUEVA PESTAÑA)
+        // ============================================
         Item {
             anchors.fill: parent
             visible: tabActiva === 0
             opacity: tabActiva === 0 ? 1 : 0
+            
+            Behavior on opacity {
+                NumberAnimation { duration: 300 }
+            }
+            
+            Column {
+                anchors.fill: parent
+                spacing: 15
+                
+                // Indicador de Balance
+                Rectangle {
+                    width: parent.width
+                    height: 80
+                    radius: 12
+                    color: "#FFFFFF"
+                    border.color: "#E0E0E0"
+                    border.width: 1
+                    
+                    Row {
+                        anchors.fill: parent
+                        anchors.margins: 15
+                        spacing: 20
+                        
+                        Column {
+                            width: parent.width * 0.7
+                            height: parent.height
+                            spacing: 5
+                            
+                            Text {
+                                text: "BALANCE ACTUAL"
+                                font.pixelSize: 14
+                                color: "#666666"
+                                font.bold: true
+                            }
+                            
+                            Text {
+                                text: typeof finanzasModel !== 'undefined' ? 
+                                      monedaSeleccionada + " " + finanzasModel.balanceActual.toFixed(2) : 
+                                      monedaSeleccionada + " 0.00"
+                                font.pixelSize: 28
+                                font.bold: true
+                                color: typeof finanzasModel !== 'undefined' && finanzasModel.balanceActual >= 0 ? 
+                                       "#2E7D32" : "#C62828"
+                            }
+                        }
+                        
+                        CustomButton {
+                            width: 220
+                            height: 40
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "Registrar Capital / Gasto General"
+                            iconSource: "recursos/image/icons/agregar.svg"
+                            backgroundColor: "#009688"
+                            textColor: "#FFFFFF"
+                            fontSize: 13
+                            borderRadius: 8
+                            
+                            onClicked: {
+                                registroMovimientoDialog.open()
+                            }
+                        }
+                    }
+                }
+                
+                // Barra de herramientas para Flujo de Caja
+                FilterHeaderComponent {
+                    id: filterHeaderFlujo
+                    width: parent.width
+                    height: 60
+                    buttonText: "Filtrar Movimientos"
+                    buttonIcon: "recursos/image/icons/filtrar.svg"
+                    buttonColor: "#009688"
+                    searchPlaceholder: "Buscar por descripción o categoría..."
+                    searchIcon: "recursos/image/icons/lupa.png"
+                    filterOptions: ["Todos", "Ingresos", "Egresos"]
+                    filterPlaceholder: "Tipo..."
+                    filterWidth: 140
+                    
+                    onButtonClicked: {
+                        console.log("Aplicar filtros personalizados")
+                    }
+                    
+                    onSearchTextChanged: function(text) {
+                        console.log("Buscar movimiento:", text)
+                    }
+                    
+                    onFilterChanged: function(index) {
+                        console.log("Filtrar por tipo:", filterOptions[index])
+                    }
+                }
+                
+                // Tabla de Movimientos Financieros
+                Rectangle {
+                    width: parent.width
+                    height: parent.height - 175
+                    color: "white"
+                    radius: 10
+                    border.color: "#E0E0E0"
+                    border.width: 1
+                    
+                    ListView {
+                        id: movimientosListView
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        clip: true
+                        model: typeof finanzasModel !== 'undefined' ? finanzasModel.movimientos : []
+                        headerPositioning: ListView.OverlayHeader
+                        
+                        header: Rectangle {
+                            width: parent.width
+                            height: 45
+                            color: "#F8F9FA"
+                            radius: 8
+                            z: 2
+                            
+                            Row {
+                                anchors.fill: parent
+                                Text { width: parent.width * 0.12; height: parent.height; text: "Fecha"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.12; height: parent.height; text: "Tipo"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.18; height: parent.height; text: "Categoría"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.28; height: parent.height; text: "Descripción"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.15; height: parent.height; text: "Monto"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10; color: "#424242" }
+                                Text { width: parent.width * 0.15; height: parent.height; text: "Acciones"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter; color: "#424242" }
+                            }
+                        }
+                        
+                        delegate: Rectangle {
+                            width: parent.width
+                            height: 50
+                            color: index % 2 === 0 ? "#FFFFFF" : "#FAFAFA"
+                            
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onEntered: parent.color = "#E0F2F1"
+                                onExited: parent.color = index % 2 === 0 ? "#FFFFFF" : "#FAFAFA"
+                            }
+                            
+                            Row {
+                                anchors.fill: parent
+                                spacing: 0
+                                
+                                Text { 
+                                    width: parent.width * 0.12; 
+                                    height: parent.height; 
+                                    text: modelData.fecha_movimiento || ""; 
+                                    verticalAlignment: Text.AlignVCenter; 
+                                    leftPadding: 10; 
+                                    elide: Text.ElideRight; 
+                                    font.pixelSize: 12 
+                                }
+                                
+                                Rectangle {
+                                    width: parent.width * 0.12
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Rectangle {
+                                        width: 80
+                                        height: 24
+                                        radius: 12
+                                        anchors.centerIn: parent
+                                        color: modelData.es_gasto ? "#FFEBEE" : "#E8F5E8"
+                                        
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: modelData.es_gasto ? "EGRESO" : "INGRESO"
+                                            font.pixelSize: 11
+                                            font.bold: true
+                                            color: modelData.es_gasto ? "#C62828" : "#2E7D32"
+                                        }
+                                    }
+                                }
+                                
+                                Text { 
+                                    width: parent.width * 0.18; 
+                                    height: parent.height; 
+                                    text: modelData.categoria_nombre || ""; 
+                                    verticalAlignment: Text.AlignVCenter; 
+                                    leftPadding: 10; 
+                                    elide: Text.ElideRight; 
+                                    font.pixelSize: 12 
+                                }
+                                
+                                Text { 
+                                    width: parent.width * 0.28; 
+                                    height: parent.height; 
+                                    text: modelData.descripcion || ""; 
+                                    verticalAlignment: Text.AlignVCenter; 
+                                    leftPadding: 10; 
+                                    elide: Text.ElideRight; 
+                                    font.pixelSize: 12 
+                                }
+                                
+                                Text { 
+                                    width: parent.width * 0.15; 
+                                    height: parent.height; 
+                                    text: monedaSeleccionada + " " + (modelData.monto || 0).toFixed(2); 
+                                    verticalAlignment: Text.AlignVCenter; 
+                                    leftPadding: 10; 
+                                    elide: Text.ElideRight; 
+                                    font.pixelSize: 12; 
+                                    font.bold: true; 
+                                    color: modelData.es_gasto ? "#C62828" : "#2E7D32" 
+                                }
+                                
+                                Rectangle {
+                                    width: parent.width * 0.15
+                                    height: parent.height
+                                    color: "transparent"
+                                    
+                                    Row {
+                                        spacing: 5
+                                        anchors.centerIn: parent
+                                        
+                                        Button {
+                                            width: 32; height: 32
+                                            background: Rectangle {
+                                                color: parent.hovered ? "#E3F2FD" : "transparent"
+                                                radius: 4
+                                            }
+                                            contentItem: Image {
+                                                source: "recursos/image/icons/editar.svg"
+                                                width: 16
+                                                height: 16
+                                                anchors.centerIn: parent
+                                                fillMode: Image.PreserveAspectFit
+                                            }
+                                            ToolTip.visible: hovered
+                                            ToolTip.text: "Editar"
+                                            onClicked: console.log("Editar movimiento", modelData.id)
+                                        }
+                                        
+                                        Button {
+                                            width: 32; height: 32
+                                            background: Rectangle {
+                                                color: parent.hovered ? "#FFEBEE" : "transparent"
+                                                radius: 4
+                                            }
+                                            contentItem: Image {
+                                                source: "recursos/image/icons/basura.svg"
+                                                width: 16
+                                                height: 16
+                                                anchors.centerIn: parent
+                                                fillMode: Image.PreserveAspectFit
+                                            }
+                                            ToolTip.visible: hovered
+                                            ToolTip.text: "Eliminar"
+                                            onClicked: console.log("Eliminar movimiento", modelData.id)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Paginador para Flujo de Caja
+                Paginator {
+                    id: paginadorFlujo
+                    width: parent.width
+                    height: 40
+                    currentPage: paginaActualFlujo
+                    totalPages: totalPaginasFlujo
+                    
+                    onPageChanged: {
+                        paginaActualFlujo = newPage
+                    }
+                }
+            }
+        }
+        
+        // ============================================
+        // CONTENIDO DE COSTOS DE PRODUCCIÓN (ÍNDICE 1)
+        // ============================================
+        Item {
+            anchors.fill: parent
+            visible: tabActiva === 1
+            opacity: tabActiva === 1 ? 1 : 0
             
             Behavior on opacity {
                 NumberAnimation { duration: 300 }
@@ -341,11 +563,13 @@ Rectangle {
             }
         }
         
-        // Contenido de Pagos a Agricultores
+        // ============================================
+        // CONTENIDO DE PAGOS A AGRICULTORES (ÍNDICE 2)
+        // ============================================
         Item {
             anchors.fill: parent
-            visible: tabActiva === 1
-            opacity: tabActiva === 1 ? 1 : 0
+            visible: tabActiva === 2
+            opacity: tabActiva === 2 ? 1 : 0
             
             Behavior on opacity {
                 NumberAnimation { duration: 300 }
@@ -531,11 +755,13 @@ Rectangle {
             }
         }
         
-        // Contenido de Combustible y Maquinaria
+        // ============================================
+        // CONTENIDO DE COMBUSTIBLE Y MAQUINARIA (ÍNDICE 3)
+        // ============================================
         Item {
             anchors.fill: parent
-            visible: tabActiva === 2
-            opacity: tabActiva === 2 ? 1 : 0
+            visible: tabActiva === 3
+            opacity: tabActiva === 3 ? 1 : 0
             
             Behavior on opacity {
                 NumberAnimation { duration: 300 }
@@ -917,11 +1143,13 @@ Rectangle {
             }
         }
         
-        // Contenido de Inventario de Agroquímicos
+        // ============================================
+        // CONTENIDO DE INVENTARIO AGROQUÍMICOS (ÍNDICE 4)
+        // ============================================
         Item {
             anchors.fill: parent
-            visible: tabActiva === 3
-            opacity: tabActiva === 3 ? 1 : 0
+            visible: tabActiva === 4
+            opacity: tabActiva === 4 ? 1 : 0
             
             Behavior on opacity {
                 NumberAnimation { duration: 300 }
@@ -1102,6 +1330,42 @@ Rectangle {
                     }
                 }
             }
+        }
+    }
+    
+    // ============================================
+    // DIÁLOGO DE REGISTRO DE MOVIMIENTOS
+    // ============================================
+    RegistroMovimientoDialog { 
+        id: registroMovimientoDialog
+    }
+    
+    // ============================================
+    // CONEXIONES CON EL MODELO FINANZAS
+    // ============================================
+    Connections {
+        target: typeof finanzasModel !== 'undefined' ? finanzasModel : null
+        
+        function onOperacionExitosa(message) {
+            console.log("✅ Operación exitosa:", message)
+            // Aquí podrías mostrar un Snackbar o notificación
+        }
+        
+        function onErrorOcurrido(message) {
+            console.error("❌ Error en finanzasModel:", message)
+            // Aquí podrías mostrar una alerta o notificación de error
+        }
+        
+        function onMovimientosActualizados() {
+            console.log("📊 Movimientos actualizados en la vista")
+        }
+        
+        function onBalanceCambiado() {
+            console.log("💰 Balance actualizado en la vista")
+        }
+        
+        function onCategoriasCargadas() {
+            console.log("📂 Categorías cargadas en la vista")
         }
     }
 }

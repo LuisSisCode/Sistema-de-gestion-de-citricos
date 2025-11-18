@@ -74,7 +74,7 @@ class UsuarioServicio:
         """
         try:
             # Validar campos requeridos
-            campos_requeridos = ['usuario', 'password', 'nombre', 'apellido', 'email', 'id_rol']
+            campos_requeridos = ['usuario', 'contrasena', 'nombre', 'apellido', 'email', 'id_rol']
             for campo in campos_requeridos:
                 if campo not in datos_usuario or not datos_usuario[campo]:
                     print(f"❌ Campo requerido faltante: {campo}")
@@ -169,11 +169,6 @@ class UsuarioServicio:
                 usuario = self.usuario_repo.obtener_por_id(id_usuario)
             except:
                 print(f"❌ Usuario con ID {id_usuario} no existe")
-                return False
-            
-            # Prevenir eliminación de usuario admin principal
-            if usuario.get('nivel_acceso', 0) >= 100:
-                print("❌ No se puede eliminar el usuario administrador principal")
                 return False
             
             # Eliminar usuario

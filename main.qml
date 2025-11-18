@@ -45,7 +45,7 @@ Rectangle {
             6: "maquinaria.qml",
             7: "configuracion.qml",
             8: "reportesAgricola.qml",
-            9: "gastos.qml"
+            9: "finanzas.qml"
         }
         
         var qmlFile = modulosFiles[moduleIndex]

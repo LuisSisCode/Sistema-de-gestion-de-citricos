@@ -32,7 +32,7 @@ class ProductoRepositorio(RepositorioBase):
         """
         query = """
         SELECT p.id_producto, p.nombre_comercial, c.nombre as categoria, 
-               p.formulacion, p.unidad, p.precio, p.stock, 
+               p.formulacion, p.unidad, p.precio, 
                p.registro, p.notas, p.fecha_registro, p.activo,
                c.id_categoria
         FROM ProductosAgroquimicos p
@@ -63,7 +63,6 @@ class ProductoRepositorio(RepositorioBase):
                         'formulacion': row.formulacion,
                         'unidad': row.unidad,
                         'precio': float(row.precio) if row.precio else 0.0,
-                        'stock': float(row.stock) if row.stock else 0.0,
                         'registro': row.registro,
                         'notas': row.notas,
                         'fecha_registro': fecha_registro,

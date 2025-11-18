@@ -35,6 +35,7 @@ class UsuarioRepositorio(RepositorioBase):
             u.apellido,
             u.email,
             u.telefono,
+            u.direccion,
             u.activo,
             u.ultimo_acceso,
             u.fecha_creacion,
@@ -57,6 +58,7 @@ class UsuarioRepositorio(RepositorioBase):
                 'apellido': row.apellido,
                 'email': row.email if hasattr(row, 'email') else None,
                 'telefono': row.telefono if hasattr(row, 'telefono') else None,
+                'direccion': row.direccion if hasattr(row, 'direccion') else None,
                 'activo': bool(row.activo),
                 'ultimo_acceso': self._formatear_fecha(row.ultimo_acceso) if hasattr(row, 'ultimo_acceso') else None,
                 'fecha_creacion': self._formatear_fecha(row.fecha_creacion) if hasattr(row, 'fecha_creacion') else None,
@@ -90,6 +92,7 @@ class UsuarioRepositorio(RepositorioBase):
             u.apellido,
             u.email,
             u.telefono,
+            u.direccion,
             u.activo,
             u.ultimo_acceso,
             u.fecha_creacion,
@@ -114,6 +117,7 @@ class UsuarioRepositorio(RepositorioBase):
             'apellido': row.apellido,
             'email': row.email if hasattr(row, 'email') else None,
             'telefono': row.telefono if hasattr(row, 'telefono') else None,
+            'direccion': row.direccion if hasattr(row, 'direccion') else None,
             'activo': bool(row.activo),
             'ultimo_acceso': self._formatear_fecha(row.ultimo_acceso) if hasattr(row, 'ultimo_acceso') else None,
             'fecha_creacion': self._formatear_fecha(row.fecha_creacion) if hasattr(row, 'fecha_creacion') else None,
@@ -122,6 +126,54 @@ class UsuarioRepositorio(RepositorioBase):
         }
         
         return usuario
+
+    # ⭐ MÉTODO DE ELIMINACIÓN FÍSICA (DELETE) CORREGIDO ⭐
+    @cache_invalidator('usuarios') 
+    def eliminar(self, id_usuario: int) -> bool:
+        """
+        Elimina completamente un usuario por su ID de la base de datos.
+        
+        Args:
+            id_usuario: ID del usuario a eliminar.
+            
+        Returns:
+            bool: True si la operación fue exitosa.
+            
+        Raises:
+            RegistroNoEncontrado: Si el usuario no existe.
+        """
+        # La forma más segura: verificar que exista (para lanzar RegistroNoEncontrado)
+        # y luego intentar borrar.
+        try:
+            self.obtener_por_id(id_usuario) # Lanza RegistroNoEncontrado si no existe
+        except RegistroNoEncontrado:
+            raise # Re-lanza la excepción si no se encuentra
+            
+        # Consulta de eliminación física
+        query = "DELETE FROM Usuarios WHERE id_usuario = ?;"
+        
+        try:
+            # Ejecuta el DELETE usando el método base que maneja la conexión
+            filas_afectadas = self._ejecutar_consulta(
+                query, 
+                (id_usuario,), 
+                obtener_resultado=False 
+            )
+            
+            # Una doble verificación de que se eliminó
+            if filas_afectadas > 0:
+                print(f"✅ Repositorio: Usuario {id_usuario} ELIMINADO completamente de la BD.")
+                return True
+            else:
+                # Si llega aquí y no eliminó, es un error no esperado.
+                print(f"⚠️ Repositorio: No se pudo eliminar el usuario {id_usuario}.")
+                return False
+            
+        except Exception as e:
+            print(f"❌ Error DB al eliminar usuario {id_usuario} (Físico): {e}")
+            raise
+
+    # =========================================================================
     
     def autenticar(self, usuario: str, password: str) -> Tuple[bool, Optional[Dict]]:
         """
@@ -129,7 +181,7 @@ class UsuarioRepositorio(RepositorioBase):
         
         Args:
             usuario: Nombre de usuario
-            password: Contraseña en texto plano
+            contrasena: Contraseña en texto plano
             
         Returns:
             tuple: (autenticado: bool, datos_usuario: dict o None)
@@ -217,6 +269,7 @@ class UsuarioRepositorio(RepositorioBase):
                 - id_rol: int (requerido)
                 - email: str (opcional)
                 - telefono: str (opcional)
+                - direccion: str (opcional)
                 
         Returns:
             tuple: (éxito: bool, id_usuario: int o None)
@@ -240,9 +293,9 @@ class UsuarioRepositorio(RepositorioBase):
         query = """
         INSERT INTO Usuarios (
             usuario, contrasena, salt, id_rol,
-            nombre, apellido, email, telefono,
+            nombre, apellido, email, telefono, direccion,
             activo, fecha_creacion
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, GETDATE())
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?,?, 1, GETDATE())
         """
         
         params = (
@@ -253,7 +306,8 @@ class UsuarioRepositorio(RepositorioBase):
             datos['nombre'],
             datos['apellido'],
             datos.get('email'),
-            datos.get('telefono')
+            datos.get('telefono'),
+            datos.get('direccion'),
         )
         
         self._ejecutar_consulta(query, params, obtener_resultado=False)
@@ -275,7 +329,7 @@ class UsuarioRepositorio(RepositorioBase):
             bool: True si se actualizó exitosamente
         """
         # Verificar que usuario existe
-        usuario_actual = self.obtener_por_id(id_usuario)
+        self.obtener_por_id(id_usuario) # Lanza RegistroNoEncontrado si no existe
         
         # Construir query dinámicamente según campos a actualizar
         campos = []
@@ -301,6 +355,10 @@ class UsuarioRepositorio(RepositorioBase):
         if 'telefono' in datos:
             campos.append("telefono = ?")
             params.append(datos['telefono'])
+
+        if 'direccion' in datos:
+            campos.append("direccion = ?")
+            params.append(datos['direccion'])
         
         if 'id_rol' in datos:
             campos.append("id_rol = ?")
@@ -373,7 +431,7 @@ class UsuarioRepositorio(RepositorioBase):
     @cache_invalidator('usuarios')
     def desactivar(self, id_usuario: int) -> bool:
         """
-        Desactiva un usuario (soft delete)
+        Desactiva un usuario (soft delete). Use este método si quiere mantener el registro histórico.
         
         Args:
             id_usuario: ID del usuario

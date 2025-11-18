@@ -344,11 +344,11 @@ Rectangle {
         title: "Nuevo Usuario"
         modal: true
         width: 500
-        height: 600
+        height: 650
         x: (parent.width - width) / 2
-        y: (parent.height - height) / 2
-        padding: 0
-    
+        y: (parent.height - height)
+        padding: 25
+
         background: Rectangle {
             radius: 5
             border.width: 1
@@ -359,144 +359,236 @@ Rectangle {
         // Contenido del diálogo
         contentItem: Rectangle {
             color: "white"
+            radius: 5
 
-            Item {
-                id: contenedorItem
-                anchors.fill: parent
-                clip: true
+            Column {
+                id: mainColumn
+                width: parent.width - 40
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: parent.top
+                anchors.topMargin: 20
+                spacing: 15
 
+                // Título
+                Text {
+                    text: "Agregar Nuevo Usuario"
+                    font.pixelSize: 18
+                    font.bold: true
+                    color: "#2E7D32"
+                    width: parent.width
+                    horizontalAlignment: Text.AlignHCenter
+                }
+
+                // Formulario - USANDO COLUMN EN LUGAR DE GRIDLAYOUT PARA MEJOR CONTROL
                 Column {
-                    id: mainColumn
-                    width: contenedorItem.width - 30 // Asegurar que no se extienda demasiado
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.top: parent.top
-                    anchors.topMargin: 20
-                    spacing: 15
+                    width: parent.width
+                    spacing: 12
 
-                    // Título
-                    Text {
-                        text: "Agregar Nuevo Usuario"
-                        font.pixelSize: 18
-                        font.bold: true
+                    // Fila Nombre
+                    Row {
                         width: parent.width
-                        horizontalAlignment: Text.AlignHCenter
-                    }
-
-                    // Formulario
-                    GridLayout {
-                        width: parent.width
-                        columns: 2
-                        columnSpacing: 15
-                        rowSpacing: 10
-
-                        // Nombre
+                        spacing: 10
+                        height: 40
+                        
                         Text {
                             text: "Nombre:"
                             font.pixelSize: 14
-                            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+                            width: 140
+                            horizontalAlignment: Text.AlignRight
+                            verticalAlignment: Text.AlignVCenter
+                            height: parent.height
                         }
-
+                        
                         TextField {
                             id: txtNombre
                             placeholderText: "Ingrese nombre"
-                            Layout.fillWidth: true
+                            width: parent.width - 150
                             height: 36
+                            background: Rectangle {
+                                radius: 4
+                                border.color: "#CCCCCC"
+                                border.width: 1
+                            }
                             onTextChanged: nuevoUsuario.nombre = text
                         }
+                    }
 
-                        // Apellido
+                    // Fila Apellido
+                    Row {
+                        width: parent.width
+                        spacing: 10
+                        height: 40
+                        
                         Text {
                             text: "Apellido:"
                             font.pixelSize: 14
-                            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+                            width: 140
+                            horizontalAlignment: Text.AlignRight
+                            verticalAlignment: Text.AlignVCenter
+                            height: parent.height
                         }
-
+                        
                         TextField {
                             id: txtApellido
                             placeholderText: "Ingrese apellido"
-                            Layout.fillWidth: true
+                            width: parent.width - 150
                             height: 36
+                            background: Rectangle {
+                                radius: 4
+                                border.color: "#CCCCCC"
+                                border.width: 1
+                            }
                             onTextChanged: nuevoUsuario.apellido = text
                         }
+                    }
 
-                        // Usuario
+                    // Fila Usuario
+                    Row {
+                        width: parent.width
+                        spacing: 10
+                        height: 40
+                        
                         Text {
                             text: "Usuario:"
                             font.pixelSize: 14
-                            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+                            width: 140
+                            horizontalAlignment: Text.AlignRight
+                            verticalAlignment: Text.AlignVCenter
+                            height: parent.height
                         }
-
+                        
                         TextField {
                             id: txtUsuario
                             placeholderText: "Ingrese nombre de usuario"
-                            Layout.fillWidth: true
+                            width: parent.width - 150
                             height: 36
+                            background: Rectangle {
+                                radius: 4
+                                border.color: "#CCCCCC"
+                                border.width: 1
+                            }
                             onTextChanged: nuevoUsuario.usuario = text
                         }
+                    }
 
-                        // Teléfono Usuario
+                    // Fila Teléfono
+                    Row {
+                        width: parent.width
+                        spacing: 10
+                        height: 40
+                        
                         Text {
                             text: "Teléfono:"
                             font.pixelSize: 14
-                            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+                            width: 140
+                            horizontalAlignment: Text.AlignRight
+                            verticalAlignment: Text.AlignVCenter
+                            height: parent.height
                         }
-
+                        
                         TextField {
                             id: txtTelefono
                             placeholderText: "000-000-00"
-                            Layout.fillWidth: true
+                            width: parent.width - 150
                             height: 36
+                            background: Rectangle {
+                                radius: 4
+                                border.color: "#CCCCCC"
+                                border.width: 1
+                            }
                             onTextChanged: nuevoUsuario.telefono = text
                         }
+                    }
 
-                        // Dirección Usuario
+                    // Fila Dirección
+                    Row {
+                        width: parent.width
+                        spacing: 10
+                        height: 40
+                        
                         Text {
                             text: "Dirección:"
                             font.pixelSize: 14
-                            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+                            width: 140
+                            horizontalAlignment: Text.AlignRight
+                            verticalAlignment: Text.AlignVCenter
+                            height: parent.height
                         }
-
+                        
                         TextField {
                             id: txtDireccion
-                            placeholderText: "Ingresa tu dirección"
-                            Layout.fillWidth: true
+                            placeholderText: "Ingrese dirección"
+                            width: parent.width - 150
                             height: 36
+                            background: Rectangle {
+                                radius: 4
+                                border.color: "#CCCCCC"
+                                border.width: 1
+                            }
                             onTextChanged: nuevoUsuario.direccion = text
                         }
+                    }
 
-                        // EMAIL
+                    // Fila Email
+                    Row {
+                        width: parent.width
+                        spacing: 10
+                        height: 40
+                        
                         Text {
                             text: "Email:"
                             font.pixelSize: 14
-                            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+                            width: 140
+                            horizontalAlignment: Text.AlignRight
+                            verticalAlignment: Text.AlignVCenter
+                            height: parent.height
                         }
-
+                        
                         TextField {
                             id: txtCorreo
                             placeholderText: "Ingrese su email"
-                            Layout.fillWidth: true
+                            width: parent.width - 150
                             height: 36
                             inputMethodHints: Qt.ImhEmailCharactersOnly
+                            background: Rectangle {
+                                radius: 4
+                                border.color: "#CCCCCC"
+                                border.width: 1
+                            }
                             onTextChanged: nuevoUsuario.email = text
                         }
+                    }
 
-                        // Rol
+                    // Fila Rol
+                    Row {
+                        width: parent.width
+                        spacing: 10
+                        height: 40
+                        
                         Text {
                             text: "Rol:"
                             font.pixelSize: 14
-                            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+                            width: 140
+                            horizontalAlignment: Text.AlignRight
+                            verticalAlignment: Text.AlignVCenter
+                            height: parent.height
                         }
-
+                        
                         ComboBox {
                             id: cmbRol
-                            Layout.fillWidth: true
+                            width: parent.width - 150
                             height: 36
                             model: usuariosRolesModel ? usuariosRolesModel.roles : [] 
-                            textRole: "nombre"
+                            textRole: "nombre_rol"
+                            background: Rectangle {
+                                radius: 4
+                                border.color: "#CCCCCC"
+                                border.width: 1
+                            }
+                            
                             onCurrentIndexChanged: {
-
                                 if (currentIndex >= 0 && model && currentIndex < model.length) {
-                                    nuevoUsuario.id_rol = model[currentIndex].id_rol;
+                                    nuevoUsuario.id_rol = model[currentIndex].id_rol; 
                                 }
                             }
                             Component.onCompleted: {
@@ -505,85 +597,122 @@ Rectangle {
                                 }
                             }
                         }
+                    }
 
-                        // Contraseña
+                    // Fila Contraseña
+                    Row {
+                        width: parent.width
+                        spacing: 10
+                        height: 40
+                        
                         Text {
                             text: "Contraseña:"
                             font.pixelSize: 14
-                            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+                            width: 140
+                            horizontalAlignment: Text.AlignRight
+                            verticalAlignment: Text.AlignVCenter
+                            height: parent.height
                         }
-
+                        
                         TextField {
                             id: txtPassword
                             placeholderText: "Ingrese contraseña"
-                            Layout.fillWidth: true
+                            width: parent.width - 150
                             height: 36
                             echoMode: TextInput.Password
+                            background: Rectangle {
+                                radius: 4
+                                border.color: "#CCCCCC"
+                                border.width: 1
+                            }
                             onTextChanged: nuevoUsuario.contrasena = text
                         }
+                    }
 
-                        // Confirmar contraseña
+                    // Fila Confirmar Contraseña
+                    Row {
+                        width: parent.width
+                        spacing: 10
+                        height: 40
+                        
                         Text {
-                            text: "Confirmar contraseña:"
+                            text: "Confirmar:"
                             font.pixelSize: 14
-                            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+                            width: 140
+                            horizontalAlignment: Text.AlignRight
+                            verticalAlignment: Text.AlignVCenter
+                            height: parent.height
                         }
-
+                        
                         TextField {
                             id: txtConfirmPassword
                             placeholderText: "Confirme la contraseña"
-                            Layout.fillWidth: true
+                            width: parent.width - 150
                             height: 36
                             echoMode: TextInput.Password
+                            background: Rectangle {
+                                radius: 4
+                                border.color: "#CCCCCC"
+                                border.width: 1
+                            }
                         }
+                    }
 
-                        // Fecha de creación
+                    // Fila Fecha
+                    Row {
+                        width: parent.width
+                        spacing: 10
+                        height: 40
+                        
                         Text {
-                            text: "Fecha de creación:"
+                            text: "Fecha creación:"
                             font.pixelSize: 14
-                            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+                            width: 140
+                            horizontalAlignment: Text.AlignRight
+                            verticalAlignment: Text.AlignVCenter
+                            height: parent.height
                         }
-
+                        
                         TextField {
                             id: txtFechaCreacion
                             placeholderText: "DD/MM/AAAA"
-                            Layout.fillWidth: true
+                            width: parent.width - 150
                             height: 36
                             readOnly: true
                             text: getFormattedDate()
+                            background: Rectangle {
+                                radius: 4
+                                border.color: "#CCCCCC"
+                                border.width: 1
+                            }
                         }
                     }
+                }
 
-                    // Espacio adicional
-                    Item {
-                        width: parent.width
-                        height: 20
-                    }
+                // Mensaje de validación
+                Rectangle {
+                    width: parent.width
+                    height: mensajeValidacion.text ? mensajeValidacion.height + 20 : 0
+                    color: "#FFF0F0"
+                    border.color: "#FFD0D0"
+                    radius: 4
+                    visible: mensajeValidacion.text !== ""
 
-                    // Mensaje de validación
-                    Rectangle {
-                        width: parent.width
-                        height: mensajeValidacion.text ? mensajeValidacion.height + 20 : 0
-                        color: "#FFF0F0"
-                        border.color: "#FFD0D0"
-                        radius: 4
-                        visible: mensajeValidacion.text !== ""
-
-                        Text {
-                            id: mensajeValidacion
-                            anchors.centerIn: parent
-                            width: parent.width - 20
-                            text: ""
-                            color: "#D32F2F"
-                            font.pixelSize: 14
-                            horizontalAlignment: Text.AlignHCenter
-                            wrapMode: Text.WordWrap
-                        }
+                    Text {
+                        id: mensajeValidacion
+                        anchors.centerIn: parent
+                        width: parent.width - 20
+                        text: ""
+                        color: "#D32F2F"
+                        font.pixelSize: 14
+                        horizontalAlignment: Text.AlignHCenter
+                        wrapMode: Text.WordWrap
                     }
                 }
             }
         }
 
+        // Footer (MANTENER EL MISMO FOOTER)
         footer: DialogButtonBox {
             background: Rectangle {
                 color: "#F5F5F5"
@@ -614,63 +743,71 @@ Rectangle {
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
+                
                 onClicked: {
-                    // Validaciones (mantiene el mismo código)
-                    if (txtNombre.text === "" || txtApellido.text === "" || txtUsuario.text === "" || txtCorreo.text === "") {
-                        mensajeValidacion.text = "Por favor, complete todos los campos obligatorios";
+                    // MANTENER LA LÓGICA ORIGINAL DE VALIDACIÓN
+                    if (typeof mensajeValidacion !== 'undefined') {
+                        mensajeValidacion.text = "";
+                    }
+                    
+                    if (txtNombre.text.trim() === "" || txtApellido.text.trim() === "" || txtUsuario.text.trim() === "") {
+                        mensajeValidacion.text = "Por favor, complete Nombre, Apellido y Nombre de Usuario.";
                         return;
                     }
 
+                    if (txtCorreo.text.trim() === "") {
+                        mensajeValidacion.text = "El correo electrónico es obligatorio.";
+                        return;
+                    }
                     var emailRegex = /\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*/;
-                    if (!emailRegex.test(txtCorreo.text)) {
-                        mensajeValidacion.text = "El formato del email no es válido";
+                    if (!emailRegex.test(txtCorreo.text.trim())) {
+                        mensajeValidacion.text = "El formato del Email no es válido.";
                         return;
                     }
 
                     if (txtPassword.text === "") {
-                        mensajeValidacion.text = "Debe ingresar una contraseña";
+                        mensajeValidacion.text = "Debe ingresar una contraseña.";
                         return;
                     }
-
                     if (txtPassword.text !== txtConfirmPassword.text) {
-                        mensajeValidacion.text = "Las contraseñas no coinciden";
+                        mensajeValidacion.text = "Las contraseñas no coinciden.";
                         return;
                     }
 
-                    if (nuevoUsuario.id_rol <= 0) {
-                        mensajeValidacion.text = "Debe seleccionar un rol";
+                    if (!nuevoUsuario.id_rol || nuevoUsuario.id_rol <= 0) {
+                        mensajeValidacion.text = "Debe seleccionar un Rol.";
                         return;
                     }
 
-                    // Preparar los datos
                     var datosUsuario = {
                         "id_rol": nuevoUsuario.id_rol,
-                        "nombre": txtNombre.text,
-                        "apellido": txtApellido.text,
-                        "usuario": txtUsuario.text,
-                        "email": txtCorreo.text,
+                        "nombre": txtNombre.text.trim(),
+                        "apellido": txtApellido.text.trim(),
+                        "usuario": txtUsuario.text.trim(),
+                        "email": txtCorreo.text.trim(),
                         "contrasena": txtPassword.text,
-                        "telefono": txtTelefono.text,
-                        "direccion": txtDireccion.text,
+                        "telefono": txtTelefono.text.trim(),
+                        "direccion": txtDireccion.text.trim(),
                         "activo": true
                     };
 
                     console.log("Datos a enviar:", JSON.stringify(datosUsuario));
 
-                    // Guardar usuario
                     var exito = usuariosRolesModel.agregar_usuario(JSON.stringify(datosUsuario));
+                    
                     if (exito) {
                         nuevoUsuarioDialog.close();
-                        showMessage("Usuario guardado correctamente");
+                        showMessage("✅ Usuario guardado correctamente");
+                        usuariosRolesModel.cargar_usuarios(); 
                     } else {
-                        mensajeValidacion.text = "Error al guardar el usuario en la base de datos. Verifique que el nombre de usuario y email sean únicos.";
+                        mensajeValidacion.text = "❌ Error al guardar el usuario. Verifique que el nombre de usuario y email sean únicos.";
                     }
                 }
             }
         }
 
-        // Resetea el formulario al cerrar
         onClosed: {
+            // MANTENER LA LÓGICA ORIGINAL DE LIMPIEZA
             txtNombre.text = ""
             txtApellido.text = ""
             txtUsuario.text = ""
@@ -702,6 +839,8 @@ Rectangle {
         modal: true
         width: 450
         height: 200
+        x: (usuariosRolesRoot.width - width) / 2
+        y: (usuariosRolesRoot.height - height) / 2
         
         property int userId: -1
         
@@ -770,11 +909,11 @@ Rectangle {
         id: editUsuarioDialog
         title: "Editar Usuario"
         modal: true
-        width: 555
-        height: 575
+        width: 480
+        height: 650
         x: (usuariosRolesRoot.width - width) / 2
         y: (usuariosRolesRoot.height - height) / 2
-        padding: 0
+        padding: 25
     
         // Método para preparar el diálogo antes de abrirlo
         function prepararEdicion(usuario) {
@@ -801,233 +940,306 @@ Rectangle {
             txtEditApellido.text = usuarioEditando.apellido;
             txtEditUsuario.text = usuarioEditando.usuario;
             txtEditCorreo.text = usuarioEditando.email;
-            txtEditTelefono.text = usuarioEditando.telefono;  // Ahora este campo existe
-            txtEditDireccion.text = usuarioEditando.direccion;  // Y este también
+            txtEditTelefono.text = usuarioEditando.telefono;
+            txtEditDireccion.text = usuarioEditando.direccion;
             chkEditActivo.checked = usuarioEditando.activo;
             
-            // Seleccionar el rol correcto
-            if (cmbEditRol.model && cmbEditRol.model.length > 0) {
-                var rolIndex = -1;
-                for (var i = 0; i < cmbEditRol.model.length; i++) {
-                    if (cmbEditRol.model[i].id_rol === usuarioEditando.id_rol) {
-                        rolIndex = i;
-                        break;
+            // ⭐⭐ CORRECCIÓN: Cargar roles y seleccionar el correcto
+            if (usuariosRolesModel) {
+                usuariosRolesModel.cargar_roles();
+            }
+            
+            // Esperar un momento para que se carguen los roles
+            timerSeleccionarRol.start();
+        }
+
+        Timer {
+            id: timerSeleccionarRol
+            interval: 100
+            onTriggered: {
+                if (cmbEditRol.model && cmbEditRol.model.length > 0) {
+                    var rolIndex = -1;
+                    for (var i = 0; i < cmbEditRol.model.length; i++) {
+                        if (cmbEditRol.model[i].id_rol === usuarioEditando.id_rol) {
+                            rolIndex = i;
+                            break;
+                        }
                     }
+                    cmbEditRol.currentIndex = rolIndex >= 0 ? rolIndex : 0;
                 }
-                cmbEditRol.currentIndex = rolIndex >= 0 ? rolIndex : 0;
             }
         }
         
-        // Contenido del diálogo
         contentItem: Rectangle {
-            color: "white"
-            radius : 5
+        color: "white"
+        radius: 5
 
-            ScrollView {
-                id: scrollViews
-                anchors.fill: parent
-                clip: true
-                ScrollBar.vertical.policy: ScrollBar.AsNeeded
+        Column {
+            id: mainColumnEdit
+            width: parent.width - 40
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: parent.top
+            anchors.topMargin: 20
+            spacing: 15
+            
+            // Título
+            Text {
+                text: "Editar Usuario"
+                font.pixelSize: 18
+                font.bold: true
+                color: "#2E7D32"
+                width: parent.width
+                horizontalAlignment: Text.AlignHCenter
+            }
+            
+            // Formulario - MISMO DISEÑO QUE NUEVO USUARIO
+            Column {
+                width: parent.width
+                spacing: 12
 
-                Column {
-                    id: mainColumns
-                    width: scrollView.width
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.top: parent.top
-                    anchors.topMargin: 20
-                    spacing: 15
+                // Fila Nombre
+                Row {
+                    width: parent.width
+                    spacing: 10
+                    height: 40
                     
-                    // Título
                     Text {
-                        text: "Editar Usuario"
-                        font.pixelSize: 18
-                        font.bold: true
-                        color: "#2E7D32"
-                        width: parent.width
-                        horizontalAlignment: Text.AlignHCenter
-                        bottomPadding: 5
+                        text: "Nombre:"
+                        font.pixelSize: 14
+                        width: 140
+                        horizontalAlignment: Text.AlignRight
+                        verticalAlignment: Text.AlignVCenter
+                        height: parent.height
                     }
                     
-                    // Formulario
-                    GridLayout {
-                        width: parent.width
-                        columns: 2
-                        columnSpacing: 15
-                        rowSpacing: 15
-                        
-                        // Nombre
-                        Text {
-                            text: "Nombre:"
-                            font.pixelSize: 14
-                            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
-                        }
-                        
-                        TextField {
-                            id: txtEditNombre
-                            placeholderText: "Ingrese nombre"
-                            Layout.fillWidth: true
-                            height: 36
-                            background: Rectangle {
-                                radius: 4
-                                border.color: "#CCCCCC"
-                                border.width: 1
-                            }
-                        }
-                        
-                        // Apellido
-                        Text {
-                            text: "Apellido:"
-                            font.pixelSize: 14
-                            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
-                        }
-                        
-                        TextField {
-                            id: txtEditApellido
-                            placeholderText: "Ingrese apellido"
-                            Layout.fillWidth: true
-                            height: 36
-                            background: Rectangle {
-                                radius: 4
-                                border.color: "#CCCCCC"
-                                border.width: 1
-                            }
-                        }
-                        
-                        // Usuario
-                        Text {
-                            text: "Usuario:"
-                            font.pixelSize: 14
-                            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
-                        }
-                        
-                        TextField {
-                            id: txtEditUsuario
-                            placeholderText: "Ingrese nombre de usuario"
-                            Layout.fillWidth: true
-                            height: 36
-                            background: Rectangle {
-                                radius: 4
-                                border.color: "#CCCCCC"
-                                border.width: 1
-                            }
-                        }
-
-                        // Teléfono
-                        Text {
-                            text: "Teléfono:"
-                            font.pixelSize: 14
-                            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
-                        }
-                        
-                        TextField {
-                            id: txtEditTelefono
-                            placeholderText: "000-000-00"
-                            Layout.fillWidth: true
-                            height: 36
-                            background: Rectangle {
-                                radius: 4
-                                border.color: "#CCCCCC"
-                                border.width: 1
-                            }
-                        }
-
-
-                        // Dirección (Campo nuevo)
-                        Text {
-                            text: "Dirección:"
-                            font.pixelSize: 14
-                            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
-                        }
-
-                        TextField {
-                            id: txtEditDireccion
-                            placeholderText: "Ingrese dirección"
-                            Layout.fillWidth: true
-                            height: 36
-                            background: Rectangle {
-                                radius: 4
-                                border.color: "#CCCCCC"
-                                border.width: 1
-                            }
-                        }
-                        
-                        // Email
-                        Text {
-                            text: "Email:"
-                            font.pixelSize: 14
-                            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
-                        }
-                        
-                        TextField {
-                            id: txtEditCorreo
-                            placeholderText: "Ingrese su email"
-                            Layout.fillWidth: true
-                            height: 36
-                            inputMethodHints: Qt.ImhEmailCharactersOnly
-                            background: Rectangle {
-                                radius: 4
-                                border.color: "#CCCCCC"
-                                border.width: 1
-                            }
-                        }
-                        
-                        // Rol
-                        Text {
-                            text: "Rol:"
-                            font.pixelSize: 14
-                            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
-                        }
-                        
-                        ComboBox {
-                            id: cmbEditRol
-                            Layout.fillWidth: true
-                            height: 36
-                            model: usuariosRolesModel ? usuariosRolesModel.roles : []
-                            textRole: "nombre"
-                            background: Rectangle {
-                                radius: 4
-                                border.color: "#CCCCCC"
-                                border.width: 1
-                            }
-                        }
-                        
-                        // Activo
-                        Text {
-                            text: "Activo:"
-                            font.pixelSize: 14
-                            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
-                        }
-                        CheckBox {
-                            id: chkEditActivo
-                            checked: true
+                    TextField {
+                        id: txtEditNombre
+                        placeholderText: "Ingrese nombre"
+                        width: parent.width - 150
+                        height: 36
+                        background: Rectangle {
+                            radius: 4
+                            border.color: "#CCCCCC"
+                            border.width: 1
                         }
                     }
+                }
+                
+                // Fila Apellido
+                Row {
+                    width: parent.width
+                    spacing: 10
+                    height: 40
                     
-                    // Mensaje de validación
-                    Rectangle {
-                        width: parent.width
-                        height: mensajeValidacionEdit.text ? mensajeValidacionEdit.height + 20 : 0
-                        color: "#FFF0F0"
-                        border.color: "#FFD0D0"
-                        radius: 4
-                        visible: mensajeValidacionEdit.text !== ""
-                        
-                        Text {
-                            id: mensajeValidacionEdit
-                            anchors.centerIn: parent
-                            width: parent.width - 20
-                            text: ""
-                            color: "#D32F2F"
-                            font.pixelSize: 14
-                            horizontalAlignment: Text.AlignHCenter
-                            wrapMode: Text.WordWrap
+                    Text {
+                        text: "Apellido:"
+                        font.pixelSize: 14
+                        width: 140
+                        horizontalAlignment: Text.AlignRight
+                        verticalAlignment: Text.AlignVCenter
+                        height: parent.height
+                    }
+                    
+                    TextField {
+                        id: txtEditApellido
+                        placeholderText: "Ingrese apellido"
+                        width: parent.width - 150
+                        height: 36
+                        background: Rectangle {
+                            radius: 4
+                            border.color: "#CCCCCC"
+                            border.width: 1
                         }
+                    }
+                }
+                
+                // Fila Usuario
+                Row {
+                    width: parent.width
+                    spacing: 10
+                    height: 40
+                    
+                    Text {
+                        text: "Usuario:"
+                        font.pixelSize: 14
+                        width: 140
+                        horizontalAlignment: Text.AlignRight
+                        verticalAlignment: Text.AlignVCenter
+                        height: parent.height
+                    }
+                    
+                    TextField {
+                        id: txtEditUsuario
+                        placeholderText: "Ingrese nombre de usuario"
+                        width: parent.width - 150
+                        height: 36
+                        background: Rectangle {
+                            radius: 4
+                            border.color: "#CCCCCC"
+                            border.width: 1
+                        }
+                    }
+                }
+
+                // Fila Teléfono
+                Row {
+                    width: parent.width
+                    spacing: 10
+                    height: 40
+                    
+                    Text {
+                        text: "Teléfono:"
+                        font.pixelSize: 14
+                        width: 140
+                        horizontalAlignment: Text.AlignRight
+                        verticalAlignment: Text.AlignVCenter
+                        height: parent.height
+                    }
+                    
+                    TextField {
+                        id: txtEditTelefono
+                        placeholderText: "000-000-00"
+                        width: parent.width - 150
+                        height: 36
+                        background: Rectangle {
+                            radius: 4
+                            border.color: "#CCCCCC"
+                            border.width: 1
+                        }
+                    }
+                }
+
+                // Fila Dirección
+                Row {
+                    width: parent.width
+                    spacing: 10
+                    height: 40
+                    
+                    Text {
+                        text: "Dirección:"
+                        font.pixelSize: 14
+                        width: 140
+                        horizontalAlignment: Text.AlignRight
+                        verticalAlignment: Text.AlignVCenter
+                        height: parent.height
+                    }
+                    
+                    TextField {
+                        id: txtEditDireccion
+                        placeholderText: "Ingrese dirección"
+                        width: parent.width - 150
+                        height: 36
+                        background: Rectangle {
+                            radius: 4
+                            border.color: "#CCCCCC"
+                            border.width: 1
+                        }
+                    }
+                }
+                
+                // Fila Email
+                Row {
+                    width: parent.width
+                    spacing: 10
+                    height: 40
+                    
+                    Text {
+                        text: "Email:"
+                        font.pixelSize: 14
+                        width: 140
+                        horizontalAlignment: Text.AlignRight
+                        verticalAlignment: Text.AlignVCenter
+                        height: parent.height
+                    }
+                    
+                    TextField {
+                        id: txtEditCorreo
+                        placeholderText: "Ingrese su email"
+                        width: parent.width - 150
+                        height: 36
+                        inputMethodHints: Qt.ImhEmailCharactersOnly
+                        background: Rectangle {
+                            radius: 4
+                            border.color: "#CCCCCC"
+                            border.width: 1
+                        }
+                    }
+                }
+                
+                // Fila Rol
+                Row {
+                    width: parent.width
+                    spacing: 10
+                    height: 40
+                    
+                    Text {
+                        text: "Rol:"
+                        font.pixelSize: 14
+                        width: 140
+                        horizontalAlignment: Text.AlignRight
+                        verticalAlignment: Text.AlignVCenter
+                        height: parent.height
+                    }
+                    
+                    ComboBox {
+                        id: cmbEditRol
+                        width: parent.width - 150
+                        height: 36
+                        model: usuariosRolesModel ? usuariosRolesModel.roles : []
+                        textRole: "nombre_rol"
+                        background: Rectangle {
+                            radius: 4
+                            border.color: "#CCCCCC"
+                            border.width: 1
+                        }
+                    }
+                }
+                
+                // Fila Activo
+                Row {
+                    width: parent.width
+                    spacing: 10
+                    height: 40
+                    
+                    Text {
+                        text: "Activo:"
+                        font.pixelSize: 14
+                        width: 140
+                        horizontalAlignment: Text.AlignRight
+                        verticalAlignment: Text.AlignVCenter
+                        height: parent.height
+                    }
+                    
+                    CheckBox {
+                        id: chkEditActivo
+                        checked: true
+                        anchors.verticalCenter: parent.verticalCenter
                     }
                 }
             }
             
-            
+            // Mensaje de validación
+            Rectangle {
+                width: parent.width
+                height: mensajeValidacionEdit.text ? mensajeValidacionEdit.height + 20 : 0
+                color: "#FFF0F0"
+                border.color: "#FFD0D0"
+                radius: 4
+                visible: mensajeValidacionEdit.text !== ""
+                
+                Text {
+                    id: mensajeValidacionEdit
+                    anchors.centerIn: parent
+                    width: parent.width - 20
+                    text: ""
+                    color: "#D32F2F"
+                    font.pixelSize: 14
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                }
+            }
         }
+    }
         
         footer: DialogButtonBox {
                 background: Rectangle {
@@ -1154,6 +1366,29 @@ Rectangle {
         var mm = String(today.getMonth() + 1).padStart(2, '0'); // Los meses empiezan en 0
         var yyyy = today.getFullYear();
         return dd + '/' + mm + '/' + yyyy;
-        }
+    }
 
-    }    
+    function validarNuevoUsuario() {
+        if (!nuevoUsuario.nombre.trim()) {
+            return "El nombre es obligatorio.";
+        }
+        if (!nuevoUsuario.apellido.trim()) {
+            return "El apellido es obligatorio.";
+        }
+        if (!nuevoUsuario.usuario.trim()) {
+            return "El nombre de usuario es obligatorio.";
+        }
+        // CRÍTICO: Verifica la contraseña
+        if (!nuevoUsuario.contrasena || nuevoUsuario.contrasena.length < 4) { 
+            return "La contraseña es obligatoria y debe ser más larga.";
+        }
+        // CRÍTICO: Verifica que se haya seleccionado un rol (id_rol)
+        if (cmbRol.currentIndex === -1 || !nuevoUsuario.id_rol || nuevoUsuario.id_rol < 0) { 
+            return "Debe seleccionar un Rol.";
+        }
+        // Aquí podrías agregar validaciones de formato de email, etc.
+        
+        return "OK"; // Éxito
+    }
+
+}    
