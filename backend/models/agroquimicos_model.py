@@ -1,6 +1,6 @@
 # backend/models/agroquimicos_model.py
 """
-Modelo de Agroquímicos - Actualizado con arquitectura en capas
+Modelo de Agroquímicos - Completamente integrado y corregido
 Bridge entre QML y los servicios de negocio
 """
 
@@ -8,12 +8,13 @@ from PySide6.QtCore import QObject, Slot, Signal, Property
 import json
 import logging
 
-# Importar servicios en lugar de GestorAgroquimicos
+# Importar servicios
 from backend.services.AgroquimicosSer import (
     ProductoService,
     CategoriaService,
     MezclaService,
-    TratamientoService
+    TratamientoService,
+    LoteAgroquimicoService
 )
 
 logger = logging.getLogger(__name__)
@@ -30,35 +31,62 @@ class AgroquimicosModel(QObject):
     categoriasChanged = Signal()
     mezclasChanged = Signal()
     tratamientosChanged = Signal()
+    lotesChanged = Signal()
     tiposPlagasChanged = Signal()
     ciclosActivosChanged = Signal()
     detallesMezclaChanged = Signal()
+    alertasInventarioChanged = Signal()
     
-    def __init__(self, parent=None):
+    def __init__(self, db_session=None, parent=None):
         super().__init__(parent)
+        self.db_session = db_session
         
-        # Inicializar servicios (en lugar de GestorAgroquimicos)
-        self.producto_service = ProductoService()
-        self.categoria_service = CategoriaService()
-        self.mezcla_service = MezclaService()
-        self.tratamiento_service = TratamientoService()
+        # Inicializar servicios con sesión de base de datos
+        self.producto_service = ProductoService(db_session)
+        self.categoria_service = CategoriaService(db_session)
+        self.mezcla_service = MezclaService(db_session)
+        self.tratamiento_service = TratamientoService(db_session)
+        self.lote_service = LoteAgroquimicoService(db_session)
         
         # Propiedades internas para QML
         self._productos = []
         self._categorias = []
         self._mezclas = []
         self._tratamientos = []
+        self._lotes = []
         self._tipos_plagas = []
         self._ciclos_activos = []
         self._detalles_mezcla = []
+        self._alertas_inventario = {}
         
-        # Cargar datos iniciales
+        # Cargar datos iniciales si hay sesión
+        if db_session:
+            self.cargar_datos_iniciales()
+    
+    def set_db_session(self, db_session):
+        """Establece la sesión de base de datos y carga los datos"""
+        self.db_session = db_session
+        # Recrear servicios con la nueva sesión
+        self.producto_service = ProductoService(db_session)
+        self.categoria_service = CategoriaService(db_session)
+        self.mezcla_service = MezclaService(db_session)
+        self.tratamiento_service = TratamientoService(db_session)
+        self.lote_service = LoteAgroquimicoService(db_session)
+        
+        self.cargar_datos_iniciales()
+    
+    def cargar_datos_iniciales(self):
+        """Carga todos los datos iniciales"""
+        if not self.db_session:
+            logger.warning("No hay sesión de base de datos para cargar datos")
+            return
+            
         self.cargar_productos()
         self.cargar_categorias()
         self.cargar_mezclas()
         self.cargar_tratamientos()
-        self.cargar_tipos_plagas()
-        self.cargar_ciclos_activos()
+        self.cargar_lotes()
+        self.cargar_alertas_inventario()
     
     # ==================== PROPIEDADES PARA QML ====================
     
@@ -78,6 +106,10 @@ class AgroquimicosModel(QObject):
     def tratamientos(self):
         return self._tratamientos
     
+    @Property(list, notify=lotesChanged)
+    def lotes(self):
+        return self._lotes
+    
     @Property(list, notify=tiposPlagasChanged)
     def tipos_plagas(self):
         return self._tipos_plagas
@@ -90,12 +122,20 @@ class AgroquimicosModel(QObject):
     def detalles_mezcla(self):
         return self._detalles_mezcla
     
+    @Property(dict, notify=alertasInventarioChanged)
+    def alertas_inventario(self):
+        return self._alertas_inventario
+    
     # ==================== MÉTODOS PARA CARGAR DATOS ====================
     
     @Slot()
     def cargar_productos(self):
         """Carga la lista de productos desde el servicio"""
         try:
+            if not self.db_session:
+                logger.warning("No hay sesión de BD para cargar productos")
+                return
+                
             self._productos = self.producto_service.obtener_todos_productos()
             self.productosChanged.emit()
             logger.info(f"✅ Cargados {len(self._productos)} productos")
@@ -108,6 +148,10 @@ class AgroquimicosModel(QObject):
     def cargar_categorias(self):
         """Carga la lista de categorías desde el servicio"""
         try:
+            if not self.db_session:
+                logger.warning("No hay sesión de BD para cargar categorías")
+                return
+                
             self._categorias = self.categoria_service.obtener_todas_categorias()
             self.categoriasChanged.emit()
             logger.info(f"✅ Cargadas {len(self._categorias)} categorías")
@@ -120,6 +164,10 @@ class AgroquimicosModel(QObject):
     def cargar_mezclas(self):
         """Carga la lista de mezclas desde el servicio"""
         try:
+            if not self.db_session:
+                logger.warning("No hay sesión de BD para cargar mezclas")
+                return
+                
             self._mezclas = self.mezcla_service.obtener_todas_mezclas()
             self.mezclasChanged.emit()
             logger.info(f"✅ Cargadas {len(self._mezclas)} mezclas")
@@ -132,6 +180,10 @@ class AgroquimicosModel(QObject):
     def cargar_tratamientos(self):
         """Carga la lista de tratamientos desde el servicio"""
         try:
+            if not self.db_session:
+                logger.warning("No hay sesión de BD para cargar tratamientos")
+                return
+                
             self._tratamientos = self.tratamiento_service.obtener_todos_tratamientos()
             self.tratamientosChanged.emit()
             logger.info(f"✅ Cargados {len(self._tratamientos)} tratamientos")
@@ -141,9 +193,29 @@ class AgroquimicosModel(QObject):
             self.tratamientosChanged.emit()
     
     @Slot()
+    def cargar_lotes(self):
+        """Carga la lista de lotes desde el servicio"""
+        try:
+            if not self.db_session:
+                logger.warning("No hay sesión de BD para cargar lotes")
+                return
+                
+            self._lotes = self.lote_service.obtener_todos_lotes()
+            self.lotesChanged.emit()
+            logger.info(f"✅ Cargados {len(self._lotes)} lotes")
+        except Exception as e:
+            logger.error(f"❌ Error al cargar lotes: {str(e)}")
+            self._lotes = []
+            self.lotesChanged.emit()
+    
+    @Slot()
     def cargar_tipos_plagas(self):
         """Carga la lista de tipos de plagas desde el servicio"""
         try:
+            if not self.db_session:
+                logger.warning("No hay sesión de BD para cargar tipos de plagas")
+                return
+                
             self._tipos_plagas = self.tratamiento_service.obtener_tipos_plagas()
             self.tiposPlagasChanged.emit()
             logger.info(f"✅ Cargados {len(self._tipos_plagas)} tipos de plagas")
@@ -156,6 +228,10 @@ class AgroquimicosModel(QObject):
     def cargar_ciclos_activos(self):
         """Carga la lista de ciclos activos desde el servicio"""
         try:
+            if not self.db_session:
+                logger.warning("No hay sesión de BD para cargar ciclos activos")
+                return
+                
             self._ciclos_activos = self.tratamiento_service.obtener_ciclos_activos()
             self.ciclosActivosChanged.emit()
             logger.info(f"✅ Cargados {len(self._ciclos_activos)} ciclos activos")
@@ -164,10 +240,30 @@ class AgroquimicosModel(QObject):
             self._ciclos_activos = []
             self.ciclosActivosChanged.emit()
     
+    @Slot()
+    def cargar_alertas_inventario(self):
+        """Carga las alertas de inventario desde el servicio"""
+        try:
+            if not self.db_session:
+                logger.warning("No hay sesión de BD para cargar alertas")
+                return
+                
+            self._alertas_inventario = self.lote_service.obtener_alertas_inventario()
+            self.alertasInventarioChanged.emit()
+            logger.info("✅ Alertas de inventario cargadas")
+        except Exception as e:
+            logger.error(f"❌ Error al cargar alertas de inventario: {str(e)}")
+            self._alertas_inventario = {}
+            self.alertasInventarioChanged.emit()
+    
     @Slot(int)
     def cargar_detalles_mezcla(self, id_mezcla):
         """Carga los detalles de una mezcla específica"""
         try:
+            if not self.db_session:
+                logger.warning("No hay sesión de BD para cargar detalles de mezcla")
+                return
+                
             self._detalles_mezcla = self.mezcla_service.obtener_detalles_mezcla(id_mezcla)
             self.detallesMezclaChanged.emit()
             logger.info(f"✅ Cargados {len(self._detalles_mezcla)} productos de la mezcla {id_mezcla}")
@@ -180,15 +276,7 @@ class AgroquimicosModel(QObject):
     
     @Slot(str, result=bool)
     def agregar_producto(self, producto_data_json):
-        """
-        Agrega un nuevo producto a la base de datos
-        
-        Args:
-            producto_data_json: JSON string con los datos del producto
-            
-        Returns:
-            bool: True si se agregó correctamente
-        """
+        """Agrega un nuevo producto"""
         try:
             producto_data = json.loads(producto_data_json)
             exito, id_producto, mensaje = self.producto_service.crear_producto(producto_data)
@@ -201,25 +289,13 @@ class AgroquimicosModel(QObject):
             
             return exito
             
-        except json.JSONDecodeError as e:
-            logger.error(f"❌ Error al decodificar JSON: {str(e)}")
-            return False
         except Exception as e:
             logger.error(f"❌ Error al agregar producto: {str(e)}")
             return False
     
     @Slot(int, str, result=bool)
     def actualizar_producto(self, id_producto, producto_data_json):
-        """
-        Actualiza un producto existente
-        
-        Args:
-            id_producto: ID del producto a actualizar
-            producto_data_json: JSON string con los datos a actualizar
-            
-        Returns:
-            bool: True si se actualizó correctamente
-        """
+        """Actualiza un producto existente"""
         try:
             producto_data = json.loads(producto_data_json)
             exito, mensaje = self.producto_service.actualizar_producto(id_producto, producto_data)
@@ -232,24 +308,13 @@ class AgroquimicosModel(QObject):
             
             return exito
             
-        except json.JSONDecodeError as e:
-            logger.error(f"❌ Error al decodificar JSON: {str(e)}")
-            return False
         except Exception as e:
             logger.error(f"❌ Error al actualizar producto: {str(e)}")
             return False
     
     @Slot(int, result=bool)
     def eliminar_producto(self, id_producto):
-        """
-        Elimina un producto existente
-        
-        Args:
-            id_producto: ID del producto a eliminar
-            
-        Returns:
-            bool: True si se eliminó correctamente
-        """
+        """Elimina un producto existente"""
         try:
             exito, mensaje = self.producto_service.eliminar_producto(id_producto)
             
@@ -265,46 +330,11 @@ class AgroquimicosModel(QObject):
             logger.error(f"❌ Error al eliminar producto: {str(e)}")
             return False
     
-    @Slot(int, float, result=bool)
-    def actualizar_stock(self, id_producto, nueva_cantidad):
-        """
-        Actualiza el stock de un producto específico
-        
-        Args:
-            id_producto: ID del producto
-            nueva_cantidad: Nueva cantidad en stock
-            
-        Returns:
-            bool: True si se actualizó correctamente
-        """
-        try:
-            exito, mensaje = self.producto_service.actualizar_stock_producto(id_producto, nueva_cantidad)
-            
-            if exito:
-                logger.info(f"✅ {mensaje}")
-                self.cargar_productos()
-            else:
-                logger.warning(f"⚠️ {mensaje}")
-            
-            return exito
-            
-        except Exception as e:
-            logger.error(f"❌ Error al actualizar stock: {str(e)}")
-            return False
-    
     # ==================== MÉTODOS PARA CATEGORÍAS ====================
     
     @Slot(str, result=bool)
     def agregar_categoria(self, categoria_data_json):
-        """
-        Agrega una nueva categoría a la base de datos
-        
-        Args:
-            categoria_data_json: JSON string con los datos de la categoría
-            
-        Returns:
-            bool: True si se agregó correctamente
-        """
+        """Agrega una nueva categoría"""
         try:
             categoria_data = json.loads(categoria_data_json)
             exito, id_categoria, mensaje = self.categoria_service.crear_categoria(categoria_data)
@@ -317,58 +347,15 @@ class AgroquimicosModel(QObject):
             
             return exito
             
-        except json.JSONDecodeError as e:
-            logger.error(f"❌ Error al decodificar JSON: {str(e)}")
-            return False
         except Exception as e:
             logger.error(f"❌ Error al agregar categoría: {str(e)}")
-            return False
-    
-    @Slot(int, str, result=bool)
-    def actualizar_categoria(self, id_categoria, categoria_data_json):
-        """
-        Actualiza una categoría existente
-        
-        Args:
-            id_categoria: ID de la categoría a actualizar
-            categoria_data_json: JSON string con los datos a actualizar
-            
-        Returns:
-            bool: True si se actualizó correctamente
-        """
-        try:
-            categoria_data = json.loads(categoria_data_json)
-            exito, mensaje = self.categoria_service.actualizar_categoria(id_categoria, categoria_data)
-            
-            if exito:
-                logger.info(f"✅ {mensaje}")
-                self.cargar_categorias()
-            else:
-                logger.warning(f"⚠️ {mensaje}")
-            
-            return exito
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"❌ Error al decodificar JSON: {str(e)}")
-            return False
-        except Exception as e:
-            logger.error(f"❌ Error al actualizar categoría: {str(e)}")
             return False
     
     # ==================== MÉTODOS PARA MEZCLAS ====================
     
     @Slot(str, str, result=bool)
     def agregar_mezcla(self, mezcla_data_json, detalles_data_json):
-        """
-        Agrega una nueva mezcla a la base de datos
-        
-        Args:
-            mezcla_data_json: JSON string con los datos de la mezcla
-            detalles_data_json: JSON string con los productos de la mezcla (opcional)
-            
-        Returns:
-            bool: True si se agregó correctamente
-        """
+        """Agrega una nueva mezcla"""
         try:
             mezcla_data = json.loads(mezcla_data_json)
             detalles_data = json.loads(detalles_data_json) if detalles_data_json else None
@@ -383,9 +370,6 @@ class AgroquimicosModel(QObject):
             
             return exito
             
-        except json.JSONDecodeError as e:
-            logger.error(f"❌ Error al decodificar JSON: {str(e)}")
-            return False
         except Exception as e:
             logger.error(f"❌ Error al agregar mezcla: {str(e)}")
             return False
@@ -394,15 +378,7 @@ class AgroquimicosModel(QObject):
     
     @Slot(str, result=bool)
     def agregar_tratamiento(self, tratamiento_data_json):
-        """
-        Agrega un nuevo tratamiento a la base de datos
-        
-        Args:
-            tratamiento_data_json: JSON string con los datos del tratamiento
-            
-        Returns:
-            bool: True si se agregó correctamente
-        """
+        """Agrega un nuevo tratamiento"""
         try:
             tratamiento_data = json.loads(tratamiento_data_json)
             exito, id_tratamiento, mensaje = self.tratamiento_service.crear_tratamiento(tratamiento_data)
@@ -415,199 +391,88 @@ class AgroquimicosModel(QObject):
             
             return exito
             
-        except json.JSONDecodeError as e:
-            logger.error(f"❌ Error al decodificar JSON: {str(e)}")
-            return False
         except Exception as e:
             logger.error(f"❌ Error al agregar tratamiento: {str(e)}")
             return False
+    
+    # ==================== MÉTODOS PARA LOTES ====================
+    
+    @Slot(str, result=bool)
+    def agregar_lote(self, lote_data_json):
+        """Agrega un nuevo lote"""
+        try:
+            lote_data = json.loads(lote_data_json)
+            exito, id_lote, mensaje = self.lote_service.crear_lote(lote_data)
+            
+            if exito:
+                logger.info(f"✅ {mensaje} (ID: {id_lote})")
+                self.cargar_lotes()
+                self.cargar_alertas_inventario()
+            else:
+                logger.warning(f"⚠️ {mensaje}")
+            
+            return exito
+            
+        except Exception as e:
+            logger.error(f"❌ Error al agregar lote: {str(e)}")
+            return False
+    
+    @Slot(int, result=str)
+    def obtener_lotes_por_producto(self, id_producto):
+        """Obtiene lotes por producto"""
+        try:
+            lotes = self.lote_service.obtener_lotes_por_producto(id_producto)
+            return json.dumps(lotes)
+        except Exception as e:
+            logger.error(f"❌ Error al obtener lotes por producto: {str(e)}")
+            return json.dumps([])
+    
+    @Slot(result=str)
+    def obtener_lotes_proximos_vencer(self):
+        """Obtiene lotes próximos a vencer"""
+        try:
+            lotes = self.lote_service.obtener_lotes_proximos_vencer(30)
+            return json.dumps(lotes)
+        except Exception as e:
+            logger.error(f"❌ Error al obtener lotes próximos a vencer: {str(e)}")
+            return json.dumps([])
     
     # ==================== MÉTODOS DE UTILIDAD ====================
     
     @Slot(result=str)
     def obtener_resumen_inventario(self):
-        """
-        Obtiene un resumen del inventario actual
-        
-        Returns:
-            str: JSON string con el resumen del inventario
-        """
+        """Obtiene resumen del inventario"""
         try:
-            resumen = self.producto_service.obtener_resumen_inventario()
+            resumen = self.lote_service.obtener_resumen_inventario()
             return json.dumps(resumen)
         except Exception as e:
             logger.error(f"❌ Error al obtener resumen de inventario: {str(e)}")
-            return json.dumps({
-                'total_productos': 0,
-                'productos_activos': 0,
-                'valor_inventario': 0,
-                'stock_critico': 0,
-                'categoria_mas_usada': 'N/A'
-            })
-    
-    @Slot(float, result=str)
-    def obtener_productos_stock_bajo(self, limite):
-        """
-        Obtiene productos con stock por debajo del límite
-        
-        Args:
-            limite: Cantidad mínima de stock
-            
-        Returns:
-            str: JSON string con la lista de productos
-        """
-        try:
-            productos = self.producto_service.obtener_productos_stock_bajo(limite)
-            return json.dumps(productos)
-        except Exception as e:
-            logger.error(f"❌ Error al obtener productos con stock bajo: {str(e)}")
-            return json.dumps([])
-    
-    @Slot(result=str)
-    def obtener_estadisticas_categorias(self):
-        """
-        Obtiene estadísticas de las categorías
-        
-        Returns:
-            str: JSON string con las estadísticas
-        """
-        try:
-            estadisticas = self.categoria_service.obtener_estadisticas_categorias()
-            return json.dumps(estadisticas)
-        except Exception as e:
-            logger.error(f"❌ Error al obtener estadísticas de categorías: {str(e)}")
-            return json.dumps({})
-    
-    @Slot(result=str)
-    def obtener_estadisticas_mezclas(self):
-        """
-        Obtiene estadísticas de las mezclas
-        
-        Returns:
-            str: JSON string con las estadísticas
-        """
-        try:
-            estadisticas = self.mezcla_service.obtener_estadisticas_mezclas()
-            return json.dumps(estadisticas)
-        except Exception as e:
-            logger.error(f"❌ Error al obtener estadísticas de mezclas: {str(e)}")
-            return json.dumps({})
-    
-    @Slot(int, result=str)
-    def obtener_estadisticas_ciclo(self, id_ciclo):
-        """
-        Obtiene estadísticas de tratamientos de un ciclo
-        
-        Args:
-            id_ciclo: ID del ciclo
-            
-        Returns:
-            str: JSON string con las estadísticas
-        """
-        try:
-            estadisticas = self.tratamiento_service.obtener_estadisticas_ciclo(id_ciclo)
-            return json.dumps(estadisticas)
-        except Exception as e:
-            logger.error(f"❌ Error al obtener estadísticas del ciclo: {str(e)}")
             return json.dumps({})
     
     @Slot(int, float, result=str)
     def calcular_costo_mezcla(self, id_mezcla, cantidad_agua):
-        """
-        Calcula el costo de una mezcla según la cantidad de agua
-        
-        Args:
-            id_mezcla: ID de la mezcla
-            cantidad_agua: Cantidad de agua en litros
-            
-        Returns:
-            str: JSON string con el costo total y desglose
-        """
+        """Calcula costo de mezcla"""
         try:
             costo_total, desglose = self.mezcla_service.calcular_costo_mezcla(id_mezcla, cantidad_agua)
-            resultado = {
-                'costo_total': costo_total,
-                'desglose': desglose
-            }
+            resultado = {'costo_total': costo_total, 'desglose': desglose}
             return json.dumps(resultado)
         except Exception as e:
             logger.error(f"❌ Error al calcular costo de mezcla: {str(e)}")
             return json.dumps({'costo_total': 0, 'desglose': []})
     
-    @Slot(int, float, result=str)
-    def verificar_stock_mezcla(self, id_mezcla, cantidad_agua):
-        """
-        Verifica si hay suficiente stock para una mezcla
-        
-        Args:
-            id_mezcla: ID de la mezcla
-            cantidad_agua: Cantidad de agua en litros
-            
-        Returns:
-            str: JSON string con el resultado de la verificación
-        """
-        try:
-            hay_stock, productos_faltantes = self.mezcla_service.verificar_stock_mezcla(id_mezcla, cantidad_agua)
-            resultado = {
-                'hay_stock_suficiente': hay_stock,
-                'productos_faltantes': productos_faltantes
-            }
-            return json.dumps(resultado)
-        except Exception as e:
-            logger.error(f"❌ Error al verificar stock de mezcla: {str(e)}")
-            return json.dumps({'hay_stock_suficiente': False, 'productos_faltantes': []})
+    @Slot()
+    def actualizar_todos_datos(self):
+        """Actualiza todos los datos del modelo"""
+        logger.info("🔄 Actualizando todos los datos...")
+        self.cargar_productos()
+        self.cargar_categorias()
+        self.cargar_mezclas()
+        self.cargar_tratamientos()
+        self.cargar_lotes()
+        self.cargar_alertas_inventario()
+        logger.info("✅ Todos los datos actualizados")
     
-    # ==================== MÉTODOS ADICIONALES ====================
-    
-    @Slot(result=int)
-    def contar_productos(self):
-        """Cuenta el total de productos activos"""
-        try:
-            return self.producto_service.contar_productos(solo_activos=True)
-        except Exception as e:
-            logger.error(f"❌ Error al contar productos: {str(e)}")
-            return 0
-    
-    @Slot(result=int)
-    def contar_categorias(self):
-        """Cuenta el total de categorías activas"""
-        try:
-            return self.categoria_service.contar_categorias(solo_activas=True)
-        except Exception as e:
-            logger.error(f"❌ Error al contar categorías: {str(e)}")
-            return 0
-    
-    @Slot(result=int)
-    def contar_mezclas(self):
-        """Cuenta el total de mezclas activas"""
-        try:
-            return self.mezcla_service.contar_mezclas(solo_activas=True)
-        except Exception as e:
-            logger.error(f"❌ Error al contar mezclas: {str(e)}")
-            return 0
-    
-    @Slot(int, result=int)
-    def contar_tratamientos(self, id_ciclo):
-        """
-        Cuenta tratamientos de un ciclo específico
-        
-        Args:
-            id_ciclo: ID del ciclo (0 para todos)
-        """
-        try:
-            if id_ciclo == 0:
-                return self.tratamiento_service.contar_tratamientos()
-            else:
-                return self.tratamiento_service.contar_tratamientos(id_ciclo)
-        except Exception as e:
-            logger.error(f"❌ Error al contar tratamientos: {str(e)}")
-            return 0
-    
-    @Slot(result=float)
-    def obtener_valor_inventario(self):
-        """Obtiene el valor total del inventario"""
-        try:
-            return self.producto_service.obtener_valor_total_inventario()
-        except Exception as e:
-            logger.error(f"❌ Error al obtener valor de inventario: {str(e)}")
-            return 0.0
+    @Slot(result=bool)
+    def tiene_conexion_db(self):
+        """Verifica si hay conexión a la base de datos"""
+        return self.db_session is not None
