@@ -389,35 +389,43 @@ class ProductorRepositorio(RepositorioBase):
             ErrorValidacion: Si los datos no son válidos.
             RegistroYaExiste: Si la identificación ya existe.
         """
-        self._validar_datos_productor(datos_productor)
+        try:
+            print(f"🎯 REPOSITORIO CREAR - Datos recibidos: {datos_productor}")
+            self._validar_datos_productor(datos_productor)
+            
+            # Verificar si la identificación ya existe
+            if self._existe_identificacion(datos_productor['identificacion']):
+                raise RegistroYaExiste(f"Ya existe un productor con identificación {datos_productor['identificacion']}")
+            
+            query = """
+            INSERT INTO Productores (nombre, apellido, identificacion, telefono, 
+                                correo, direccion, fecha_registro, activo)
+            OUTPUT INSERTED.id_productor
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """
+            
+            fecha_actual = datetime.now().date().strftime('%Y-%m-%d')
+            valores = (
+                datos_productor['nombre'],
+                datos_productor['apellido'],
+                datos_productor['identificacion'],
+                datos_productor.get('telefono'),
+                datos_productor.get('correo'),
+                datos_productor.get('direccion'),
+                fecha_actual,
+                1  # activo por defecto
+            )
+            
+            resultado = self._ejecutar_consulta(query, valores, obtener_resultado=True)
+            id_productor = resultado[0][0] if resultado and len(resultado) > 0 else None
+            
+            logger.info(f"Productor creado con ID: {id_productor}")
+            print(f"✅ REPOSITORIO CREAR - Productor creado con ID: {id_productor}")
+            return True, id_productor
+        except Exception as e:
+            logger.error(f"Error al crear productor: {e}")
+            print(f"❌ REPOSITORIO CREAR - Error al crear productor: {  e}")
         
-        # Verificar si la identificación ya existe
-        if self._existe_identificacion(datos_productor['identificacion']):
-            raise RegistroYaExiste(f"Ya existe un productor con identificación {datos_productor['identificacion']}")
-        
-        query = """
-        INSERT INTO Productores (nombre, apellido, identificacion, telefono, 
-                              correo, direccion, fecha_registro, activo)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """
-        
-        fecha_actual = datetime.now().date().strftime('%Y-%m-%d')
-        valores = (
-            datos_productor['nombre'],
-            datos_productor['apellido'],
-            datos_productor['identificacion'],
-            datos_productor.get('telefono'),
-            datos_productor.get('correo'),
-            datos_productor.get('direccion'),
-            fecha_actual,
-            1  # activo por defecto
-        )
-        
-        self._ejecutar_consulta(query, valores, obtener_resultado=False)
-        id_productor = self._obtener_ultimo_id()
-        
-        logger.info(f"Productor creado con ID: {id_productor}")
-        return True, id_productor
 
     @cache_invalidator('productores', pattern='id_')        # Invalidar caché específico
     @cache_invalidator('productores', key='todos_activos')  # Invalidar lista completa

@@ -94,7 +94,8 @@ class RepositorioBase(ABC):
     
     def _obtener_ultimo_id(self):
         """Obtiene el último ID insertado."""
-        return self._ejecutar_consulta_escalar("SELECT @@IDENTITY AS ID")
+        resultado = self._ejecutar_consulta_escalar("SELECT SCOPE_IDENTITY() AS ID")
+        return int(resultado) if resultado else None
     
     def _contar_registros(self, tabla, condicion=None, params=None):
         """Cuenta registros en una tabla con condición opcional."""

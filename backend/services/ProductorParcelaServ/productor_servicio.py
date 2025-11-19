@@ -79,22 +79,20 @@ class ProductorServicio:
     def crear_productor(self, datos_productor):
         """
         Crea un nuevo productor con validaciones de negocio.
-        
-        Args:
-            datos_productor (dict): Datos del productor.
-            
-        Returns:
-            dict: Resultado con éxito e información adicional.
         """
         try:
+            print(f"🎯 CREAR_PRODUCTOR - Datos recibidos: {datos_productor}")
+            
             # Validaciones de negocio
             self._validar_reglas_negocio_creacion(datos_productor)
             
             # Normalizar datos
             datos_normalizados = self._normalizar_datos_productor(datos_productor)
+            print(f"📦 CREAR_PRODUCTOR - Datos normalizados: {datos_normalizados}")
             
             # Crear productor
             exito, id_productor = self.productor_repo.crear(datos_normalizados)
+            print(f"✅ CREAR_PRODUCTOR - Resultado repositorio: éxito={exito}, id={id_productor}")
             
             if exito:
                 resultado = {
@@ -113,14 +111,16 @@ class ProductorServicio:
                 logger.info(f"Servicio: productor creado con ID {id_productor}")
                 return resultado
             else:
+                print("❌ CREAR_PRODUCTOR - Error en repositorio")
                 return {
                     'exito': False,
-                    'mensaje': 'Error al crear productor',
+                    'mensaje': 'Error al crear productor en la base de datos',
                     'datos': None
                 }
                 
         except (ErrorValidacion, RegistroYaExiste) as e:
             logger.error(f"Error de validación en crear_productor: {str(e)}")
+            print(f"❌ CREAR_PRODUCTOR - Error validación: {str(e)}")
             return {
                 'exito': False,
                 'mensaje': str(e),
@@ -128,6 +128,9 @@ class ProductorServicio:
             }
         except Exception as e:
             logger.error(f"Error en servicio crear_productor: {str(e)}")
+            print(f"❌ CREAR_PRODUCTOR - Error general: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return {
                 'exito': False,
                 'mensaje': 'Error interno del sistema',
@@ -142,26 +145,24 @@ class ProductorServicio:
     def actualizar_productor(self, id_productor, datos_productor):
         """
         Actualiza un productor con validaciones de negocio.
-        
-        Args:
-            id_productor (int): ID del productor.
-            datos_productor (dict): Datos actualizados.
-            
-        Returns:
-            dict: Resultado de la operación.
         """
         try:
+            print(f"🎯 ACTUALIZAR_PRODUCTOR - ID: {id_productor}, Datos: {datos_productor}")
+            
             # Obtener datos actuales para comparación
             productor_actual = self.productor_repo.obtener_por_id(id_productor)
+            print(f"📋 ACTUALIZAR_PRODUCTOR - Datos actuales: {productor_actual}")
             
             # Validar cambios críticos
             self._validar_cambios_criticos(productor_actual, datos_productor)
             
             # Normalizar datos
             datos_normalizados = self._normalizar_datos_productor(datos_productor)
+            print(f"📦 ACTUALIZAR_PRODUCTOR - Datos normalizados: {datos_normalizados}")
             
             # Actualizar productor
             exito = self.productor_repo.actualizar(id_productor, datos_normalizados)
+            print(f"✅ ACTUALIZAR_PRODUCTOR - Resultado repositorio: éxito={exito}")
             
             if exito:
                 resultado = {
@@ -180,14 +181,16 @@ class ProductorServicio:
                 logger.info(f"Servicio: productor {id_productor} actualizado")
                 return resultado
             else:
+                print("❌ ACTUALIZAR_PRODUCTOR - Error en repositorio")
                 return {
                     'exito': False,
-                    'mensaje': 'Error al actualizar productor',
+                    'mensaje': 'Error al actualizar productor en la base de datos',
                     'datos': None
                 }
                 
         except (ErrorValidacion, RegistroNoEncontrado, RegistroYaExiste) as e:
             logger.error(f"Error en actualizar_productor: {str(e)}")
+            print(f"❌ ACTUALIZAR_PRODUCTOR - Error específico: {str(e)}")
             return {
                 'exito': False,
                 'mensaje': str(e),
@@ -195,6 +198,9 @@ class ProductorServicio:
             }
         except Exception as e:
             logger.error(f"Error en servicio actualizar_productor: {str(e)}")
+            print(f"❌ ACTUALIZAR_PRODUCTOR - Error general: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return {
                 'exito': False,
                 'mensaje': 'Error interno del sistema',
@@ -605,14 +611,18 @@ class ProductorServicio:
 
     def _validar_reglas_negocio_creacion(self, datos):
         """Valida reglas de negocio específicas para creación."""
-        if not datos.get('nombre') or not datos.get('nombre').strip():
+        print(f"🔍 VALIDACIÓN - Datos a validar: {datos}")
+        
+        if not datos.get('nombre') or not str(datos.get('nombre', '')).strip():
             raise ErrorValidacion("El nombre es obligatorio")
             
-        if not datos.get('apellido') or not datos.get('apellido').strip():
+        if not datos.get('apellido') or not str(datos.get('apellido', '')).strip():
             raise ErrorValidacion("El apellido es obligatorio")
             
-        if not datos.get('identificacion') or not datos.get('identificacion').strip():
+        if not datos.get('identificacion') or not str(datos.get('identificacion', '')).strip():
             raise ErrorValidacion("La identificación es obligatoria")
+        
+        print("✅ VALIDACIÓN - Datos válidos")
 
     def _validar_cambios_criticos(self, productor_actual, datos_nuevos):
         """Valida cambios que podrían afectar la integridad del sistema."""
@@ -625,14 +635,42 @@ class ProductorServicio:
         """Normaliza y limpia los datos del productor."""
         datos_normalizados = datos.copy()
         
-        # Limpiar espacios en strings
-        for campo in ['nombre', 'apellido', 'identificacion', 'telefono', 'correo', 'direccion']:
-            if campo in datos_normalizados and datos_normalizados[campo]:
-                datos_normalizados[campo] = datos_normalizados[campo].strip()
+        # Limpiar espacios en strings para todos los campos posibles
+        campos_texto = ['nombre', 'apellido', 'identificacion', 'telefono', 'correo', 'direccion', 'notas']
+        for campo in campos_texto:
+            if campo in datos_normalizados and datos_normalizados[campo] is not None:
+                if isinstance(datos_normalizados[campo], str):
+                    datos_normalizados[campo] = datos_normalizados[campo].strip()
+                else:
+                    # Convertir a string si no lo es
+                    datos_normalizados[campo] = str(datos_normalizados[campo]).strip()
         
         # Normalizar correo a minúsculas
         if datos_normalizados.get('correo'):
             datos_normalizados['correo'] = datos_normalizados['correo'].lower()
+        
+        # Manejar campo 'activo' - mapear a diferentes nombres posibles
+        if 'activo' in datos_normalizados:
+            datos_normalizados['activo'] = bool(datos_normalizados['activo'])
+        elif 'estado' in datos_normalizados:
+            # Si viene como 'Activo'/'Inactivo'
+            if isinstance(datos_normalizados['estado'], str):
+                datos_normalizados['activo'] = datos_normalizados['estado'].lower() == 'activo'
+            else:
+                datos_normalizados['activo'] = bool(datos_normalizados['estado'])
+        else:
+            # Por defecto, activo
+            datos_normalizados['activo'] = True
+        
+        # Asegurar que los campos obligatorios tengan valores por defecto
+        if not datos_normalizados.get('nombre'):
+            datos_normalizados['nombre'] = 'Sin nombre'
+        if not datos_normalizados.get('apellido'):
+            datos_normalizados['apellido'] = 'Sin apellido'
+        if not datos_normalizados.get('identificacion'):
+            datos_normalizados['identificacion'] = 'Sin identificación'
+        
+        print(f"🔧 Datos normalizados: {datos_normalizados}")
         
         return datos_normalizados
 

@@ -7,17 +7,22 @@ Rectangle {
     id: productoresRoot
     anchors.fill: parent
     color: "#F8F9FA"
+
+    Component.onCompleted: {
+        console.log("=" .repeat(50))
+        console.log("🔧 VERIFICACIÓN DE CONSOLA QML")
+        console.log("=" .repeat(50))
+        console.log("✅ Console.log funciona correctamente")
+        console.log("📍 Módulo: productores_parcela.qml")
+        console.log("🕐 Timestamp:", new Date().toISOString())
+        console.log("=" .repeat(50))
+    }
     
     property int tabActiva: 0
     property var tabsInfo: [
         {"text": "Agricultores", "icon": "recursos/image/icons/agricultores.png", "color": "#2E7D32"},
-        {"text": "Parcelas", "icon": "recursos/image/icons/parcela.png", "color": "#F57C00"},
-        {"text": "Mapa", "icon": "recursos/image/icons/mapa.png", "color": "#0288D1"}
+        {"text": "Parcelas", "icon": "recursos/image/icons/parcela.png", "color": "#F57C00"}
     ]
-    
-    // Propiedades para datos dinámicos conectados al modelo
-    property var agricultoresData: productoresparcelasModel.productores || []
-    property var parcelasData: productoresparcelasModel.parcelas || []
     
     // Propiedades para paginación conectadas al modelo
     property int paginaAgricultores: productoresparcelasModel.paginaActualProductores || 1
@@ -29,22 +34,58 @@ Rectangle {
     property var estadosAgricultores: ["Todos", "Activo", "Inactivo"]
     property var estadosParcelas: ["Todos", "Activo", "Inactivo"]
 
-    // Conexiones a las señales del modelo
     Connections {
         target: productoresparcelasModel
+        
         function onProductoresChanged() {
-            console.log("✅ Datos de agricultores actualizados")
-            agricultoresData = productoresparcelasModel.productores
+            try {
+                var total = productoresparcelasModel.productores ? productoresparcelasModel.productores.length : 0
+                console.log("=" .repeat(50))
+                console.log("✅ PRODUCTORES CHANGED")
+                console.log("📊 Total productores:", total)
+                console.log("🔗 ListView ID existe:", typeof listaAgricultores !== 'undefined')
+                console.log("=" .repeat(50))
+                
+                // Forzar actualización
+                if (typeof listaAgricultores !== 'undefined' && listaAgricultores) {
+                    console.log("🔄 Forzando refresh del ListView...")
+                    listaAgricultores.model = null
+                    Qt.callLater(function() {
+                        listaAgricultores.model = productoresparcelasModel.productores
+                        console.log("✅ ListView actualizado - Items:", listaAgricultores.count)
+                    })
+                } else {
+                    console.error("❌ listaAgricultores no está disponible!")
+                }
+            } catch (e) {
+                console.error("❌ Error en onProductoresChanged:", e.message)
+            }
         }
         
         function onParcelasChanged() {
-            console.log("✅ Datos de parcelas actualizados")
-            parcelasData = productoresparcelasModel.parcelas
+            try {
+                var total = productoresparcelasModel.parcelas ? productoresparcelasModel.parcelas.length : 0
+                console.log("✅ Parcelas actualizadas - Total:", total)
+                
+                if (typeof listaParcelas !== 'undefined' && listaParcelas) {
+                    listaParcelas.model = null
+                    Qt.callLater(function() {
+                        listaParcelas.model = productoresparcelasModel.parcelas
+                    })
+                }
+            } catch (e) {
+                console.error("❌ Error en onParcelasChanged:", e.message)
+            }
         }
         
         function onOperacionCompleta(tipo, exito, mensaje) {
-            console.log(`Operación ${tipo}: ${exito ? 'Éxito' : 'Error'} - ${mensaje}`)
             if (exito) {
+                // Recargar después de operaciones exitosas
+                if (tipo.includes('productor')) {
+                    productoresparcelasModel.cargar_productores_pagina(paginaAgricultores)
+                } else if (tipo.includes('parcela')) {
+                    productoresparcelasModel.cargar_parcelas_pagina(paginaParcelas)
+                }
                 mostrarNotificacion(`✅ ${mensaje}`, "success")
             } else {
                 mostrarNotificacion(`❌ ${mensaje}`, "error")
@@ -52,12 +93,7 @@ Rectangle {
         }
     }
 
-    // Inicializar datos al cargar el componente
-    Component.onCompleted: {
-        console.log("🔄 Inicializando módulo de productores y parcelas...")
-        productoresparcelasModel.cargar_productores()
-        productoresparcelasModel.cargar_parcelas()
-    }
+    
 
     // Función para mostrar notificaciones
     function mostrarNotificacion(mensaje, tipo) {
@@ -154,12 +190,27 @@ Rectangle {
                     }
                     
                     onSearchTextChanged: function(text) {
-                        console.log("Buscar agricultor:", text)
-                        if (text.length >= 2) {
-                            var resultados = productoresparcelasModel.filtrar_productores_por_nombre(text)
-                            console.log(`🔍 Resultados búsqueda: ${resultados.length} agricultores`)
-                        } else if (text === "") {
-                            productoresparcelasModel.cargar_productores_pagina(paginaAgricultores)
+                        try {
+                            console.log("🔍 Buscar agricultor:", text)
+                            
+                            if (text.length >= 2) {
+                                var resultados = productoresparcelasModel.filtrar_productores_por_nombre(text)
+                                console.log(`📊 Resultados búsqueda: ${resultados ? resultados.length : 0} agricultores`)
+                                
+                                // ✅ CRÍTICO: Forzar actualización del ListView
+                                listaAgricultores.model = null
+                                listaAgricultores.model = resultados
+                                
+                            } else if (text === "") {
+                                console.log("🔄 Limpiando búsqueda - cargando página:", paginaAgricultores)
+                                productoresparcelasModel.cargar_productores_pagina(paginaAgricultores)
+                                
+                                // ✅ Restaurar modelo original
+                                listaAgricultores.model = null
+                                listaAgricultores.model = productoresparcelasModel.productores
+                            }
+                        } catch (e) {
+                            console.error("❌ Error en búsqueda:", e.message, e.stack)
                         }
                     }
                     
@@ -183,7 +234,7 @@ Rectangle {
                         anchors.fill: parent
                         anchors.margins: 10
                         clip: true
-                        model: agricultoresData
+                        model: productoresparcelasModel.productores
                         headerPositioning: ListView.OverlayHeader
                         
                         header: Rectangle {
@@ -266,7 +317,6 @@ Rectangle {
                                     elide: Text.ElideRight; 
                                     font.pixelSize: 12 
                                 }
-                                // En el delegate de parcelas
                                 Rectangle {
                                     width: parent.width * 0.12
                                     height: parent.height
@@ -313,7 +363,7 @@ Rectangle {
                                             ToolTip.visible: hovered
                                             ToolTip.text: "Editar"
                                             onClicked: {
-                                                console.log("Editar agricultor:", modelData.id)
+                                                console.log("Editar agricultor:", modelData.id_productor)
                                                 dialogoAgricultor.abrirParaEditar(modelData)
                                             }
                                         }
@@ -334,9 +384,9 @@ Rectangle {
                                             ToolTip.visible: hovered
                                             ToolTip.text: "Eliminar"
                                             onClicked: {
-                                                console.log("Eliminar agricultor:", modelData.id)
+                                                console.log("Eliminar agricultor:", modelData.id_productor)
                                                 var nombreCompleto = (modelData.nombre || "") + " " + (modelData.apellido || "")
-                                                dialogoConfirmacion.confirmarEliminacion("agricultor", modelData.id, nombreCompleto.trim())
+                                                dialogoConfirmacion.confirmarEliminacion("agricultor", modelData.id_productor, nombreCompleto.trim())
                                             }
                                         }
                                     }
@@ -361,7 +411,7 @@ Rectangle {
                         
                         onPageChanged: {
                             console.log(`📄 Cambiando a página ${newPage} de agricultores`)
-                            productoresparcelasModel.cargar_productores_pagina(newPage)
+                            modelData.cargar_productores_pagina(newPage)
                         }
                     }
                 }
@@ -405,10 +455,10 @@ Rectangle {
                     onSearchTextChanged: function(text) {
                         console.log("Buscar parcela:", text)
                         if (text.length >= 2) {
-                            var resultados = productoresparcelasModel.filtrar_parcelas_por_nombre(text)
+                            var resultados = modelData.filtrar_parcelas_por_nombre(text)
                             console.log(`🔍 Resultados búsqueda: ${resultados.length} parcelas`)
                         } else if (text === "") {
-                            productoresparcelasModel.cargar_parcelas_pagina(paginaParcelas)
+                            modelData.cargar_parcelas_pagina(paginaParcelas)
                         }
                     }
                     
@@ -432,7 +482,7 @@ Rectangle {
                         anchors.fill: parent
                         anchors.margins: 10
                         clip: true
-                        model: parcelasData
+                        model: productoresparcelasModel.parcelas
                         headerPositioning: ListView.OverlayHeader
                         
                         header: Rectangle {
@@ -515,7 +565,6 @@ Rectangle {
                                     elide: Text.ElideRight; 
                                     font.pixelSize: 12 
                                 }
-                                // En el delegate de productores
                                 Rectangle {
                                     width: parent.width * 0.12
                                     height: parent.height
@@ -536,7 +585,6 @@ Rectangle {
                                         }
                                     }
                                 }
-                                // En el delegate de parcelas
                                 Rectangle {
                                     width: parent.width * 0.24
                                     height: parent.height
@@ -584,8 +632,7 @@ Rectangle {
                                             ToolTip.text: "Eliminar"
                                             onClicked: {
                                                 console.log("Eliminar parcela:", modelData.id)
-                                                // TODO: Implementar confirmación y eliminación
-                                                var resultado = productoresparcelasModel.eliminar_parcela(modelData.id)
+                                                var resultado = modelData.eliminar_parcela(modelData.id)
                                                 console.log("Resultado eliminación:", resultado)
                                             }
                                         }
@@ -632,54 +679,88 @@ Rectangle {
                         
                         onPageChanged: {
                             console.log(`📄 Cambiando a página ${newPage} de parcelas`)
-                            productoresparcelasModel.cargar_parcelas_pagina(newPage)
+                            modelData.cargar_parcelas_pagina(newPage)
                         }
                     }
                 }
             }
         }
+    }
+
+    // ==================== DIÁLOGO SIMPLIFICADO PARA AGRICULTOR ====================
+        // ==================== FUNCIONES GLOBALES DEL COMPONENTE ====================
+    function guardarAgricultor() {
+        console.log("🔄 Ejecutando guardarAgricultor...")
         
-        // ==================== TAB 3: MAPA ====================
-        Item {
-            anchors.fill: parent
-            visible: tabActiva === 2
-            opacity: tabActiva === 2 ? 1 : 0
-            
-            Behavior on opacity {
-                NumberAnimation { duration: 300 }
+        // Validaciones básicas
+        if (!campoNombre || !campoNombre.text || campoNombre.text.trim() === "") {
+            mostrarNotificacion("❌ El nombre es obligatorio", "error")
+            return
+        }
+        
+        if (!campoApellido || !campoApellido.text || campoApellido.text.trim() === "") {
+            mostrarNotificacion("❌ El apellido es obligatorio", "error")
+            return
+        }
+        
+        if (!campoIdentificacion || !campoIdentificacion.text || campoIdentificacion.text.trim() === "") {
+            mostrarNotificacion("❌ La identificación es obligatoria", "error")
+            return
+        }
+        
+        // Preparar datos
+        var datosAgricultor = {
+            "nombre": campoNombre.text.trim(),
+            "apellido": campoApellido.text.trim(),
+            "identificacion": campoIdentificacion.text.trim(),
+            "telefono": campoTelefono ? campoTelefono.text.trim() : "",
+            "correo": campoCorreo ? campoCorreo.text.trim() : "",
+            "direccion": campoDireccion ? campoDireccion.text.trim() : "",
+            "activo": comboEstado.currentIndex === 0
+        }
+        
+        console.log("📝 Guardando agricultor:", JSON.stringify(datosAgricultor))
+        
+        if (dialogoAgricultor.modoEdicion && dialogoAgricultor.agricultorActual) {
+            // Actualizar agricultor existente
+            var exito = productoresparcelasModel.actualizar_productor(
+                dialogoAgricultor.agricultorActual.id_productor, 
+                JSON.stringify(datosAgricultor)
+            )
+            if (exito) {
+                mostrarNotificacion("✅ Agricultor actualizado correctamente", "success")
+                dialogoAgricultor.close()
+                // Recargar datos
+                productoresparcelasModel.cargar_productores_pagina(paginaAgricultores)
+                console.log("Recargando página actual de agricultores:", paginaAgricultores)
+            } else {
+                mostrarNotificacion("❌ Error al actualizar agricultor", "error")
             }
-            
-            Rectangle {
-                anchors.fill: parent
-                color: "white"
-                radius: 10
-                border.color: "#E0E0E0"
-                border.width: 1
-                
-                Text {
-                    anchors.centerIn: parent
-                    text: "Mapa - En desarrollo"
-                    color: "#999999"
-                    font.pixelSize: 18
-                }
+        } else {
+            // Crear nuevo agricultor
+            var exito = productoresparcelasModel.agregar_productor(JSON.stringify(datosAgricultor))
+            if (exito) {
+                mostrarNotificacion("✅ Agricultor creado correctamente", "success")
+                dialogoAgricultor.close()
+                // Recargar primera página
+                productoresparcelasModel.cargar_productores_pagina(1)
+            } else {
+                mostrarNotificacion("❌ Error al crear agricultor", "error")
             }
         }
     }
-
-    // Diálogo para Agregar/Editar Agricultor
     Popup {
         id: dialogoAgricultor
-        width: 600
-        height: 700
+        width: 500
+        height: 600
         modal: true
-        closePolicy: Popup.NoAutoClose
+        closePolicy: Popup.CloseOnEscape
         anchors.centerIn: parent
-        padding: 0
         
         background: Rectangle {
             color: "white"
-            radius: 12
-            border.color: "#E0E0E0"
+            radius: 8
+            border.color: "#CCCCCC"
             border.width: 1
         }
         
@@ -688,223 +769,192 @@ Rectangle {
         
         ColumnLayout {
             anchors.fill: parent
-            spacing: 0
+            anchors.margins: 15
+            spacing: 10
             
-            // Header del diálogo
-            Rectangle {
+            // Header
+            Text {
                 Layout.fillWidth: true
-                height: 60
-                color: dialogoAgricultor.modoEdicion ? "#1976D2" : "#2E7D32"
-                radius: 12
-                
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: 20
-                    anchors.rightMargin: 20
-                    
-                    Text {
-                        Layout.fillWidth: true
-                        text: dialogoAgricultor.modoEdicion ? "EDITAR AGRICULTOR" : "NUEVO AGRICULTOR"
-                        font.pixelSize: 18
-                        font.bold: true
-                        color: "white"
-                    }
-                    
-                    Button {
-                        Layout.preferredWidth: 32
-                        Layout.preferredHeight: 32
-                        background: Rectangle {
-                            color: "transparent"
-                            radius: 16
-                            border.color: "white"
-                            border.width: 1
-                        }
-                        contentItem: Text {
-                            text: "×"
-                            font.pixelSize: 20
-                            font.bold: true
-                            color: "white"
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                        }
-                        onClicked: dialogoAgricultor.close()
-                    }
-                }
+                text: dialogoAgricultor.modoEdicion ? "EDITAR AGRICULTOR" : "NUEVO AGRICULTOR"
+                font.pixelSize: 18
+                font.bold: true
+                color: "#2E7D32"
+                horizontalAlignment: Text.AlignHCenter
             }
             
-            // Contenido del formulario
-            ScrollView {
+            // Campos del formulario - SIMPLIFICADOS
+            ColumnLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                Layout.margins: 20
-                clip: true
+                spacing: 10
                 
+                // Nombre
                 ColumnLayout {
-                    width: parent.width
-                    spacing: 15
+                    Layout.fillWidth: true
+                    spacing: 5
                     
-                    // Fila 1: Nombre y Apellido
-                    RowLayout {
-                        spacing: 15
-                        
-                        Loader {
-                            Layout.fillWidth: true
-                            sourceComponent: componenteCampoFormulario
-                            property string label: "Nombre *"
-                            property string placeholder: "Ingrese el nombre"
-                            property string valor: dialogoAgricultor.agricultorActual ? dialogoAgricultor.agricultorActual.nombre : ""
-                            onValorChanged: if (dialogoAgricultor.agricultorActual) dialogoAgricultor.agricultorActual.nombre = valor
-                        }
-                        
-                        Loader {
-                            Layout.fillWidth: true
-                            sourceComponent: componenteCampoFormulario
-                            property string label: "Apellido *"
-                            property string placeholder: "Ingrese el apellido"
-                            property string valor: dialogoAgricultor.agricultorActual ? dialogoAgricultor.agricultorActual.apellido : ""
-                            onValorChanged: if (dialogoAgricultor.agricultorActual) dialogoAgricultor.agricultorActual.apellido = valor
-                        }
-                    }
-                    
-                    // Fila 2: Identificación y Teléfono
-                    RowLayout {
-                        spacing: 15
-                        
-                        Loader {
-                            Layout.fillWidth: true
-                            sourceComponent: componenteCampoFormulario
-                            property string label: "Identificación *"
-                            property string placeholder: "Número de identificación"
-                            property string valor: dialogoAgricultor.agricultorActual ? dialogoAgricultor.agricultorActual.identificacion : ""
-                            onValorChanged: if (dialogoAgricultor.agricultorActual) dialogoAgricultor.agricultorActual.identificacion = valor
-                        }
-                        
-                        Loader {
-                            Layout.fillWidth: true
-                            sourceComponent: componenteCampoFormulario
-                            property string label: "Teléfono"
-                            property string placeholder: "Número de teléfono"
-                            property string valor: dialogoAgricultor.agricultorActual ? dialogoAgricultor.agricultorActual.telefono : ""
-                            onValorChanged: if (dialogoAgricultor.agricultorActual) dialogoAgricultor.agricultorActual.telefono = valor
-                        }
-                    }
-                    
-                    // Correo electrónico
-                    Loader {
-                        Layout.fillWidth: true
-                        sourceComponent: componenteCampoFormulario
-                        property string label: "Correo Electrónico"
-                        property string placeholder: "correo@ejemplo.com"
-                        property string valor: dialogoAgricultor.agricultorActual ? dialogoAgricultor.agricultorActual.correo : ""
-                        onValorChanged: if (dialogoAgricultor.agricultorActual) dialogoAgricultor.agricultorActual.correo = valor
-                    }
-                    
-                    // Dirección
-                    Loader {
-                        Layout.fillWidth: true
-                        sourceComponent: componenteCampoFormulario
-                        property string label: "Dirección"
-                        property string placeholder: "Dirección completa"
-                        property string valor: dialogoAgricultor.agricultorActual ? dialogoAgricultor.agricultorActual.direccion : ""
-                        onValorChanged: if (dialogoAgricultor.agricultorActual) dialogoAgricultor.agricultorActual.direccion = valor
-                    }
-                    
-                    // Fila 3: Estado y Fecha de Registro
-                    RowLayout {
-                        spacing: 15
-                        
-                        Loader {
-                            Layout.fillWidth: true
-                            sourceComponent: componenteCampoFormulario
-                            property string label: "Estado"
-                            property bool isComboBox: true
-                            property var comboOptions: ["Activo", "Inactivo"]
-                            property string valor: dialogoAgricultor.agricultorActual ? (dialogoAgricultor.agricultorActual.estado || "Activo") : "Activo"
-                            onValorChanged: if (dialogoAgricultor.agricultorActual) dialogoAgricultor.agricultorActual.estado = valor
-                        }
-                        
-                        Loader {
-                            Layout.fillWidth: true
-                            sourceComponent: componenteCampoFormulario
-                            property string label: "Fecha de Registro"
-                            property string placeholder: "Fecha automática"
-                            property bool readOnly: true
-                            property string valor: new Date().toLocaleDateString(Qt.locale(), "dd/MM/yyyy")
-                        }
-                    }
-                    
-                    // Notas/Comentarios
-                    Loader {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 120
-                        sourceComponent: componenteCampoFormulario
-                        property string label: "Notas Adicionales"
-                        property string placeholder: "Información adicional sobre el agricultor..."
-                        property bool isTextArea: true
-                        property string valor: dialogoAgricultor.agricultorActual ? dialogoAgricultor.agricultorActual.notas : ""
-                        onValorChanged: if (dialogoAgricultor.agricultorActual) dialogoAgricultor.agricultorActual.notas = valor
-                    }
-                    
-                    // Texto de campos obligatorios
                     Text {
-                        Layout.fillWidth: true
-                        text: "* Campos obligatorios"
-                        font.pixelSize: 12
-                        color: "#757575"
-                        font.italic: true
+                        text: "Nombre *"
+                        font.pixelSize: 14
+                        font.bold: true
+                        color: "#424242"
                     }
+                    
+                    TextField {
+                        id: campoNombre
+                        Layout.fillWidth: true
+                        placeholderText: "Ingrese el nombre"
+                    }
+                }
+                
+                // Apellido
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 5
+                    
+                    Text {
+                        text: "Apellido *"
+                        font.pixelSize: 14
+                        font.bold: true
+                        color: "#424242"
+                    }
+                    
+                    TextField {
+                        id: campoApellido
+                        Layout.fillWidth: true
+                        placeholderText: "Ingrese el apellido"
+                    }
+                }
+                
+                // Identificación
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 5
+                    
+                    Text {
+                        text: "Identificación *"
+                        font.pixelSize: 14
+                        font.bold: true
+                        color: "#424242"
+                    }
+                    
+                    TextField {
+                        id: campoIdentificacion
+                        Layout.fillWidth: true
+                        placeholderText: "Número de identificación"
+                    }
+                }
+                
+                // Teléfono
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 5
+                    
+                    Text {
+                        text: "Teléfono"
+                        font.pixelSize: 14
+                        font.bold: true
+                        color: "#424242"
+                    }
+                    
+                    TextField {
+                        id: campoTelefono
+                        Layout.fillWidth: true
+                        placeholderText: "Número de teléfono"
+                    }
+                }
+                
+                // Correo
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 5
+                    
+                    Text {
+                        text: "Correo Electrónico"
+                        font.pixelSize: 14
+                        font.bold: true
+                        color: "#424242"
+                    }
+                    
+                    TextField {
+                        id: campoCorreo
+                        Layout.fillWidth: true
+                        placeholderText: "correo@ejemplo.com"
+                    }
+                }
+                
+                // Dirección
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 5
+                    
+                    Text {
+                        text: "Dirección"
+                        font.pixelSize: 14
+                        font.bold: true
+                        color: "#424242"
+                    }
+                    
+                    TextField {
+                        id: campoDireccion
+                        Layout.fillWidth: true
+                        placeholderText: "Dirección completa"
+                    }
+                }
+                
+                // Estado
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 5
+                    
+                    Text {
+                        text: "Estado"
+                        font.pixelSize: 14
+                        font.bold: true
+                        color: "#424242"
+                    }
+                    
+                    ComboBox {
+                        id: comboEstado
+                        Layout.fillWidth: true
+                        model: ["Activo", "Inactivo"]
+                    }
+                }
+                
+                
+                // Texto informativo
+                Text {
+                    Layout.fillWidth: true
+                    text: "* Campos obligatorios"
+                    font.pixelSize: 12
+                    color: "#757575"
+                    font.italic: true
                 }
             }
             
-            // Footer con botones
-            Rectangle {
+            // Botones
+            RowLayout {
                 Layout.fillWidth: true
-                height: 80
-                color: "#FAFAFA"
+                spacing: 10
                 
-                RowLayout {
-                    anchors.centerIn: parent
-                    spacing: 15
-                    
-                    Button {
-                        text: "Cancelar"
-                        Layout.preferredWidth: 120
-                        Layout.preferredHeight: 40
-                        background: Rectangle {
-                            color: parent.hovered ? "#E0E0E0" : "#F5F5F5"
-                            radius: 8
-                            border.color: "#BDBDBD"
-                            border.width: 1
-                        }
-                        contentItem: Text {
-                            text: parent.text
-                            color: "#424242"
-                            font.pixelSize: 14
-                            font.bold: true
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                        }
-                        onClicked: dialogoAgricultor.close()
-                    }
-                    
-                    Button {
-                        text: dialogoAgricultor.modoEdicion ? "Actualizar" : "Guardar"
-                        Layout.preferredWidth: 120
-                        Layout.preferredHeight: 40
-                        background: Rectangle {
-                            color: parent.hovered ? (dialogoAgricultor.modoEdicion ? "#1565C0" : "#1B5E20") : (dialogoAgricultor.modoEdicion ? "#1976D2" : "#2E7D32")
-                            radius: 8
-                        }
-                        contentItem: Text {
-                            text: parent.text
-                            color: "white"
-                            font.pixelSize: 14
-                            font.bold: true
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                        }
-                        onClicked: {
-                            guardarAgricultor()
+                Button {
+                    Layout.fillWidth: true
+                    text: "Cancelar"
+                    onClicked: dialogoAgricultor.close()
+                }
+                
+                Button {
+                    Layout.fillWidth: true
+                    text: dialogoAgricultor.modoEdicion ? "Actualizar" : "Guardar"
+                    onClicked: {
+                        console.log("Guardar agricultor - Modo edición:", dialogoAgricultor.modoEdicion)
+                        guardarAgricultor()
+                            // Forzar recarga para asegurar que la interfaz refleje los cambios guardados
+                        if (dialogoAgricultor.modoEdicion) {
+                            productoresparcelasModel.cargar_productores_pagina(paginaAgricultores)
+                            console.log("Recargando página actual de agricultores:", paginaAgricultores)
+                        } else {
+                            productoresparcelasModel.cargar_productores_pagina(1)
                         }
                     }
                 }
@@ -913,98 +963,61 @@ Rectangle {
         
         function abrirParaNuevo() {
             modoEdicion = false
-            agricultorActual = {
-                "nombre": "",
-                "apellido": "",
-                "identificacion": "",
-                "telefono": "",
-                "correo": "",
-                "direccion": "",
-                "estado": "Activo",
-                "notas": ""
-            }
+            agricultorActual = null
+            limpiarCampos()
             open()
         }
         
         function abrirParaEditar(agricultor) {
             modoEdicion = true
-            agricultorActual = JSON.parse(JSON.stringify(agricultor)) // Deep copy
+            agricultorActual = agricultor
+            llenarCampos(agricultor)
             open()
         }
         
-       function guardarAgricultor() {
-            // Validaciones básicas
-            if (!agricultorActual.nombre || agricultorActual.nombre.trim() === "") {
-                mostrarNotificacion("❌ El nombre es obligatorio", "error")
-                return
-            }
-            
-            if (!agricultorActual.apellido || agricultorActual.apellido.trim() === "") {
-                mostrarNotificacion("❌ El apellido es obligatorio", "error")
-                return
-            }
-            
-            if (!agricultorActual.identificacion || agricultorActual.identificacion.trim() === "") {
-                mostrarNotificacion("❌ La identificación es obligatoria", "error")
-                return
-            }
-            
-            // Convertir estado a activo (boolean)
-            var estaActivo = (agricultorActual.estado === "Activo")
-            
-            // Preparar datos para el modelo
-            var datosAgricultor = {
-                "nombre": agricultorActual.nombre.trim(),
-                "apellido": agricultorActual.apellido.trim(),
-                "identificacion": agricultorActual.identificacion.trim(),
-                "telefono": agricultorActual.telefono ? agricultorActual.telefono.trim() : "",
-                "correo": agricultorActual.correo ? agricultorActual.correo.trim() : "",
-                "direccion": agricultorActual.direccion ? agricultorActual.direccion.trim() : "",
-                "activo": estaActivo, // Usar la propiedad que espera el backend
-                "notas": agricultorActual.notas ? agricultorActual.notas.trim() : ""
-            }
-            
-            console.log("📝 Guardando agricultor:", JSON.stringify(datosAgricultor))
-            
-            if (modoEdicion) {
-                // Actualizar agricultor existente
-                var exito = productoresparcelasModel.actualizar_productor(agricultorActual.id, JSON.stringify(datosAgricultor))
-                if (exito) {
-                    mostrarNotificacion("✅ Agricultor actualizado correctamente", "success")
-                    dialogoAgricultor.close()
-                    // Recargar datos
-                    productoresparcelasModel.cargar_productores_pagina(paginaAgricultores)
-                } else {
-                    mostrarNotificacion("❌ Error al actualizar agricultor", "error")
-                }
-            } else {
-                // Crear nuevo agricultor
-                var exito = productoresparcelasModel.agregar_productor(JSON.stringify(datosAgricultor))
-                if (exito) {
-                    mostrarNotificacion("✅ Agricultor creado correctamente", "success")
-                    dialogoAgricultor.close()
-                    // Recargar datos
-                    productoresparcelasModel.cargar_productores_pagina(1) // Volver a primera página
-                } else {
-                    mostrarNotificacion("❌ Error al crear agricultor", "error")
-                }
-            }
+        function limpiarCampos() {
+            campoNombre.text = ""
+            campoApellido.text = ""
+            campoIdentificacion.text = ""
+            campoTelefono.text = ""
+            campoCorreo.text = ""
+            campoDireccion.text = ""
+            comboEstado.currentIndex = 0
         }
+        
+        function llenarCampos(agricultor) {
+            campoNombre.text = agricultor.nombre || ""
+            campoApellido.text = agricultor.apellido || ""
+            campoIdentificacion.text = agricultor.identificacion || ""
+            campoTelefono.text = agricultor.telefono || ""
+            campoCorreo.text = agricultor.correo || ""
+            campoDireccion.text = agricultor.direccion || ""
+            
+            // Estado
+            var estadoIndex = 0 // Por defecto Activo
+            if (agricultor.estado === "Inactivo" || agricultor.activo === false) {
+                estadoIndex = 1
+            }
+            comboEstado.currentIndex = estadoIndex
+            
+        }
+        
+        
     }
 
-    // Diálogo de confirmación para eliminar
+    // ==================== DIÁLOGO DE CONFIRMACIÓN SIMPLIFICADO ====================
     Popup {
         id: dialogoConfirmacion
         width: 400
         height: 200
         modal: true
-        closePolicy: Popup.NoAutoClose
+        closePolicy: Popup.CloseOnEscape
         anchors.centerIn: parent
         
         background: Rectangle {
             color: "white"
-            radius: 12
-            border.color: "#E0E0E0"
+            radius: 8
+            border.color: "#CCCCCC"
             border.width: 1
         }
         
@@ -1014,8 +1027,8 @@ Rectangle {
         
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 20
-            spacing: 15
+            anchors.margins: 15
+            spacing: 10
             
             Text {
                 Layout.fillWidth: true
@@ -1046,45 +1059,17 @@ Rectangle {
             
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 15
+                spacing: 10
                 
                 Button {
                     Layout.fillWidth: true
                     text: "Cancelar"
-                    Layout.preferredHeight: 40
-                    background: Rectangle {
-                        color: parent.hovered ? "#E0E0E0" : "#F5F5F5"
-                        radius: 8
-                        border.color: "#BDBDBD"
-                        border.width: 1
-                    }
-                    contentItem: Text {
-                        text: parent.text
-                        color: "#424242"
-                        font.pixelSize: 14
-                        font.bold: true
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
                     onClicked: dialogoConfirmacion.close()
                 }
                 
                 Button {
                     Layout.fillWidth: true
                     text: "Eliminar"
-                    Layout.preferredHeight: 40
-                    background: Rectangle {
-                        color: parent.hovered ? "#C62828" : "#D32F2F"
-                        radius: 8
-                    }
-                    contentItem: Text {
-                        text: parent.text
-                        color: "white"
-                        font.pixelSize: 14
-                        font.bold: true
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
                     onClicked: {
                         if (dialogoConfirmacion.tipo === "agricultor") {
                             var resultado = productoresparcelasModel.eliminar_productor(dialogoConfirmacion.id)
@@ -1106,154 +1091,19 @@ Rectangle {
         }
         
         function confirmarEliminacion(tipo, id, nombre) {
+            console.log("Confirmando eliminación:", tipo, id, nombre)
+            
+            // VALIDAR que id sea un número válido
+            if (id === undefined || id === null || id < 0) {
+                console.error("❌ ID inválido para eliminación:", id)
+                mostrarNotificacion("❌ Error: ID inválido", "error")
+                return
+            }
+            
             this.tipo = tipo
-            this.id = id
-            this.nombre = nombre
+            this.id = parseInt(id)  // Asegurar que sea int
+            this.nombre = nombre || "Sin nombre"
             open()
-        }
-    }
-
-    // Componente reutilizable para campos de formulario - VERSIÓN CORREGIDA
-    Component {
-        id: componenteCampoFormulario
-        
-        ColumnLayout {
-            id: campoWrapper
-            Layout.fillWidth: true
-            spacing: 5
-            
-            property string label: ""
-            property string placeholder: ""
-            property string valor: ""
-            property bool readOnly: false
-            property bool isComboBox: false
-            property bool isTextArea: false
-            property var comboOptions: []
-            
-
-            
-            Text {
-                text: campoWrapper.label
-                font.pixelSize: 14
-                font.bold: true
-                color: "#424242"
-            }
-            
-            Loader {
-                id: campoLoader
-                Layout.fillWidth: true
-                sourceComponent: {
-                    if (campoWrapper.isComboBox) return componenteComboBox
-                    else if (campoWrapper.isTextArea) return componenteTextArea
-                    else return componenteInput
-                }
-                
-                onLoaded: {
-                    // Configurar el valor inicial cuando el componente se carga
-                    if (item) {
-                        if (campoWrapper.isComboBox) {
-                            item.currentIndex = campoWrapper.comboOptions.indexOf(campoWrapper.valor)
-                        } else {
-                            item.text = campoWrapper.valor
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    // Componentes internos para el campo de formulario
-    Component {
-        id: componenteInput
-        
-        TextField {
-            id: inputField
-            placeholderText: campoWrapper.placeholder
-            text: campoWrapper.valor
-            readOnly: campoWrapper.readOnly
-            selectByMouse: true
-            
-            background: Rectangle {
-                color: inputField.readOnly ? "#F5F5F5" : "white"
-                radius: 8
-                border.color: inputField.activeFocus ? "#2196F3" : "#E0E0E0"
-                border.width: 1
-            }
-            
-            onTextChanged: {
-                if (campoWrapper.valor !== text) {
-                    campoWrapper.valor = text
-                    campoWrapper.valorChanged(text)
-                }
-            }
-        }
-    }
-    
-    Component {
-        id: componenteTextArea
-        
-        TextArea {
-            id: textAreaField
-            placeholderText: campoWrapper.placeholder
-            text: campoWrapper.valor
-            wrapMode: TextArea.Wrap
-            selectByMouse: true
-            
-            background: Rectangle {
-                color: "white"
-                radius: 8
-                border.color: textAreaField.activeFocus ? "#2196F3" : "#E0E0E0"
-                border.width: 1
-            }
-            
-            onTextChanged: {
-                if (campoWrapper.valor !== text) {
-                    campoWrapper.valor = text
-                    campoWrapper.valorChanged(text)
-                }
-            }
-        }
-    }
-    
-    Component {
-        id: componenteComboBox
-        
-        ComboBox {
-            id: comboBoxField
-            model: campoWrapper.comboOptions
-            
-            Component.onCompleted: {
-                // Establecer el índice inicial basado en el valor actual
-                var index = campoWrapper.comboOptions.indexOf(campoWrapper.valor)
-                if (index >= 0) {
-                    currentIndex = index
-                }
-            }
-            
-            background: Rectangle {
-                color: "white"
-                radius: 8
-                border.color: comboBoxField.activeFocus ? "#2196F3" : "#E0E0E0"
-                border.width: 1
-            }
-            
-            onCurrentTextChanged: {
-                if (currentText && campoWrapper.valor !== currentText) {
-                    campoWrapper.valor = currentText
-                    campoWrapper.valorChanged(currentText)
-                }
-            }
-            
-            // Asegurar que se actualice cuando cambie el valor externamente
-            Connections {
-                target: campoWrapper
-                function onValorChanged() {
-                    var index = comboBoxField.find(campoWrapper.valor)
-                    if (index >= 0 && index !== comboBoxField.currentIndex) {
-                        comboBoxField.currentIndex = index
-                    }
-                }
-            }
         }
     }
 }

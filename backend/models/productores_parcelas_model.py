@@ -107,8 +107,8 @@ class ProductoresParcelasModels(QObject):
             resultado = self.productor_servicio.crear_productor(datos_productor)
             
             if resultado['exito']:
-                # Recargar página actual
-                self.cargar_productores_pagina(self._pagina_actual_productores)
+                from PySide6.QtCore import QTimer
+                QTimer.singleShot(0, lambda: self.cargar_productores_pagina(self._pagina_actual_productores))
                 
                 self.operacionCompleta.emit('crear_productor', True, resultado['mensaje'])
                 return True
@@ -129,7 +129,8 @@ class ProductoresParcelasModels(QObject):
             resultado = self.productor_servicio.actualizar_productor(id_productor, datos_productor)
             
             if resultado['exito']:
-                self.cargar_productores_pagina(self._pagina_actual_productores)
+                from PySide6.QtCore import QTimer
+                QTimer.singleShot(0, lambda: self.cargar_productores_pagina(self._pagina_actual_productores))
                 
                 self.operacionCompleta.emit('actualizar_productor', True, resultado['mensaje'])
                 return True

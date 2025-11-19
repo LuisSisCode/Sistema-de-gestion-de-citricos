@@ -10,7 +10,6 @@ Rectangle {
     
     property var tabsData: []
     property int tabActiva: 0
-    property int countBadges: []
     
     signal tabChanged(int index)
     
