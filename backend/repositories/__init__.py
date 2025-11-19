@@ -29,6 +29,7 @@ from .AgroquimicosRep.categoria_repositorio import CategoriaRepositorio
 from .AgroquimicosRep.mezcla_repositorio import MezclaRepositorio
 from .AgroquimicosRep.tratamiento_repositorio import TratamientoRepositorio
 from .AgroquimicosRep.producto_repositorio import ProductoRepositorio
+from .proveedor_repositorio import ProveedorRepositorio
 
 __all__ = [
     # Usuarios y autentificacion
@@ -54,4 +55,6 @@ __all__ = [
     'MezclaRepositorio',
     'TratamientoRepositorio',
     'ProductoRepositorio',
+
+    'ProveedorRepositorio',
 ]

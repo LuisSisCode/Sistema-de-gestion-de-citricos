@@ -27,6 +27,7 @@ class MaquinariaModel(QObject):
     mantenimientosChanged = Signal()
     comprasChanged = Signal()
     resumenCombustibleChanged = Signal()
+    proveedoresChanged = Signal()
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -41,6 +42,7 @@ class MaquinariaModel(QObject):
         self._mantenimientos = []
         self._compras = []
         self._resumen_combustible = {}
+        self._proveedores = []
         
         # Cargar datos iniciales
         self.cargar_maquinaria()
@@ -564,3 +566,71 @@ class MaquinariaModel(QObject):
         except Exception as e:
             logger.error(f"❌ Error al obtener estadísticas debug: {str(e)}")
             return {}
+        
+    @Slot(result=int)
+    def obtener_usuario_actual(self):
+        """
+        Obtiene el ID del usuario actual desde el servicio de autenticación
+        
+        Returns:
+            int: ID del usuario actual
+            
+        Raises:
+            ValueError: Si no hay sesión activa
+        """
+        try:
+            # Importar el servicio de autenticación
+            from backend.services.UsuarioServ.auth_service import auth_service
+            
+            # Verificar que hay sesión activa
+            if not auth_service.esta_autenticado():
+                logger.error("No hay sesión activa")
+                raise ValueError("No hay sesión activa - haga login primero")
+            
+            # Obtener el ID del usuario actual
+            user_id = auth_service.obtener_id_usuario()
+            
+            if user_id:
+                nombre_completo = auth_service.obtener_nombre_completo()
+                logger.info(f"Usuario actual: {nombre_completo} (ID: {user_id})")
+                return int(user_id)
+            else:
+                logger.error("No se pudo obtener el ID del usuario de la sesión")
+                raise ValueError("No se pudo obtener el ID del usuario")
+                
+        except ImportError as e:
+            logger.error(f"Error al importar auth_service: {e}")
+            raise ValueError(f"Error al cargar el servicio de autenticación: {str(e)}")
+                
+        except Exception as e:
+            logger.error(f"Error obteniendo usuario actual: {e}")
+            raise ValueError(f"Error de sesión: {str(e)}")
+        
+    @Slot()
+    def cargar_proveedores(self):
+        """Carga la lista de proveedores para combustible"""
+        try:
+            logger.info("🔄 Cargando proveedores...")
+            proveedores = self.combustible_service.obtener_proveedores()
+            logger.info(f"✅ Proveedores obtenidos del servicio: {len(proveedores)}")
+            
+            self._proveedores = proveedores
+            self.proveedoresChanged.emit()
+            logger.info(f"📋 Proveedores cargados en modelo: {len(self._proveedores)}")
+            
+        except Exception as e:
+            logger.error(f"❌ Error al cargar proveedores: {str(e)}")
+            self._proveedores = []
+            self.proveedoresChanged.emit()
+
+    @property
+    def proveedores(self):
+        """Lista de proveedores para QML"""
+        return self._proveedores
+
+    @proveedores.setter
+    def proveedores(self, value):
+        self._proveedores = value
+        self.proveedoresChanged.emit()
+
+    proveedoresChanged = Signal()

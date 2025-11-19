@@ -38,12 +38,14 @@ Rectangle {
     property var estadosEquipo: ["Todos", "Operativo", "En mantenimiento", "Fuera de servicio"]
     property var tiposMantenimiento: ["Todos", "Preventivo", "Correctivo", "Predictivo"]
     property var tiposCombustible: ["Todos", "Diesel", "Gasolina", "Eléctrico"]
-    property var estadosMantenimiento: ["Todos", "Programado", "En progreso", "Completado"]
+    property var estadosMantenimiento: ["Todos", "Pendiente", "En proceso", "Completado", "Cancelado"]
     
     // Datos para edición
     property var equipoSeleccionado: null
     property var mantenimientoSeleccionado: null
     property var combustibleSeleccionado: null
+    property var proveedorSeleccionado: null
+    property var listaProveedores: maquinariaModel.proveedores || []
     
     // ==================== CONEXIONES CON EL MODELO ====================
     Connections {
@@ -63,6 +65,11 @@ Rectangle {
             console.log("✅ Señal comprasChanged recibida")
             aplicarFiltrosCombustible()
         }
+        function onProveedoresChanged() {
+            console.log("✅ Señal proveedoresChanged recibida")
+            listaProveedores = maquinariaModel.proveedores || []
+            console.log("Proveedores actualizados en QML:", listaProveedores.length)
+        }
     }
     
     // ==================== COMPONENT.ONCOMPLETED ====================
@@ -77,6 +84,19 @@ Rectangle {
         maquinariaModel.cargar_maquinaria()
         maquinariaModel.cargar_mantenimientos()
         maquinariaModel.cargar_compras_combustible()
+        
+        // Cargar proveedores con un pequeño delay para asegurar que el modelo esté listo
+        timerCargaProveedores.start()
+    }
+
+    // Agrega este Timer después de la función cargarDatosIniciales
+    Timer {
+        id: timerCargaProveedores
+        interval: 100
+        onTriggered: {
+            console.log("⏰ Cargando proveedores...")
+            maquinariaModel.cargar_proveedores()
+        }
     }
     
     // ==================== FILTROS EQUIPOS ====================
@@ -245,21 +265,41 @@ Rectangle {
     
     // ==================== ACCIONES COMBUSTIBLE ====================
     function abrirDialogNuevoCombustible() {
+        proveedorSeleccionado = null
         combustibleSeleccionado = null
         dialogCombustible.tituloDialog = "Nuevo Registro de Combustible"
         dialogCombustible.limpiarCampos()
+        
+        // Verificación segura
+        if (listaProveedores && Array.isArray(listaProveedores)) {
+            console.log("Proveedores disponibles:", listaProveedores.length)
+        } else {
+            console.log("Lista de proveedores no está disponible todavía")
+            listaProveedores = []
+        }
+        
         dialogCombustible.open()
     }
-    
+
     function abrirDialogEditarCombustible(combustible) {
+        proveedorSeleccionado = combustible.id_proveedor
         combustibleSeleccionado = combustible
         dialogCombustible.tituloDialog = "Editar Registro de Combustible"
+        
+        // Verificación segura
+        if (listaProveedores && Array.isArray(listaProveedores)) {
+            console.log("Proveedores disponibles para edición:", listaProveedores.length)
+        } else {
+            console.log("Lista de proveedores no está disponible todavía")
+            listaProveedores = []
+        }
+        
         dialogCombustible.cargarDatos(combustible)
         dialogCombustible.open()
-    }
+}
     
     function eliminarCombustible(id, tipo) {
-        combustibleSeleccionado = {"id_compra": id, "tipo_combustible": tipo}
+        combustibleSeleccionado = {"id_compra": id, "tipo_combustible": tipo, "proveedor": proveedorSeleccionado}
         confirmDialogCombustible.titulo = "Eliminar Registro"
         confirmDialogCombustible.mensaje = "¿Está seguro de eliminar este registro de combustible?"
         confirmDialogCombustible.open()
@@ -278,9 +318,11 @@ Rectangle {
     
     // ==================== NOTIFICACIÓN ====================
     function mostrarNotificacion(mensaje, tipo) {
-        notificationPopup.message = mensaje
-        notificationPopup.notificationType = tipo
-        notificationPopup.open()
+        console.log("📢 Notificación:", tipo, "-", mensaje)
+        // Comentar temporalmente hasta tener el componente correcto
+        // notificationPopup.message = mensaje
+        // notificationPopup.notificationType = tipo
+        // notificationPopup.open()
     }
 
     // ==================== TÍTULO ====================
@@ -984,7 +1026,7 @@ Rectangle {
                                             }
                                             ToolTip.visible: hovered
                                             ToolTip.text: "Editar"
-                                            onClicked: abrirDialogEditarCombustible(modelData)
+                                            onClicked: abrirDialogEditarCombustible(modelData, modelData.proveedor_id)
                                         }
                                         
                                         Button {
@@ -1382,7 +1424,7 @@ Rectangle {
                 
                 var resultado
                 if (mantenimientoSeleccionado === null) {
-                    resultado = maquinariaModel.agregar_mantenimiento(JSON.stringify(datos))
+                    resultado = maquinariaModel.registrar_mantenimiento(JSON.stringify(datos))  // ✅ CORRECTO
                     if (resultado) {
                         mostrarNotificacion("Mantenimiento registrado correctamente", "success")
                     } else {
@@ -1411,8 +1453,8 @@ Rectangle {
     Dialog {
         id: dialogCombustible
         title: tituloDialog
-        width: 600
-        height: 550
+        width: 650  // Aumenté el ancho para acomodar el nuevo campo
+        height: 600
         modal: true
         anchors.centerIn: parent
         
@@ -1423,10 +1465,13 @@ Rectangle {
             txtFechaComb.text = Qt.formatDate(new Date(), "yyyy-MM-dd")
             txtCantidadComb.text = ""
             txtPrecioUnitComb.text = ""
+            comboProveedor.currentIndex = -1
             txtObservacionesComb.text = ""
         }
         
         function cargarDatos(combustible) {
+            console.log("Cargando datos de combustible:", combustible)
+            
             // Buscar tipo
             for (var i = 0; i < tiposCombustible.length; i++) {
                 if (tiposCombustible[i] === combustible.tipo_combustible) {
@@ -1436,14 +1481,30 @@ Rectangle {
             }
             
             txtFechaComb.text = combustible.fecha_compra
-            txtCantidadComb.text = combustible.cantidad.toString()
-            txtPrecioUnitComb.text = combustible.precio_unitario.toString()
-            txtObservacionesComb.text = combustible.observaciones
+            txtCantidadComb.text = combustible.cantidad ? combustible.cantidad.toString() : ""
+            txtPrecioUnitComb.text = combustible.precio_unitario ? combustible.precio_unitario.toString() : ""
+            txtObservacionesComb.text = combustible.observaciones || ""
+            
+            // Cargar proveedor si existe - CON VERIFICACIÓN DE SEGURIDAD MEJORADA
+            if (combustible.id_proveedor && listaProveedores && Array.isArray(listaProveedores) && listaProveedores.length > 0) {
+                console.log("Buscando proveedor con ID:", combustible.id_proveedor)
+                // Buscar el proveedor en la lista
+                for (i = 0; i < listaProveedores.length; i++) {
+                    if (listaProveedores[i].id_proveedor === combustible.id_proveedor) {
+                        comboProveedor.currentIndex = i
+                        console.log("Proveedor encontrado en índice:", i)
+                        break
+                    }
+                }
+            } else {
+                comboProveedor.currentIndex = -1
+                console.log("No hay proveedor o lista de proveedores no disponible")
+            }
         }
         
         contentItem: ScrollView {
-            implicitWidth: 580
-            implicitHeight: 500
+            implicitWidth: 630
+            implicitHeight: 550
             
             ColumnLayout {
                 width: parent.width
@@ -1459,6 +1520,34 @@ Rectangle {
                     id: comboTipoComb
                     Layout.fillWidth: true
                     model: tiposCombustible.slice(1)
+                }
+                
+                Text {
+                    text: "Proveedor"
+                    font.bold: true
+                    font.pixelSize: 12
+                }
+                
+                ComboBox {
+                    id: comboProveedor
+                    Layout.fillWidth: true
+                    model: listaProveedores && Array.isArray(listaProveedores) ? listaProveedores : []
+                    textRole: "nombre"
+                    valueRole: "id_proveedor"
+                    currentIndex: -1
+                    
+                    // Texto display cuando no hay selección
+                    displayText: currentIndex === -1 ? "Seleccionar proveedor..." : currentText
+                    
+                    // Agregar tooltip para mostrar información del proveedor
+                    ToolTip.visible: hovered && currentIndex >= 0
+                    ToolTip.text: {
+                        if (currentIndex >= 0 && listaProveedores && listaProveedores[currentIndex]) {
+                            var prov = listaProveedores[currentIndex]
+                            return prov.contacto ? `${prov.nombre} - ${prov.contacto}` : prov.nombre
+                        }
+                        return ""
+                    }
                 }
                 
                 Text {
@@ -1538,7 +1627,14 @@ Rectangle {
                 var cantidad = parseFloat(txtCantidadComb.text)
                 var precioUnit = parseFloat(txtPrecioUnitComb.text)
                 
+                // Obtener el ID del proveedor seleccionado - CON VERIFICACIÓN SEGURA
+                var idProveedor = null
+                if (comboProveedor.currentIndex >= 0 && listaProveedores && listaProveedores[comboProveedor.currentIndex]) {
+                    idProveedor = listaProveedores[comboProveedor.currentIndex].id_proveedor
+                }
+                
                 var datos = {
+                    "id_proveedor": idProveedor,
                     "tipo_combustible": tiposCombustible[comboTipoComb.currentIndex + 1],
                     "fecha_compra": txtFechaComb.text,
                     "cantidad": cantidad,
@@ -1548,6 +1644,7 @@ Rectangle {
                     "observaciones": txtObservacionesComb.text,
                     "responsable": maquinariaModel.obtener_usuario_actual()
                 }
+
                 
                 var resultado
                 if (combustibleSeleccionado === null) {
@@ -1763,7 +1860,55 @@ Rectangle {
     }
     
     // ==================== NOTIFICACIÓN ====================
-    NotificationsPopup {
+    // ==================== NOTIFICACIÓN ====================
+    // Componente simple de notificación Toast
+    Popup {
         id: notificationPopup
+        
+        property string message: ""
+        property string notificationType: "success" // "success" o "error"
+        
+        x: (parent.width - width) / 2
+        y: parent.height - height - 50
+        width: 400
+        height: 60
+        modal: false
+        closePolicy: Popup.CloseOnPressOutside
+        
+        background: Rectangle {
+            color: notificationPopup.notificationType === "success" ? "#4CAF50" : "#F44336"
+            radius: 8
+            
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: 15
+                spacing: 10
+                
+                Text {
+                    text: notificationPopup.notificationType === "success" ? "✓" : "✗"
+                    color: "white"
+                    font.pixelSize: 20
+                    font.bold: true
+                }
+                
+                Text {
+                    Layout.fillWidth: true
+                    text: notificationPopup.message
+                    color: "white"
+                    font.pixelSize: 14
+                    wrapMode: Text.WordWrap
+                }
+        }
     }
+    
+    onOpened: {
+        closeTimer.start()
+    }
+    
+    Timer {
+        id: closeTimer
+        interval: 3000
+        onTriggered: notificationPopup.close()
+    }
+}
 }

@@ -33,7 +33,8 @@ from .repositories import (
     VariedadCultivoRepositorio,
     # Nuevos repositorios de Clientes y Ventas
     ClienteRepositorio,
-    VentaRepositorio
+    VentaRepositorio,
+    ProveedorRepositorio
 )
 
 # Importaciones de servicios
@@ -71,6 +72,7 @@ __all__ = [
     'VariedadCultivoRepositorio',
     'ClienteRepositorio',
     'VentaRepositorio',
+    'ProveedorRepositorio',
     
     # Servicios
     'ProductorServicio',

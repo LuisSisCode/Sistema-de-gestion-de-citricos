@@ -8,6 +8,7 @@ from typing import List, Dict, Optional, Tuple
 from datetime import datetime, timedelta
 from backend.repositories.MaquinariaRep.compra_combustible_repositorio import CompraCombustibleRepositorio
 from backend.core.repositorio_base import ErrorConsulta
+from backend.core.repositorio_base import RepositorioBase
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,19 @@ class CombustibleService:
             logger.error(f"Error en servicio al obtener compras: {str(e)}")
             raise ErrorConsulta(f"Error al obtener compras: {str(e)}")
     
+    def obtener_proveedores(self) -> List[Dict]:
+        """
+        Obtiene la lista de proveedores desde el repositorio.
+        
+        Returns:
+            Lista de proveedores
+        """
+        try:
+            return self.combustible_repo.obtener_proveedores()
+        except Exception as e:
+            logger.error(f"Error en servicio al obtener proveedores: {str(e)}")
+            return []
+        
     def obtener_compra_por_id(self, id_compra: int) -> Optional[Dict]:
         """
         Obtiene una compra específica.
@@ -526,3 +540,5 @@ class CombustibleService:
         except Exception as e:
             logger.error(f"Error al generar alertas: {str(e)}")
             return []
+        
+    
