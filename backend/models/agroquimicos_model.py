@@ -9,7 +9,7 @@ import json
 import logging
 
 # Importar servicios
-from backend.services.AgroquimicosServ import (
+from backend.services.AgroquimicosSer import (
     ProductoService,
     CategoriaService,
     MezclaService,
