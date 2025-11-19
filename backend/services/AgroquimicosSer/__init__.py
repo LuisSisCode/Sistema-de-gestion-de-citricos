@@ -8,10 +8,12 @@ from .producto_service import ProductoService
 from .categoria_service import CategoriaService
 from .mezcla_service import MezclaService
 from .tratamiento_service import TratamientoService
+from .lote_agroquimico_service import lote_agroquimicoService
 
 __all__ = [
     'ProductoService',
     'CategoriaService',
     'MezclaService',
-    'TratamientoService'
+    'TratamientoService',
+    'lote_agroquimicoService '
 ]

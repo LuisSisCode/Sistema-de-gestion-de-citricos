@@ -155,7 +155,7 @@ class ModuleManager(QObject):
         
         # Mapeo de índices de módulos a archivos QML
         self.module_files = {
-            0: "dashboard.qml",  # ✅ CORREGIDO: en minúsculas
+            0: "dashboard.qml",  
             1: "usuario_roles.qml",
             2: "productores_parcela.qml",
             3: "cultivos.qml",
