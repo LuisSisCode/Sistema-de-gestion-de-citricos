@@ -6,8 +6,7 @@ Manejo de inventario, stock, vencimientos y alertas
 
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any
-from sqlalchemy import func, and_, or_
-from sqlalchemy.orm import Session
+from backend.core.repositorio_base import RepositorioBase
 from decimal import Decimal
 
 
@@ -16,7 +15,7 @@ class LoteAgroquimicoRepositorio:
     Repositorio para gestionar lotes de agroquímicos en inventario
     """
     
-    def __init__(self, db_session: Session):
+    def __init__(self, RepositorioBase):
         """
         Inicializa el repositorio con una sesión de base de datos
         

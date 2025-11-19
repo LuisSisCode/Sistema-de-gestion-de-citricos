@@ -70,9 +70,9 @@ class ProductoRepositorio:
     def obtener_por_id(self, id_producto: int) -> Optional[Dict]:
         """
         Obtiene un producto específico por su ID
-=======
+
         Inicializa el repositorio con una sesión de base de datos
->>>>>>> c5f51ce5f9acb230694c3af830099ffb44872f09
+
         
         Args:
             db_session: Sesión de SQLAlchemy

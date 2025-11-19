@@ -6,7 +6,8 @@ Incluye integración con inventario de lotes
 
 from typing import List, Optional, Dict, Any
 from datetime import datetime
-from sqlalchemy.orm import Session
+from backend.core.repositorio_base import RepositorioBase
+
 
 
 class TratamientoRepositorio:
@@ -14,7 +15,7 @@ class TratamientoRepositorio:
     Repositorio para gestionar tratamientos de cultivos con agroquímicos
     """
     
-    def __init__(self, db_session: Session):
+    def __init__(self, RepositorioBase):
         """
         Inicializa el repositorio con una sesión de base de datos
         
