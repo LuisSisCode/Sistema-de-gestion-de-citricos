@@ -490,10 +490,13 @@ class DashboardModel(QObject):
         
         # Alertas de Mantenimiento
         query = """
-            SELECT COUNT(*)
-            FROM Maquinaria
-            WHERE proximo_mantenimiento BETWEEN GETDATE() AND DATEADD(day, 30, GETDATE())
-                AND activo = 1
+            SELECT COUNT(DISTINCT m.id_maquinaria)
+            FROM Maquinaria m
+            LEFT JOIN Mantenimientos man ON m.id_maquinaria = man.id_maquinaria
+            WHERE m.activo = 1
+            GROUP BY m.id_maquinaria
+            HAVING MAX(man.fecha_realizada) IS NULL 
+                OR DATEDIFF(DAY, MAX(man.fecha_realizada), GETDATE()) > 60
         """
         self._alertas_mantenimiento = self._execute_scalar_safe(query, descripcion="alertas mantenimiento programado")
         
@@ -623,11 +626,14 @@ class DashboardModel(QObject):
             query = """
                 SELECT TOP 3
                     m.nombre,
-                    FORMAT(m.proximo_mantenimiento, 'dd/MM/yyyy')
+                    FORMAT(DATEADD(DAY, 30, MAX(man.fecha_realizada)), 'dd/MM/yyyy') as fecha_sugerida
                 FROM Maquinaria m
-                WHERE m.proximo_mantenimiento BETWEEN GETDATE() AND DATEADD(day, 30, GETDATE())
-                    AND m.activo = 1
-                ORDER BY m.proximo_mantenimiento ASC
+                LEFT JOIN Mantenimientos man ON m.id_maquinaria = man.id_maquinaria
+                WHERE m.activo = 1
+                GROUP BY m.id_maquinaria, m.nombre
+                HAVING MAX(man.fecha_realizada) IS NULL 
+                    OR DATEDIFF(DAY, MAX(man.fecha_realizada), GETDATE()) > 60
+                ORDER BY MAX(man.fecha_realizada) ASC
             """
             results = self._execute_query_safe(query, descripcion="detalles mantenimiento programado")
             for row in results:
@@ -854,7 +860,6 @@ class DashboardModel(QObject):
         for variedad in self._nombres_variedades:
             color = self._generar_color_para_variedad(variedad)
             self._colores_variedades[variedad] = color
-            print(f"  🎨 Color asignado a '{variedad}': {color}")
         
         # Verificar que no hay colores duplicados
         colores_utilizados = list(self._colores_variedades.values())
@@ -916,7 +921,6 @@ class DashboardModel(QObject):
                         "valor": round(produccion, 2)
                     })
             else:
-                print(f"    ℹ️ {variedad}: Sin datos históricos de producción - Color: {color_variedad}")
                 # Crear datos vacíos para los últimos 3 años para mantener la estructura
                 for year in range(current_year - 2, current_year + 1):
                     datos_produccion["datos"].append({
@@ -967,7 +971,6 @@ class DashboardModel(QObject):
                         "valor": round(ventas, 2)
                     })
             else:
-                print(f"    ℹ️ {variedad}: Sin datos históricos de ventas - Color: {color_variedad}")
                 # Crear datos vacíos para los últimos 3 años
                 for year in range(current_year - 2, current_year + 1):
                     datos_ventas["datos"].append({
@@ -1087,11 +1090,11 @@ class DashboardModel(QObject):
             # Gastos mensuales (últimos 6 meses)
             query = """
                 SELECT 
-                    FORMAT(g.fecha_gasto, 'yyyy-MM') as mes,
-                    ISNULL(SUM(g.monto), 0) as gastos
-                FROM Gastos g
-                WHERE g.fecha_gasto >= DATEADD(MONTH, -6, GETDATE())
-                GROUP BY FORMAT(g.fecha_gasto, 'yyyy-MM')
+                    FORMAT(mf.fecha_movimiento, 'yyyy-MM') as mes,
+                    ISNULL(SUM(mf.monto), 0) as gastos
+                FROM MovimientosFinancieros mf
+                WHERE mf.fecha_movimiento >= DATEADD(MONTH, -6, GETDATE())
+                GROUP BY FORMAT(mf.fecha_movimiento, 'yyyy-MM')
                 ORDER BY mes
             """
             results = self._execute_query_safe(query, descripcion="gastos mensuales")
@@ -1148,16 +1151,23 @@ class DashboardModel(QObject):
             
             # Próximos mantenimientos
             query = """
-                SELECT 
-                    codigo,
-                    nombre,
-                    tipo,
-                    FORMAT(proximo_mantenimiento, 'dd/MM/yyyy') as fecha,
-                    'Programado' as estado
-                FROM Maquinaria
-                WHERE proximo_mantenimiento BETWEEN GETDATE() AND DATEADD(day, 30, GETDATE())
-                    AND activo = 1
-                ORDER BY proximo_mantenimiento ASC
+                SELECT TOP 5
+                    m.codigo,
+                    m.nombre,
+                    m.tipo,
+                    FORMAT(DATEADD(DAY, 30, MAX(man.fecha_realizada)), 'dd/MM/yyyy') as fecha,
+                    CASE 
+                        WHEN MAX(man.fecha_realizada) IS NULL THEN 'Nunca mantenido'
+                        WHEN DATEDIFF(DAY, MAX(man.fecha_realizada), GETDATE()) > 60 THEN 'Urgente'
+                        ELSE 'Programado'
+                    END as estado
+                FROM Maquinaria m
+                LEFT JOIN Mantenimientos man ON m.id_maquinaria = man.id_maquinaria
+                WHERE m.activo = 1
+                GROUP BY m.id_maquinaria, m.codigo, m.nombre, m.tipo
+                HAVING MAX(man.fecha_realizada) IS NOT NULL
+                    AND DATEDIFF(DAY, MAX(man.fecha_realizada), GETDATE()) BETWEEN 30 AND 90
+                ORDER BY MAX(man.fecha_realizada) ASC
             """
             results = self._execute_query_safe(query, descripcion="próximos mantenimientos")
             

@@ -288,14 +288,6 @@ def main():
     except Exception as e:
         print(f"⚠️ No se pudo registrar DashboardModel: {e}")
     
-    # Modelo de gastos
-    try:
-        gastos_model = GastosModel()
-        engine.rootContext().setContextProperty("gastosModel", gastos_model)
-        print("✅ GastosModel registrado en QML")
-    except Exception as e:
-        print(f"⚠️ No se pudo registrar GastosModel: {e}")
-    
     # Modelo de reportes
     try:
         reportes_model = ReportesModel()
@@ -395,20 +387,6 @@ def main():
     # Configurar el gestor
     root_object = engine.rootObjects()[0]
     app_manager.set_root_object(root_object)
-    
-    print("🎉 Aplicación iniciada correctamente")
-    print("📦 Modelos registrados en QML:")
-    print("   - authModel (AutoModel)")
-    print("   - dashboardModel (DashboardModel)")
-    print("   - gastosModel (GastosModel)")
-    print("   - reportesModel (ReportesModel)")
-    print("   - usuariosRolesModel (UsuariosRolesModel)")
-    print("   - productoresparcelas (ProductoresParcelasModels)")
-    print("   - cultivos (CultivosModel)")
-    print("   - agroquimicosModel (AgroquimicosModel)")
-    print("   - ventaModel (VentasModel)")
-    print("   - maquinariaModel (MaquinariaModel)")
-    print("   - generador_pdf_agricola (GeneradorReportesAgriculaPDF)")
     
     # Ejecutar la aplicación
     sys.exit(app.exec())
