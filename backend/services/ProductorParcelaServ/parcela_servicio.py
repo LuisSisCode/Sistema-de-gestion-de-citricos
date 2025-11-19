@@ -53,7 +53,6 @@ class ParcelaServicio:
             resultado['metadatos'] = {
                 'timestamp': self._get_timestamp(),
                 'filtro_propietario': propietario_id,
-                'total_con_coordenadas': sum(1 for p in parcelas_enriquecidas if p['tiene_coordenadas']),
                 'area_total_pagina': sum(p['area'] for p in parcelas_enriquecidas)
             }
             

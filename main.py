@@ -36,16 +36,6 @@ from backend.models.clientes_model import ClientesModel
 from backend.models.ventas_model import VentasModel
 from backend.models.movimientos_financieros_model import MovimientosFinancierosModel
 
-# Generador de PDFs
-# ✅ CORREGIDO: Verificar que la ruta de importación sea correcta según tu estructura
-try:
-    from generar_pdf_agricola import GeneradorReportesAgriculaPDF
-except ImportError:
-    try:
-        from backend.services.reportes.generar_pdf_agricola import GeneradorReportesAgriculaPDF
-    except ImportError:
-        print("⚠️ No se pudo importar GeneradorReportesAgriculaPDF. Verifica la ruta del archivo.")
-        GeneradorReportesAgriculaPDF = None
 
 
 class AppManager(QObject):

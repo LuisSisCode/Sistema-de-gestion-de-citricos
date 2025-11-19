@@ -21,7 +21,7 @@ class ProductorServicio:
         self.parcela_repo = ParcelaRepositorio()
     
     @cacheable('servicio_productores', key_func=lambda pagina, por_pagina=8: f"paginado_{pagina}_{por_pagina}", ttl=900)
-    def obtener_productores_paginado(self, pagina, por_pagina=8):
+    def obtener_productores_paginado(self, pagina, por_pagina=5):
         """
         Obtiene productores con paginación y lógica de negocio aplicada.
         

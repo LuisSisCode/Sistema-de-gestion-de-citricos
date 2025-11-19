@@ -53,7 +53,7 @@ class ProductoresParcelasModels(QObject):
     def cargar_productores_pagina(self, pagina):
         """Carga productores con paginación usando servicios."""
         try:
-            resultado = self.productor_servicio.obtener_productores_paginado(pagina, 10)
+            resultado = self.productor_servicio.obtener_productores_paginado(pagina, 6)
             
             if resultado['exito']:
                 datos = resultado['datos']
