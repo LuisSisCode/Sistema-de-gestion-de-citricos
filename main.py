@@ -344,16 +344,6 @@ def main():
     except Exception as e:
         print(f"⚠️ No se pudo registrar MovimientosFinancierosModel: {e}")
     
-    # ✅ NUEVO: Generador de PDFs para Reportes
-    if GeneradorReportesAgriculaPDF:
-        try:
-            generador_pdf_agricola = GeneradorReportesAgriculaPDF()
-            engine.rootContext().setContextProperty("generador_pdf_agricola", generador_pdf_agricola)
-            print("✅ GeneradorReportesAgriculaPDF registrado en QML")
-        except Exception as e:
-            print(f"⚠️ No se pudo registrar GeneradorReportesAgriculaPDF: {e}")
-    else:
-        print("⚠️ GeneradorReportesAgriculaPDF no disponible")
     
     # Verificar archivos
     print(f"📁 Directorio de trabajo: {os.getcwd()}")

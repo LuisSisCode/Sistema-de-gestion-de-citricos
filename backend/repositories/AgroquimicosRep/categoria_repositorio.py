@@ -21,14 +21,9 @@ class CategoriaRepositorio(RepositorioBase):
     
     # ==================== CONSULTAS ====================
     
-    @cacheable('categorias_agroquimicos', ttl=get_ttl('categorias_agroquimicos'))
+    @cacheable('categorias_agroquimicos', ttl=get_ttl('categorias'))
     def obtener_todas(self) -> List[Dict]:
-        """
-        Obtiene todas las categorías de agroquímicos
-        
-        Returns:
-            List[Dict]: Lista de categorías con sus datos
-        """
+        """Obtiene todas las categorías de agroquímicos"""
         query = """
         SELECT id_categoria, nombre, descripcion, activo
         FROM CategoriaAgroquimicos
@@ -50,7 +45,7 @@ class CategoriaRepositorio(RepositorioBase):
                     }
                     categorias.append(categoria)
                 
-                logger.info(f"Se obtuvieron {len(categorias)} categorías de la base de datos")
+                logger.info(f"Se obtuvieron {len(categorias)} categorías")
                 return categorias
                 
         except Exception as e:
@@ -58,15 +53,7 @@ class CategoriaRepositorio(RepositorioBase):
             return []
     
     def obtener_por_id(self, id_categoria: int) -> Optional[Dict]:
-        """
-        Obtiene una categoría específica por su ID
-        
-        Args:
-            id_categoria: ID de la categoría a buscar
-            
-        Returns:
-            Dict: Datos de la categoría o None si no existe
-        """
+        """Obtiene una categoría específica por su ID"""
         query = """
         SELECT id_categoria, nombre, descripcion, activo
         FROM CategoriaAgroquimicos
@@ -94,12 +81,7 @@ class CategoriaRepositorio(RepositorioBase):
             return None
     
     def obtener_activas(self) -> List[Dict]:
-        """
-        Obtiene solo las categorías activas
-        
-        Returns:
-            List[Dict]: Lista de categorías activas
-        """
+        """Obtiene solo las categorías activas"""
         query = """
         SELECT id_categoria, nombre, descripcion, activo
         FROM CategoriaAgroquimicos
@@ -129,12 +111,7 @@ class CategoriaRepositorio(RepositorioBase):
             return []
     
     def obtener_con_conteo_productos(self) -> List[Dict]:
-        """
-        Obtiene categorías con el conteo de productos que tiene cada una
-        
-        Returns:
-            List[Dict]: Lista de categorías con conteo de productos
-        """
+        """Obtiene categorías con el conteo de productos que tiene cada una"""
         query = """
         SELECT c.id_categoria, c.nombre, c.descripcion, c.activo,
                COUNT(p.id_producto) as total_productos,
@@ -171,20 +148,8 @@ class CategoriaRepositorio(RepositorioBase):
     # ==================== INSERCIÓN ====================
     
     @cache_invalidator('categorias_agroquimicos')
-    @cache_invalidator('agroquimicos')
     def crear(self, datos: Dict) -> Tuple[bool, Optional[int]]:
-        """
-        Crea una nueva categoría de agroquímicos
-        
-        Args:
-            datos: Diccionario con los datos de la categoría
-                - nombre (str): Nombre de la categoría
-                - descripcion (str, optional): Descripción de la categoría
-                - activo (bool, optional): Estado activo (default: True)
-                
-        Returns:
-            Tuple[bool, Optional[int]]: (Éxito, ID de la categoría creada)
-        """
+        """Crea una nueva categoría de agroquímicos"""
         query = """
         INSERT INTO CategoriaAgroquimicos (nombre, descripcion, activo)
         VALUES (?, ?, ?)
@@ -202,10 +167,7 @@ class CategoriaRepositorio(RepositorioBase):
                 cursor.execute(query, valores)
                 conn.commit()
                 
-                # Obtener el ID generado
-                cursor.execute("SELECT @@IDENTITY AS ID")
-                id_categoria = cursor.fetchone()[0]
-                
+                id_categoria = self._obtener_ultimo_id()
                 logger.info(f"Categoría creada correctamente con ID: {id_categoria}")
                 return True, id_categoria
                 
@@ -216,29 +178,17 @@ class CategoriaRepositorio(RepositorioBase):
     # ==================== ACTUALIZACIÓN ====================
     
     @cache_invalidator('categorias_agroquimicos')
-    @cache_invalidator('agroquimicos')
     def actualizar(self, id_categoria: int, datos: Dict) -> bool:
-        """
-        Actualiza una categoría existente
-        
-        Args:
-            id_categoria: ID de la categoría a actualizar
-            datos: Diccionario con los campos a actualizar
-            
-        Returns:
-            bool: True si se actualizó correctamente
-        """
+        """Actualiza una categoría existente"""
         try:
             campos_actualizar = []
             valores = []
             
-            # Construir dinámicamente los campos a actualizar
             campos_permitidos = ['nombre', 'descripcion', 'activo']
             
             for campo in campos_permitidos:
                 if campo in datos:
                     campos_actualizar.append(f"{campo} = ?")
-                    # Convertir booleano a int para el campo activo
                     if campo == 'activo':
                         valores.append(1 if datos[campo] else 0)
                     else:
@@ -248,9 +198,7 @@ class CategoriaRepositorio(RepositorioBase):
                 logger.warning("No hay campos para actualizar")
                 return False
             
-            # Agregar el ID al final
             valores.append(id_categoria)
-            
             query = f"UPDATE CategoriaAgroquimicos SET {', '.join(campos_actualizar)} WHERE id_categoria = ?"
             
             with self.get_connection() as conn:
@@ -269,44 +217,12 @@ class CategoriaRepositorio(RepositorioBase):
     # ==================== ELIMINACIÓN ====================
     
     @cache_invalidator('categorias_agroquimicos')
-    @cache_invalidator('agroquimicos')
     def eliminar(self, id_categoria: int) -> bool:
-        """
-        Elimina (desactiva) una categoría
-        
-        Args:
-            id_categoria: ID de la categoría a eliminar
-            
-        Returns:
-            bool: True si se eliminó correctamente
-        """
-        query = "UPDATE CategoriaAgroquimicos SET activo = 0 WHERE id_categoria = ?"
-        
-        try:
-            with self.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute(query, (id_categoria,))
-                conn.commit()
-                
-                filas_afectadas = cursor.rowcount
-                logger.info(f"Categoría {id_categoria} eliminada (desactivada)")
-                return filas_afectadas > 0
-                
-        except Exception as e:
-            logger.error(f"Error al eliminar categoría {id_categoria}: {str(e)}")
-            return False
+        """Elimina (desactiva) una categoría"""
+        return self.actualizar(id_categoria, {'activo': False})
     
     def eliminar_permanente(self, id_categoria: int) -> bool:
-        """
-        Elimina permanentemente una categoría de la base de datos
-        ⚠️ USAR CON PRECAUCIÓN - Debe verificarse que no tenga productos asociados
-        
-        Args:
-            id_categoria: ID de la categoría a eliminar
-            
-        Returns:
-            bool: True si se eliminó correctamente
-        """
+        """Elimina permanentemente una categoría de la base de datos"""
         query = "DELETE FROM CategoriaAgroquimicos WHERE id_categoria = ?"
         
         try:
@@ -326,20 +242,8 @@ class CategoriaRepositorio(RepositorioBase):
     # ==================== UTILIDADES ====================
     
     def tiene_productos(self, id_categoria: int) -> bool:
-        """
-        Verifica si una categoría tiene productos asociados
-        
-        Args:
-            id_categoria: ID de la categoría
-            
-        Returns:
-            bool: True si tiene productos
-        """
-        query = """
-        SELECT COUNT(*) 
-        FROM ProductosAgroquimicos 
-        WHERE id_categoria = ?
-        """
+        """Verifica si una categoría tiene productos asociados"""
+        query = "SELECT COUNT(*) FROM ProductosAgroquimicos WHERE id_categoria = ? AND activo = 1"
         
         try:
             with self.get_connection() as conn:
@@ -352,15 +256,7 @@ class CategoriaRepositorio(RepositorioBase):
             return False
     
     def contar_categorias(self, solo_activas: bool = True) -> int:
-        """
-        Cuenta el total de categorías
-        
-        Args:
-            solo_activas: Si True, cuenta solo categorías activas
-            
-        Returns:
-            int: Cantidad de categorías
-        """
+        """Cuenta el total de categorías"""
         query = "SELECT COUNT(*) FROM CategoriaAgroquimicos"
         if solo_activas:
             query += " WHERE activo = 1"
@@ -376,15 +272,7 @@ class CategoriaRepositorio(RepositorioBase):
             return 0
     
     def existe(self, id_categoria: int) -> bool:
-        """
-        Verifica si una categoría existe
-        
-        Args:
-            id_categoria: ID de la categoría
-            
-        Returns:
-            bool: True si existe
-        """
+        """Verifica si una categoría existe"""
         query = "SELECT COUNT(*) FROM CategoriaAgroquimicos WHERE id_categoria = ?"
         
         try:
@@ -398,16 +286,7 @@ class CategoriaRepositorio(RepositorioBase):
             return False
     
     def existe_nombre(self, nombre: str, excluir_id: Optional[int] = None) -> bool:
-        """
-        Verifica si ya existe una categoría con ese nombre
-        
-        Args:
-            nombre: Nombre a verificar
-            excluir_id: ID de categoría a excluir de la búsqueda (útil para ediciones)
-            
-        Returns:
-            bool: True si el nombre ya existe
-        """
+        """Verifica si ya existe una categoría con ese nombre"""
         query = "SELECT COUNT(*) FROM CategoriaAgroquimicos WHERE nombre = ?"
         params = [nombre]
         
@@ -424,3 +303,36 @@ class CategoriaRepositorio(RepositorioBase):
         except Exception as e:
             logger.error(f"Error al verificar nombre de categoría: {str(e)}")
             return False
+    
+    def obtener_estadisticas(self) -> Dict:
+        """Obtiene estadísticas de categorías y productos"""
+        query = """
+        SELECT 
+            COUNT(*) as total_categorias,
+            SUM(CASE WHEN activo = 1 THEN 1 ELSE 0 END) as categorias_activas,
+            (SELECT COUNT(*) FROM ProductosAgroquimicos WHERE activo = 1) as total_productos_activos,
+            (SELECT COUNT(DISTINCT id_categoria) FROM ProductosAgroquimicos WHERE activo = 1) as categorias_con_productos
+        FROM CategoriaAgroquimicos
+        """
+        
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query)
+                row = cursor.fetchone()
+                
+                return {
+                    'total_categorias': row[0],
+                    'categorias_activas': row[1],
+                    'total_productos_activos': row[2],
+                    'categorias_con_productos': row[3]
+                }
+                
+        except Exception as e:
+            logger.error(f"Error al obtener estadísticas de categorías: {str(e)}")
+            return {
+                'total_categorias': 0,
+                'categorias_activas': 0,
+                'total_productos_activos': 0,
+                'categorias_con_productos': 0
+            }

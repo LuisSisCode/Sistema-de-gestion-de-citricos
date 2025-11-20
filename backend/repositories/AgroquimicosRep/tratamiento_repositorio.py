@@ -1,578 +1,301 @@
 # backend/repositories/AgroquimicosRep/tratamiento_repositorio.py
 """
-Repositorio para gestión de tratamientos agroquímicos
-Incluye integración con inventario de lotes
+Repositorio para gestión de tratamientos fitosanitarios
 """
 
-from typing import List, Optional, Dict, Any
+import logging
 from datetime import datetime
+from typing import List, Optional, Dict, Tuple
 from backend.core.repositorio_base import RepositorioBase
+from backend.core.cache_system import cacheable, cache_invalidator, get_ttl
+
+logger = logging.getLogger(__name__)
 
 
-
-class TratamientoRepositorio:
-    """
-    Repositorio para gestionar tratamientos de cultivos con agroquímicos
-    """
+class TratamientoRepositorio(RepositorioBase):
+    """Repositorio para operaciones CRUD de Tratamientos Fitosanitarios"""
     
-    def __init__(self, RepositorioBase):
-        """
-        Inicializa el repositorio con una sesión de base de datos
-        
-        Args:
-            db_session: Sesión de SQLAlchemy
-        """
-        self.db = db_session
+    def __init__(self):
+        super().__init__()
+        self.tabla = "TratamientosFitosanitarios"
     
-    def crear_tratamiento(self, datos_tratamiento: Dict[str, Any], 
-                         lote_repositorio=None) -> Dict[str, Any]:
-        """
-        Crea un nuevo tratamiento y descuenta del inventario
-        
-        Args:
-            datos_tratamiento: Diccionario con datos del tratamiento
-                - id_lote_agricola: ID del lote agrícola donde se aplica
-                - id_mezcla: ID de la mezcla a aplicar
-                - fecha_aplicacion: Fecha de aplicación
-                - area_tratada: Área tratada (hectáreas)
-                - dosis_aplicada: Dosis aplicada
-                - metodo_aplicacion: Método (aspersión, goteo, etc.)
-                - condiciones_climaticas: Condiciones al aplicar
-                - responsable: Responsable de la aplicación
-                - detalles_productos: Lista con productos y lotes a usar
-                    [{id_producto, id_lote, cantidad_usada, unidad_medida}]
-            lote_repositorio: Instancia de LoteAgroquimicoRepositorio (opcional)
-            
-        Returns:
-            Diccionario con los datos del tratamiento creado
-        """
-        try:
-            # Validar stock disponible ANTES de crear el tratamiento
-            if 'detalles_productos' in datos_tratamiento and lote_repositorio:
-                self._validar_stock_disponible(
-                    datos_tratamiento['detalles_productos'],
-                    lote_repositorio
-                )
-            
-            # Crear el registro del tratamiento
-            query_tratamiento = """
-                INSERT INTO tratamiento (
-                    id_lote,
-                    id_mezcla,
-                    fecha_aplicacion,
-                    area_tratada,
-                    dosis_aplicada,
-                    metodo_aplicacion,
-                    condiciones_climaticas,
-                    responsable,
-                    estado,
-                    fecha_registro
-                ) VALUES (
-                    :id_lote_agricola,
-                    :id_mezcla,
-                    :fecha_aplicacion,
-                    :area_tratada,
-                    :dosis_aplicada,
-                    :metodo_aplicacion,
-                    :condiciones_climaticas,
-                    :responsable,
-                    'programado',
-                    NOW()
-                )
-                RETURNING id_tratamiento, id_lote, id_mezcla, fecha_aplicacion, estado
-            """
-            
-            resultado = self.db.execute(query_tratamiento, {
-                'id_lote_agricola': datos_tratamiento['id_lote_agricola'],
-                'id_mezcla': datos_tratamiento['id_mezcla'],
-                'fecha_aplicacion': datos_tratamiento.get('fecha_aplicacion', datetime.now()),
-                'area_tratada': datos_tratamiento.get('area_tratada'),
-                'dosis_aplicada': datos_tratamiento.get('dosis_aplicada'),
-                'metodo_aplicacion': datos_tratamiento.get('metodo_aplicacion'),
-                'condiciones_climaticas': datos_tratamiento.get('condiciones_climaticas'),
-                'responsable': datos_tratamiento.get('responsable')
-            }).fetchone()
-            
-            id_tratamiento = resultado[0]
-            
-            # Crear detalles del tratamiento y descontar del inventario
-            if 'detalles_productos' in datos_tratamiento:
-                self._crear_detalles_tratamiento(
-                    id_tratamiento=id_tratamiento,
-                    detalles=datos_tratamiento['detalles_productos'],
-                    lote_repositorio=lote_repositorio
-                )
-            
-            self.db.commit()
-            
-            return {
-                'id_tratamiento': resultado[0],
-                'id_lote_agricola': resultado[1],
-                'id_mezcla': resultado[2],
-                'fecha_aplicacion': resultado[3],
-                'estado': resultado[4]
-            }
-            
-        except Exception as e:
-            self.db.rollback()
-            raise Exception(f"Error al crear tratamiento: {str(e)}")
+    # ==================== CONSULTAS ====================
     
-    def obtener_tratamiento_por_id(self, id_tratamiento: int) -> Optional[Dict[str, Any]]:
-        """
-        Obtiene un tratamiento completo por su ID
-        
-        Args:
-            id_tratamiento: ID del tratamiento
-            
-        Returns:
-            Diccionario con datos completos del tratamiento
-        """
+    @cacheable('tratamientos', ttl=get_ttl('tratamientos'))
+    def obtener_todos(self) -> List[Dict]:
+        """Obtiene todos los tratamientos"""
         query = """
-            SELECT 
-                t.id_tratamiento,
-                t.id_lote as id_lote_agricola,
-                l.nombre_lote as nombre_lote_agricola,
-                t.id_mezcla,
-                m.nombre_mezcla,
-                t.fecha_aplicacion,
-                t.area_tratada,
-                t.dosis_aplicada,
-                t.metodo_aplicacion,
-                t.condiciones_climaticas,
-                t.responsable,
-                t.estado,
-                t.observaciones
-            FROM tratamiento t
-            INNER JOIN lote l ON t.id_lote = l.id_lote
-            LEFT JOIN mezcla m ON t.id_mezcla = m.id_mezcla
-            WHERE t.id_tratamiento = :id_tratamiento
+        SELECT t.id_tratamiento, t.id_ciclo, c.id_parcela, p.nombre as nombre_parcela,
+               t.id_tipo_plaga, tp.nombre as nombre_plaga, t.id_mezcla, m.nombre as nombre_mezcla,
+               t.fecha_aplicacion, t.area_tratada, t.metodo_aplicacion, t.cantidad_agua,
+               t.costo_total, t.realizado_por, e.nombre as nombre_empleado, t.observaciones
+        FROM TratamientosFitosanitarios t
+        LEFT JOIN CiclosProduccion c ON t.id_ciclo = c.id_ciclo
+        LEFT JOIN Parcelas p ON c.id_parcela = p.id_parcela
+        LEFT JOIN TiposPlagasMalezas tp ON t.id_tipo_plaga = tp.id_tipo
+        LEFT JOIN MezclasAgroquimicos m ON t.id_mezcla = m.id_mezcla
+        LEFT JOIN Empleados e ON t.realizado_por = e.id_empleado
+        ORDER BY t.fecha_aplicacion DESC
         """
         
-        resultado = self.db.execute(query, {'id_tratamiento': id_tratamiento}).fetchone()
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query)
+                
+                tratamientos = []
+                for row in cursor.fetchall():
+                    tratamiento = {
+                        'id_tratamiento': row.id_tratamiento,
+                        'id_ciclo': row.id_ciclo,
+                        'id_parcela': row.id_parcela,
+                        'nombre_parcela': row.nombre_parcela,
+                        'id_tipo_plaga': row.id_tipo_plaga,
+                        'nombre_plaga': row.nombre_plaga,
+                        'id_mezcla': row.id_mezcla,
+                        'nombre_mezcla': row.nombre_mezcla,
+                        'fecha_aplicacion': self._formatear_fecha(row.fecha_aplicacion),
+                        'area_tratada': float(row.area_tratada) if row.area_tratada else 0.0,
+                        'metodo_aplicacion': row.metodo_aplicacion,
+                        'cantidad_agua': float(row.cantidad_agua) if row.cantidad_agua else 0.0,
+                        'costo_total': float(row.costo_total) if row.costo_total else 0.0,
+                        'realizado_por': row.realizado_por,
+                        'nombre_empleado': row.nombre_empleado,
+                        'observaciones': row.observaciones
+                    }
+                    tratamientos.append(tratamiento)
+                
+                logger.info(f"Se obtuvieron {len(tratamientos)} tratamientos")
+                return tratamientos
+                
+        except Exception as e:
+            logger.error(f"Error al obtener tratamientos: {str(e)}")
+            return []
+    
+    def obtener_por_id(self, id_tratamiento: int) -> Optional[Dict]:
+        """Obtiene un tratamiento específico por su ID"""
+        query = """
+        SELECT t.id_tratamiento, t.id_ciclo, c.id_parcela, p.nombre as nombre_parcela,
+               t.id_tipo_plaga, tp.nombre as nombre_plaga, t.id_mezcla, m.nombre as nombre_mezcla,
+               t.fecha_aplicacion, t.area_tratada, t.metodo_aplicacion, t.cantidad_agua,
+               t.costo_total, t.realizado_por, e.nombre as nombre_empleado, t.observaciones
+        FROM TratamientosFitosanitarios t
+        LEFT JOIN CiclosProduccion c ON t.id_ciclo = c.id_ciclo
+        LEFT JOIN Parcelas p ON c.id_parcela = p.id_parcela
+        LEFT JOIN TiposPlagasMalezas tp ON t.id_tipo_plaga = tp.id_tipo
+        LEFT JOIN MezclasAgroquimicos m ON t.id_mezcla = m.id_mezcla
+        LEFT JOIN Empleados e ON t.realizado_por = e.id_empleado
+        WHERE t.id_tratamiento = ?
+        """
         
-        if not resultado:
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, (id_tratamiento,))
+                row = cursor.fetchone()
+                
+                if not row:
+                    return None
+                
+                return {
+                    'id_tratamiento': row.id_tratamiento,
+                    'id_ciclo': row.id_ciclo,
+                    'id_parcela': row.id_parcela,
+                    'nombre_parcela': row.nombre_parcela,
+                    'id_tipo_plaga': row.id_tipo_plaga,
+                    'nombre_plaga': row.nombre_plaga,
+                    'id_mezcla': row.id_mezcla,
+                    'nombre_mezcla': row.nombre_mezcla,
+                    'fecha_aplicacion': self._formatear_fecha(row.fecha_aplicacion),
+                    'area_tratada': float(row.area_tratada) if row.area_tratada else 0.0,
+                    'metodo_aplicacion': row.metodo_aplicacion,
+                    'cantidad_agua': float(row.cantidad_agua) if row.cantidad_agua else 0.0,
+                    'costo_total': float(row.costo_total) if row.costo_total else 0.0,
+                    'realizado_por': row.realizado_por,
+                    'nombre_empleado': row.nombre_empleado,
+                    'observaciones': row.observaciones
+                }
+                
+        except Exception as e:
+            logger.error(f"Error al obtener tratamiento {id_tratamiento}: {str(e)}")
             return None
-        
-        # Obtener detalles de productos usados
-        detalles = self._obtener_detalles_tratamiento(id_tratamiento)
-        
-        return {
-            'id_tratamiento': resultado[0],
-            'id_lote_agricola': resultado[1],
-            'nombre_lote_agricola': resultado[2],
-            'id_mezcla': resultado[3],
-            'nombre_mezcla': resultado[4],
-            'fecha_aplicacion': resultado[5],
-            'area_tratada': float(resultado[6]) if resultado[6] else None,
-            'dosis_aplicada': float(resultado[7]) if resultado[7] else None,
-            'metodo_aplicacion': resultado[8],
-            'condiciones_climaticas': resultado[9],
-            'responsable': resultado[10],
-            'estado': resultado[11],
-            'observaciones': resultado[12],
-            'productos_usados': detalles
-        }
     
-    def listar_tratamientos(self, filtros: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+    def obtener_por_ciclo(self, id_ciclo: int) -> List[Dict]:
+        """Obtiene tratamientos por ciclo de producción"""
+        query = """
+        SELECT t.id_tratamiento, t.fecha_aplicacion, t.area_tratada,
+               t.metodo_aplicacion, t.costo_total, tp.nombre as nombre_plaga,
+               m.nombre as nombre_mezcla, e.nombre as nombre_empleado
+        FROM TratamientosFitosanitarios t
+        LEFT JOIN TiposPlagasMalezas tp ON t.id_tipo_plaga = tp.id_tipo
+        LEFT JOIN MezclasAgroquimicos m ON t.id_mezcla = m.id_mezcla
+        LEFT JOIN Empleados e ON t.realizado_por = e.id_empleado
+        WHERE t.id_ciclo = ?
+        ORDER BY t.fecha_aplicacion DESC
         """
-        Lista tratamientos con filtros opcionales
         
-        Args:
-            filtros: Diccionario con filtros opcionales
-                - id_lote_agricola: Filtrar por lote agrícola
-                - fecha_desde: Fecha inicio
-                - fecha_hasta: Fecha fin
-                - estado: Estado del tratamiento
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, (id_ciclo,))
                 
-        Returns:
-            Lista de tratamientos
-        """
-        query = """
-            SELECT 
-                t.id_tratamiento,
-                t.id_lote as id_lote_agricola,
-                l.nombre_lote as nombre_lote_agricola,
-                t.id_mezcla,
-                m.nombre_mezcla,
-                t.fecha_aplicacion,
-                t.area_tratada,
-                t.responsable,
-                t.estado
-            FROM tratamiento t
-            INNER JOIN lote l ON t.id_lote = l.id_lote
-            LEFT JOIN mezcla m ON t.id_mezcla = m.id_mezcla
-            WHERE 1=1
-        """
-        
-        params = {}
-        
-        if filtros:
-            if 'id_lote_agricola' in filtros:
-                query += " AND t.id_lote = :id_lote_agricola"
-                params['id_lote_agricola'] = filtros['id_lote_agricola']
-            
-            if 'fecha_desde' in filtros:
-                query += " AND t.fecha_aplicacion >= :fecha_desde"
-                params['fecha_desde'] = filtros['fecha_desde']
-            
-            if 'fecha_hasta' in filtros:
-                query += " AND t.fecha_aplicacion <= :fecha_hasta"
-                params['fecha_hasta'] = filtros['fecha_hasta']
-            
-            if 'estado' in filtros:
-                query += " AND t.estado = :estado"
-                params['estado'] = filtros['estado']
-        
-        query += " ORDER BY t.fecha_aplicacion DESC"
-        
-        resultados = self.db.execute(query, params).fetchall()
-        
-        return [
-            {
-                'id_tratamiento': r[0],
-                'id_lote_agricola': r[1],
-                'nombre_lote_agricola': r[2],
-                'id_mezcla': r[3],
-                'nombre_mezcla': r[4],
-                'fecha_aplicacion': r[5],
-                'area_tratada': float(r[6]) if r[6] else None,
-                'responsable': r[7],
-                'estado': r[8]
-            }
-            for r in resultados
-        ]
-    
-    def actualizar_estado_tratamiento(self, id_tratamiento: int, 
-                                     nuevo_estado: str) -> bool:
-        """
-        Actualiza el estado de un tratamiento
-        
-        Args:
-            id_tratamiento: ID del tratamiento
-            nuevo_estado: Nuevo estado (programado, en_proceso, completado, cancelado)
-            
-        Returns:
-            True si se actualizó correctamente
-        """
-        try:
-            query = """
-                UPDATE tratamiento
-                SET estado = :nuevo_estado,
-                    fecha_ultima_modificacion = NOW()
-                WHERE id_tratamiento = :id_tratamiento
-            """
-            
-            self.db.execute(query, {
-                'nuevo_estado': nuevo_estado,
-                'id_tratamiento': id_tratamiento
-            })
-            
-            self.db.commit()
-            return True
-            
-        except Exception as e:
-            self.db.rollback()
-            raise Exception(f"Error al actualizar estado del tratamiento: {str(e)}")
-    
-    def completar_tratamiento(self, id_tratamiento: int, 
-                             observaciones: Optional[str] = None) -> bool:
-        """
-        Marca un tratamiento como completado
-        
-        Args:
-            id_tratamiento: ID del tratamiento
-            observaciones: Observaciones finales (opcional)
-            
-        Returns:
-            True si se completó correctamente
-        """
-        try:
-            query = """
-                UPDATE tratamiento
-                SET estado = 'completado',
-                    observaciones = :observaciones,
-                    fecha_ultima_modificacion = NOW()
-                WHERE id_tratamiento = :id_tratamiento
-            """
-            
-            self.db.execute(query, {
-                'observaciones': observaciones,
-                'id_tratamiento': id_tratamiento
-            })
-            
-            self.db.commit()
-            return True
-            
-        except Exception as e:
-            self.db.rollback()
-            raise Exception(f"Error al completar tratamiento: {str(e)}")
-    
-    def cancelar_tratamiento(self, id_tratamiento: int, 
-                            motivo: str,
-                            devolver_stock: bool = True,
-                            lote_repositorio=None) -> bool:
-        """
-        Cancela un tratamiento y opcionalmente devuelve el stock al inventario
-        
-        Args:
-            id_tratamiento: ID del tratamiento
-            motivo: Motivo de la cancelación
-            devolver_stock: Si True, devuelve las cantidades al inventario
-            lote_repositorio: Instancia de LoteAgroquimicoRepositorio (requerido si devolver_stock=True)
-            
-        Returns:
-            True si se canceló correctamente
-        """
-        try:
-            # Si se debe devolver stock, obtener los productos usados
-            if devolver_stock and lote_repositorio:
-                detalles = self._obtener_detalles_tratamiento(id_tratamiento)
+                tratamientos = []
+                for row in cursor.fetchall():
+                    tratamiento = {
+                        'id_tratamiento': row.id_tratamiento,
+                        'fecha_aplicacion': self._formatear_fecha(row.fecha_aplicacion),
+                        'area_tratada': float(row.area_tratada) if row.area_tratada else 0.0,
+                        'metodo_aplicacion': row.metodo_aplicacion,
+                        'costo_total': float(row.costo_total) if row.costo_total else 0.0,
+                        'nombre_plaga': row.nombre_plaga,
+                        'nombre_mezcla': row.nombre_mezcla,
+                        'nombre_empleado': row.nombre_empleado
+                    }
+                    tratamientos.append(tratamiento)
                 
-                # Devolver cantidades al inventario
-                for detalle in detalles:
-                    if detalle['id_lote_agroquimico']:
-                        self._devolver_cantidad_lote(
-                            id_lote=detalle['id_lote_agroquimico'],
-                            cantidad=detalle['cantidad_usada'],
-                            lote_repositorio=lote_repositorio
-                        )
-            
-            # Actualizar estado del tratamiento
-            query = """
-                UPDATE tratamiento
-                SET estado = 'cancelado',
-                    observaciones = CONCAT(COALESCE(observaciones, ''), 
-                                         ' [CANCELADO: ', :motivo, ']'),
-                    fecha_ultima_modificacion = NOW()
-                WHERE id_tratamiento = :id_tratamiento
-            """
-            
-            self.db.execute(query, {
-                'motivo': motivo,
-                'id_tratamiento': id_tratamiento
-            })
-            
-            self.db.commit()
-            return True
-            
+                return tratamientos
+                
         except Exception as e:
-            self.db.rollback()
-            raise Exception(f"Error al cancelar tratamiento: {str(e)}")
+            logger.error(f"Error al obtener tratamientos por ciclo {id_ciclo}: {str(e)}")
+            return []
     
-    def obtener_historial_tratamientos_lote(self, id_lote_agricola: int) -> List[Dict[str, Any]]:
-        """
-        Obtiene el historial completo de tratamientos de un lote agrícola
-        
-        Args:
-            id_lote_agricola: ID del lote agrícola
-            
-        Returns:
-            Lista de tratamientos aplicados al lote
-        """
-        return self.listar_tratamientos({'id_lote_agricola': id_lote_agricola})
+    # ==================== INSERCIÓN ====================
     
-    # ==================== MÉTODOS PRIVADOS ====================
-    
-    def _validar_stock_disponible(self, detalles: List[Dict[str, Any]], 
-                                  lote_repositorio) -> None:
-        """
-        Valida que haya stock suficiente antes de crear el tratamiento
-        
-        Args:
-            detalles: Lista de productos a usar
-            lote_repositorio: Repositorio de lotes
-            
-        Raises:
-            ValueError: Si no hay stock suficiente
-        """
-        for detalle in detalles:
-            lote = lote_repositorio.obtener_lote_por_id(detalle['id_lote'])
-            
-            if not lote:
-                raise ValueError(
-                    f"Lote {detalle['id_lote']} no encontrado"
-                )
-            
-            if lote['cantidad_actual'] < detalle['cantidad_usada']:
-                raise ValueError(
-                    f"Stock insuficiente para {lote['nombre_producto']}. "
-                    f"Disponible: {lote['cantidad_actual']} {lote['unidad_medida']}, "
-                    f"Solicitado: {detalle['cantidad_usada']}"
-                )
-    
-    def _crear_detalles_tratamiento(self, id_tratamiento: int, 
-                                    detalles: List[Dict[str, Any]],
-                                    lote_repositorio=None) -> None:
-        """
-        Crea los detalles del tratamiento y descuenta del inventario
-        
-        Args:
-            id_tratamiento: ID del tratamiento
-            detalles: Lista de productos usados
-            lote_repositorio: Repositorio de lotes
-        """
-        for detalle in detalles:
-            # Insertar detalle del tratamiento
-            query = """
-                INSERT INTO tratamiento_detalle (
-                    id_tratamiento,
-                    id_producto,
-                    id_lote_agroquimico,
-                    cantidad_usada,
-                    unidad_medida
-                ) VALUES (
-                    :id_tratamiento,
-                    :id_producto,
-                    :id_lote,
-                    :cantidad_usada,
-                    :unidad_medida
-                )
-            """
-            
-            self.db.execute(query, {
-                'id_tratamiento': id_tratamiento,
-                'id_producto': detalle['id_producto'],
-                'id_lote': detalle['id_lote'],
-                'cantidad_usada': detalle['cantidad_usada'],
-                'unidad_medida': detalle['unidad_medida']
-            })
-            
-            # Descontar del lote en inventario
-            if lote_repositorio:
-                lote_repositorio.descontar_cantidad(
-                    id_lote=detalle['id_lote'],
-                    cantidad=detalle['cantidad_usada'],
-                    id_tratamiento=id_tratamiento
-                )
-    
-    def _obtener_detalles_tratamiento(self, id_tratamiento: int) -> List[Dict[str, Any]]:
-        """
-        Obtiene los detalles de productos usados en un tratamiento
-        
-        Args:
-            id_tratamiento: ID del tratamiento
-            
-        Returns:
-            Lista de productos usados con sus cantidades
-        """
+    @cache_invalidator('tratamientos')
+    def crear(self, datos: Dict) -> Tuple[bool, Optional[int]]:
+        """Crea un nuevo tratamiento fitosanitario"""
         query = """
-            SELECT 
-                td.id_detalle,
-                td.id_producto,
-                p.nombre_comercial,
-                td.id_lote_agroquimico,
-                la.numero_lote,
-                td.cantidad_usada,
-                td.unidad_medida
-            FROM tratamiento_detalle td
-            INNER JOIN producto p ON td.id_producto = p.id_producto
-            LEFT JOIN lote_agroquimico la ON td.id_lote_agroquimico = la.id_lote
-            WHERE td.id_tratamiento = :id_tratamiento
-            ORDER BY td.id_detalle
+        INSERT INTO TratamientosFitosanitarios 
+        (id_ciclo, id_tipo_plaga, id_mezcla, fecha_aplicacion, area_tratada,
+         metodo_aplicacion, cantidad_agua, costo_total, realizado_por, observaciones)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         
-        resultados = self.db.execute(query, {'id_tratamiento': id_tratamiento}).fetchall()
-        
-        return [
-            {
-                'id_detalle': r[0],
-                'id_producto': r[1],
-                'nombre_producto': r[2],
-                'id_lote_agroquimico': r[3],
-                'numero_lote': r[4],
-                'cantidad_usada': float(r[5]),
-                'unidad_medida': r[6]
-            }
-            for r in resultados
-        ]
-    
-    def _devolver_cantidad_lote(self, id_lote: int, cantidad: float, 
-                               lote_repositorio) -> None:
-        """
-        Devuelve cantidad al lote en caso de cancelación
-        
-        Args:
-            id_lote: ID del lote
-            cantidad: Cantidad a devolver
-            lote_repositorio: Repositorio de lotes
-        """
         try:
-            query = """
-                UPDATE lote_agroquimico
-                SET cantidad_actual = cantidad_actual + :cantidad,
-                    estado = CASE 
-                        WHEN estado = 'agotado' AND (cantidad_actual + :cantidad) > 0 
-                        THEN 'activo' 
-                        ELSE estado 
-                    END,
-                    fecha_ultima_modificacion = NOW()
-                WHERE id_lote = :id_lote
-            """
+            valores = (
+                datos['id_ciclo'],
+                datos.get('id_tipo_plaga'),
+                datos.get('id_mezcla'),
+                datos.get('fecha_aplicacion', datetime.now().strftime('%Y-%m-%d')),
+                datos.get('area_tratada', 0.0),
+                datos.get('metodo_aplicacion'),
+                datos.get('cantidad_agua'),
+                datos.get('costo_total', 0.0),
+                datos['realizado_por'],
+                datos.get('observaciones')
+            )
             
-            self.db.execute(query, {
-                'cantidad': cantidad,
-                'id_lote': id_lote
-            })
-            
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, valores)
+                conn.commit()
+                
+                id_tratamiento = self._obtener_ultimo_id()
+                logger.info(f"Tratamiento creado con ID: {id_tratamiento}")
+                return True, id_tratamiento
+                
         except Exception as e:
-            raise Exception(f"Error al devolver cantidad al lote: {str(e)}")
+            logger.error(f"Error al crear tratamiento: {str(e)}")
+            return False, None
     
-    def obtener_consumo_por_producto(self, 
-                                    fecha_desde: Optional[datetime] = None,
-                                    fecha_hasta: Optional[datetime] = None) -> List[Dict[str, Any]]:
-        """
-        Obtiene el consumo total por producto en un rango de fechas
-        
-        Args:
-            fecha_desde: Fecha inicial (opcional)
-            fecha_hasta: Fecha final (opcional)
+    # ==================== ACTUALIZACIÓN ====================
+    
+    @cache_invalidator('tratamientos')
+    def actualizar(self, id_tratamiento: int, datos: Dict) -> bool:
+        """Actualiza un tratamiento existente"""
+        try:
+            campos_actualizar = []
+            valores = []
             
-        Returns:
-            Lista con consumo por producto
-        """
+            campos_permitidos = ['id_ciclo', 'id_tipo_plaga', 'id_mezcla', 'fecha_aplicacion',
+                               'area_tratada', 'metodo_aplicacion', 'cantidad_agua', 
+                               'costo_total', 'realizado_por', 'observaciones']
+            
+            for campo in campos_permitidos:
+                if campo in datos:
+                    campos_actualizar.append(f"{campo} = ?")
+                    valores.append(datos[campo])
+            
+            if not campos_actualizar:
+                logger.warning("No hay campos para actualizar")
+                return False
+            
+            valores.append(id_tratamiento)
+            query = f"UPDATE TratamientosFitosanitarios SET {', '.join(campos_actualizar)} WHERE id_tratamiento = ?"
+            
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, valores)
+                conn.commit()
+                
+                filas_afectadas = cursor.rowcount
+                logger.info(f"Tratamiento {id_tratamiento} actualizado. Filas afectadas: {filas_afectadas}")
+                return filas_afectadas > 0
+                
+        except Exception as e:
+            logger.error(f"Error al actualizar tratamiento {id_tratamiento}: {str(e)}")
+            return False
+    
+    # ==================== ELIMINACIÓN ====================
+    
+    @cache_invalidator('tratamientos')
+    def eliminar(self, id_tratamiento: int) -> bool:
+        """Elimina un tratamiento"""
+        query = "DELETE FROM TratamientosFitosanitarios WHERE id_tratamiento = ?"
+        
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, (id_tratamiento,))
+                conn.commit()
+                
+                filas_afectadas = cursor.rowcount
+                logger.info(f"Tratamiento {id_tratamiento} eliminado")
+                return filas_afectadas > 0
+                
+        except Exception as e:
+            logger.error(f"Error al eliminar tratamiento {id_tratamiento}: {str(e)}")
+            return False
+    
+    # ==================== CONSULTAS ESPECIALIZADAS ====================
+    
+    def obtener_estadisticas_por_mes(self, año: int, id_ciclo: Optional[int] = None) -> List[Dict]:
+        """Obtiene estadísticas de tratamientos por mes"""
         query = """
-            SELECT 
-                p.id_producto,
-                p.nombre_comercial,
-                p.ingrediente_activo,
-                COUNT(DISTINCT t.id_tratamiento) as total_tratamientos,
-                SUM(td.cantidad_usada) as cantidad_total_consumida,
-                td.unidad_medida,
-                MIN(t.fecha_aplicacion) as primera_aplicacion,
-                MAX(t.fecha_aplicacion) as ultima_aplicacion
-            FROM tratamiento_detalle td
-            INNER JOIN tratamiento t ON td.id_tratamiento = t.id_tratamiento
-            INNER JOIN producto p ON td.id_producto = p.id_producto
-            WHERE t.estado = 'completado'
+        SELECT 
+            MONTH(fecha_aplicacion) as mes,
+            COUNT(*) as total_tratamientos,
+            SUM(area_tratada) as area_total,
+            AVG(costo_total) as costo_promedio
+        FROM TratamientosFitosanitarios
+        WHERE YEAR(fecha_aplicacion) = ?
         """
         
-        params = {}
+        params = [año]
         
-        if fecha_desde:
-            query += " AND t.fecha_aplicacion >= :fecha_desde"
-            params['fecha_desde'] = fecha_desde
+        if id_ciclo:
+            query += " AND id_ciclo = ?"
+            params.append(id_ciclo)
         
-        if fecha_hasta:
-            query += " AND t.fecha_aplicacion <= :fecha_hasta"
-            params['fecha_hasta'] = fecha_hasta
+        query += " GROUP BY MONTH(fecha_aplicacion) ORDER BY mes"
         
-        query += """
-            GROUP BY p.id_producto, p.nombre_comercial, p.ingrediente_activo, td.unidad_medida
-            ORDER BY cantidad_total_consumida DESC
-        """
-        
-        resultados = self.db.execute(query, params).fetchall()
-        
-        return [
-            {
-                'id_producto': r[0],
-                'nombre_comercial': r[1],
-                'ingrediente_activo': r[2],
-                'total_tratamientos': r[3],
-                'cantidad_total_consumida': float(r[4]),
-                'unidad_medida': r[5],
-                'primera_aplicacion': r[6],
-                'ultima_aplicacion': r[7]
-            }
-            for r in resultados
-        ]
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, params)
+                
+                estadisticas = []
+                for row in cursor.fetchall():
+                    estadistica = {
+                        'mes': row.mes,
+                        'total_tratamientos': row.total_tratamientos,
+                        'area_total': float(row.area_total) if row.area_total else 0.0,
+                        'costo_promedio': float(row.costo_promedio) if row.costo_promedio else 0.0
+                    }
+                    estadisticas.append(estadistica)
+                
+                return estadisticas
+                
+        except Exception as e:
+            logger.error(f"Error al obtener estadísticas por mes: {str(e)}")
+            return []

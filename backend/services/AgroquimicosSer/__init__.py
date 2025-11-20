@@ -15,5 +15,5 @@ __all__ = [
     'CategoriaService',
     'MezclaService',
     'TratamientoService',
-    'Lote_agroquimicoService '
+    'LoteAgroquimicoService',
 ]
