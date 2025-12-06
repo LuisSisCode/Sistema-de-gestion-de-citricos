@@ -1,5 +1,5 @@
 """
-Modelo Qt de Ventas
+Modelo Qt de Ventas - CORREGIDO
 Capa de presentación - Bridge entre Python y QML
 Expone funcionalidad del servicio como Slots Qt
 """
@@ -63,7 +63,7 @@ class VentasModel(QObject):
             logger.info("📊 Obteniendo ventas desde QML...")
             self._ventas = self.service.obtener_ventas()
             
-            self.ventasActualizadas.emit()
+            # NO emitir ventasActualizadas aquí para evitar loops infinitos
             logger.info(f"✅ {len(self._ventas)} ventas obtenidas")
             
             return self._ventas
@@ -128,6 +128,7 @@ class VentasModel(QObject):
                 logger.info(f"✅ {mensaje} (ID: {id_venta})")
                 self.operacionExitosa.emit(mensaje)
                 self.ventaAgregada.emit(id_venta)
+                # Solo emitir ventasActualizadas después de modificar datos
                 self.ventasActualizadas.emit()
                 return True
             else:
@@ -162,6 +163,7 @@ class VentasModel(QObject):
                 logger.info(f"✅ {mensaje}")
                 self.operacionExitosa.emit(mensaje)
                 self.ventaActualizada.emit(id_venta)
+                # Solo emitir ventasActualizadas después de modificar datos
                 self.ventasActualizadas.emit()
                 return True
             else:
@@ -195,6 +197,7 @@ class VentasModel(QObject):
                 logger.info(f"✅ {mensaje}")
                 self.operacionExitosa.emit(mensaje)
                 self.ventaEliminada.emit(id_venta)
+                # Solo emitir ventasActualizadas después de modificar datos
                 self.ventasActualizadas.emit()
                 return True
             else:
@@ -247,7 +250,6 @@ class VentasModel(QObject):
             exito, mensaje, id_detalle = self.service.agregar_detalle_venta(detalle_data)
             
             if exito:
-                logger.info(f"✅ {mensaje}")
                 self.operacionExitosa.emit(mensaje)
                 self.detallesActualizados.emit(detalle_data['id_venta'])
                 return True
@@ -271,7 +273,7 @@ class VentasModel(QObject):
             detalle_data: Datos actualizados.
             
         Returns:
-            True si se actualizó correctamente.
+            True si se actualizó.
         """
         try:
             exito, mensaje = self.service.actualizar_detalle_venta(id_detalle, detalle_data)
@@ -297,10 +299,10 @@ class VentasModel(QObject):
         
         Args:
             id_detalle: ID del detalle.
-            id_venta: ID de la venta.
+            id_venta: ID de la venta (para actualizar totales).
             
         Returns:
-            True si se eliminó correctamente.
+            True si se eliminó.
         """
         try:
             exito, mensaje = self.service.eliminar_detalle_venta(id_detalle, id_venta)
@@ -319,7 +321,7 @@ class VentasModel(QObject):
             self.errorOcurrido.emit(error_msg)
             return False
     
-    # ==================== BÚSQUEDAS Y FILTROS ====================
+    # ==================== BÚSQUEDAS ====================
     
     @Slot(str, result='QVariantList')
     def buscarVentas(self, criterio: str) -> List[Dict]:
@@ -456,56 +458,6 @@ class VentasModel(QObject):
             self.errorOcurrido.emit(error_msg)
             return {}
     
-    # ==================== MÉTODOS JSON PARA COMPATIBILIDAD ====================
-    
-    @Slot(result=str)
-    def obtenerVentasJson(self) -> str:
-        """
-        Retorna todas las ventas en formato JSON.
-        
-        Returns:
-            String JSON con las ventas.
-        """
-        try:
-            ventas = self.obtenerVentas()
-            return json.dumps(ventas)
-        except Exception as e:
-            logger.error(f"❌ Error al convertir a JSON: {str(e)}")
-            return "[]"
-    
-    @Slot(str, result=str)
-    def buscarVentasJson(self, criterio: str) -> str:
-        """
-        Busca ventas y retorna resultado en JSON.
-        
-        Args:
-            criterio: Texto a buscar.
-            
-        Returns:
-            String JSON con los resultados.
-        """
-        try:
-            resultados = self.buscarVentas(criterio)
-            return json.dumps(resultados)
-        except Exception as e:
-            logger.error(f"❌ Error al convertir búsqueda a JSON: {str(e)}")
-            return "[]"
-    
-    @Slot(result=str)
-    def obtenerResumenMesJson(self) -> str:
-        """
-        Retorna resumen del mes en JSON.
-        
-        Returns:
-            String JSON con el resumen.
-        """
-        try:
-            resumen = self.obtenerResumenMesActual()
-            return json.dumps(resumen)
-        except Exception as e:
-            logger.error(f"❌ Error al convertir resumen a JSON: {str(e)}")
-            return "{}"
-    
     # ==================== UTILIDADES ====================
     
     @Slot(result=str)
@@ -532,6 +484,7 @@ class VentasModel(QObject):
         try:
             logger.info("🔄 Recargando ventas...")
             self._ventas = self.service.obtener_ventas()
+            # Emitir señal solo después de recargar explícitamente
             self.ventasActualizadas.emit()
             logger.info(f"✅ {len(self._ventas)} ventas recargadas")
         except Exception as e:
@@ -544,42 +497,3 @@ class VentasModel(QObject):
         """Limpia la venta actual cargada."""
         self._venta_actual = None
         self.ventaCargada.emit()
-
-
-# Ejemplo de uso y testing
-if __name__ == "__main__":
-    import sys
-    from PySide6.QtWidgets import QApplication
-    
-    app = QApplication(sys.argv)
-    
-    try:
-        modelo = VentasModel()
-        
-        # Prueba: Obtener ventas
-        print("\n🧪 PRUEBA: Obtener ventas")
-        ventas = modelo.obtenerVentas()
-        print(f"✅ Total ventas: {len(ventas)}")
-        
-        # Prueba: Resumen del mes
-        print("\n🧪 PRUEBA: Resumen del mes")
-        resumen = modelo.obtenerResumenMesActual()
-        print(f"✅ Total ventas mes: {resumen.get('total_ventas', 0)}")
-        print(f"✅ Monto total: ${resumen.get('monto_total', 0):,.2f}")
-        
-        # Prueba: Ventas pendientes
-        print("\n🧪 PRUEBA: Ventas pendientes")
-        pendientes = modelo.obtenerVentasPendientes()
-        print(f"✅ Ventas pendientes: {len(pendientes)}")
-        
-        # Prueba: Generar código
-        print("\n🧪 PRUEBA: Generar código")
-        codigo = modelo.generarCodigoVenta()
-        print(f"✅ Código generado: {codigo}")
-        
-        print("\n✅ Todas las pruebas completadas")
-        
-    except Exception as e:
-        print(f"\n❌ Error en pruebas: {str(e)}")
-    
-    sys.exit(0)

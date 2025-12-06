@@ -85,8 +85,7 @@ class VariedadCultivoServicio:
             resultado['estadisticas_pagina'] = self._calcular_estadisticas_pagina_cached(variedades_enriquecidas)
             resultado['metadatos_servicio'] = {
                 'timestamp': self._get_timestamp(),
-                'total_en_uso': sum(1 for v in variedades_enriquecidas if v['esta_en_uso']),
-                'total_con_rendimiento': sum(1 for v in variedades_enriquecidas if v['tiene_rendimiento'])
+                'total_en_uso': sum(1 for v in variedades_enriquecidas if v['esta_en_uso'])
             }
             
             logger.info(f"Servicio: página {pagina} procesada con {len(resultado['variedades'])} variedades")
@@ -269,7 +268,6 @@ class VariedadCultivoServicio:
                     'mensaje': f"Variedad '{variedad['nombre']}' eliminada exitosamente",
                     'nombre_eliminado': variedad['nombre'],
                     'tipo_cultivo': variedad['nombre_tipo_cultivo'],
-                    'tenia_rendimiento': variedad['tiene_rendimiento'],
                     'requiere_actualizacion_listas': True
                 }
                 

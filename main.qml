@@ -68,7 +68,7 @@ Rectangle {
             "Maquinaria",
             "Configuración",
             "Reportes Agrícolas",
-            "Gastos y Costos"
+            "Finanzas"
         ]
         return modulos[index] || "Módulo"
     }
@@ -290,7 +290,7 @@ Rectangle {
                             objectName: "btnGastos"
                             Layout.fillWidth: true
                             Layout.margins: Styles.AppTheme.spaceXs
-                            buttonText: "Gastos"
+                            buttonText: "Finanzas"
                             iconSource: "../recursos/image/icons/gasto.png"
                             isActive: mainContainer.activeModule === 9
                             onClicked: mainContainer.activeModule = 9

@@ -17,6 +17,7 @@ Rectangle {
     property bool showFilter: true
     property bool showButton: true
     property bool showSearch: true
+    property bool showRefreshButton: false
     
     // Filter properties
     property var filterOptions: []
@@ -32,6 +33,7 @@ Rectangle {
     signal buttonClicked()
     signal searchTextChanged(string text)
     signal filterChanged(int index)
+    signal refreshClicked
     
     Row {
         anchors.fill: parent
@@ -298,6 +300,47 @@ Rectangle {
                         anchors.verticalCenter: parent.verticalCenter
                     }
                 }
+            }
+        }
+        // Boton para refrescar
+        Button {
+            id: refreshButton
+            visible: filterHeaderRoot.showRefreshButton
+            Layout.preferredWidth: 40
+            Layout.preferredHeight: 40
+            ToolTip.visible: hovered
+            ToolTip.text: "Actualizar lista"
+            
+            background: Rectangle {
+                color: refreshButton.hovered ? "#E3F2FD" : "transparent"
+                radius: 5
+                border.color: "#1E88E5"
+                border.width: 1
+            }
+            
+            contentItem: Image {
+                source: "recursos/image/icons/actualizar.svg"
+                width: 18
+                height: 18
+                anchors.centerIn: parent
+                fillMode: Image.PreserveAspectFit
+                
+                // Animación de rotación al hacer clic
+                RotationAnimation on rotation {
+                    id: refreshAnimation
+                    from: 0
+                    to: 360
+                    duration: 500
+                    running: false
+                }
+            }
+            
+            onClicked: {
+                // Animación de rotación
+                refreshAnimation.start()
+                
+                // Emitir señal después de un pequeño delay
+                
             }
         }
     }

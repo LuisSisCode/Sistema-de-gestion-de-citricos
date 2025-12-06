@@ -23,14 +23,7 @@ class ProductorServicio:
     @cacheable('servicio_productores', key_func=lambda pagina, por_pagina=8: f"paginado_{pagina}_{por_pagina}", ttl=900)
     def obtener_productores_paginado(self, pagina, por_pagina=5):
         """
-        Obtiene productores con paginación y lógica de negocio aplicada.
-        
-        Args:
-            pagina (int): Número de página.
-            por_pagina (int): Registros por página.
-            
-        Returns:
-            dict: Resultado con productores y metadatos.
+        Obtiene productores con paginación (activos e inactivos).
         """
         try:
             resultado = self.productor_repo.obtener_paginado(pagina, por_pagina)
@@ -53,10 +46,12 @@ class ProductorServicio:
             resultado['productores'] = productores_enriquecidos
             resultado['metadatos'] = {
                 'timestamp': self._get_timestamp(),
-                'total_con_parcelas': sum(1 for p in productores_enriquecidos if p['tiene_parcelas'])
+                'total_con_parcelas': sum(1 for p in productores_enriquecidos if p['tiene_parcelas']),
+                'total_activos': sum(1 for p in productores_enriquecidos if p.get('activo', True)),
+                'total_inactivos': sum(1 for p in productores_enriquecidos if not p.get('activo', True))
             }
             
-            logger.info(f"Servicio: página {pagina} procesada con {len(resultado['productores'])} productores")
+            logger.info(f"Servicio: página {pagina} procesada con {len(resultado['productores'])} productores (activos e inactivos)")
             return {
                 'exito': True,
                 'mensaje': f'Página {pagina} de productores obtenida',
@@ -212,13 +207,15 @@ class ProductorServicio:
     @cache_invalidator('servicio_productores', pattern='id_')
     @cache_invalidator('estadisticas_productores')
     @cache_invalidator('reportes_productores')
-    def eliminar_productor(self, id_productor):
+    def eliminar_productor(self, id_productor, eliminar_fisicamente=False):
         """
-        Elimina un productor verificando dependencias y reglas de negocio.
+        Elimina un productor verificando dependencias.
         
         Args:
             id_productor (int): ID del productor.
-            
+            eliminar_fisicamente (bool): True para eliminación física (ADMIN ONLY).
+                                        False para eliminación lógica (por defecto).
+        
         Returns:
             dict: Resultado detallado de la operación.
         """
@@ -229,68 +226,93 @@ class ProductorServicio:
             # Verificar dependencias
             dependencias = self.productor_repo.verificar_dependencias_productor(id_productor)
             
-            # Si tiene dependencias, no se puede eliminar
-            if not dependencias['puede_eliminar']:
-                return {
-                    'exito': False,
-                    'mensaje': f"No se puede eliminar a {productor['nombre']} {productor['apellido']}",
-                    'datos': {
-                        'razon': 'Tiene parcelas asociadas',
-                        'dependencias': dependencias,
-                        'tipo_error': 'dependencias'
-                    }
+            resultado = {
+                'exito': False,
+                'mensaje': '',
+                'datos': {
+                    'productor': productor,
+                    'dependencias': dependencias,
+                    'eliminacion_fisica': eliminar_fisicamente
                 }
+            }
             
-            # Proceder con eliminación
-            exito = self.productor_repo.desactivar(id_productor)
-            
-            if exito:
-                resultado = {
-                    'exito': True,
-                    'mensaje': f"Productor {productor['nombre']} {productor['apellido']} eliminado exitosamente",
-                    'datos': {
-                        'productor_eliminado': productor,
-                        'dependencias_verificadas': dependencias
-                    },
-                    'metadatos': {
-                        'timestamp': self._get_timestamp(),
-                        'requiere_actualizacion_listas': True
-                    }
-                }
+            # Lógica de eliminación basada en el tipo
+            if eliminar_fisicamente:
+                # ELIMINACIÓN FÍSICA (ADMIN)
+                if not dependencias['puede_eliminar']:
+                    resultado['mensaje'] = (
+                        f"❌ NO SE PUEDE ELIMINAR FÍSICAMENTE: "
+                        f"El productor {productor['nombre']} {productor['apellido']} "
+                        f"tiene {dependencias['parcelas']} parcelas activas. "
+                        f"Debe eliminar o transferir las parcelas primero."
+                    )
+                    resultado['datos']['tipo_error'] = 'dependencias_activas'
+                    return resultado
                 
-                logger.info(f"Servicio: productor {id_productor} eliminado")
-                return resultado
+                # Proceder con eliminación física
+                exito = self.productor_repo.eliminar_fisico(id_productor)
+                
+                if exito:
+                    resultado['exito'] = True
+                    resultado['mensaje'] = (
+                        f"⚠️ ELIMINACIÓN FÍSICA COMPLETADA: "
+                        f"Productor {productor['nombre']} {productor['apellido']} "
+                        f"eliminado permanentemente de la base de datos."
+                    )
+                    resultado['datos']['advertencia'] = 'Esta acción no se puede deshacer'
+                else:
+                    resultado['mensaje'] = 'Error al eliminar físicamente el productor'
+                    resultado['datos']['tipo_error'] = 'error_ejecucion'
+                    
             else:
-                return {
-                    'exito': False,
-                    'mensaje': 'Error al eliminar productor',
-                    'datos': None
-                }
+                # ELIMINACIÓN LÓGICA (desactivación)
+                exito = self.productor_repo.desactivar(id_productor)
                 
-        except RegistroTieneDependencias as e:
-            logger.error(f"No se puede eliminar productor: {str(e)}")
+                if exito:
+                    resultado['exito'] = True
+                    resultado['mensaje'] = (
+                        f"✅ PRODUCTOR DESACTIVADO: "
+                        f"{productor['nombre']} {productor['apellido']} "
+                        f"ha sido marcado como inactivo."
+                    )
+                    resultado['datos']['estado_actual'] = 'inactivo'
+                else:
+                    resultado['mensaje'] = 'Error al desactivar el productor'
+                    resultado['datos']['tipo_error'] = 'error_ejecucion'
+            
+            # Agregar metadatos
+            resultado['metadatos'] = {
+                'timestamp': self._get_timestamp(),
+                'requiere_actualizacion_listas': resultado['exito'],
+                'tipo_operacion': 'eliminacion_fisica' if eliminar_fisicamente else 'desactivacion_logica'
+            }
+            
+            if resultado['exito']:
+                logger.info(f"Servicio: productor {id_productor} procesado - {resultado['mensaje']}")
+            else:
+                logger.warning(f"Servicio: falló eliminación productor {id_productor} - {resultado['mensaje']}")
+            
+            return resultado
+            
+        except (RegistroNoEncontrado, ErrorValidacion) as e:
+            logger.error(f"Error de validación en eliminar_productor: {str(e)}")
             return {
                 'exito': False,
                 'mensaje': str(e),
                 'datos': {
-                    'razon': 'Tiene dependencias',
-                    'dependencias': {'parcelas': e.cantidad_dependencias},
-                    'tipo_error': 'dependencias'
+                    'tipo_error': 'validacion',
+                    'detalles': str(e)
                 }
-            }
-        except RegistroNoEncontrado as e:
-            logger.error(f"Productor no encontrado: {str(e)}")
-            return {
-                'exito': False,
-                'mensaje': str(e),
-                'datos': {'tipo_error': 'no_encontrado'}
             }
         except Exception as e:
             logger.error(f"Error en servicio eliminar_productor: {str(e)}")
             return {
                 'exito': False,
                 'mensaje': 'Error interno del sistema',
-                'datos': {'tipo_error': 'interno'}
+                'datos': {
+                    'tipo_error': 'interno',
+                    'detalles': str(e)
+                }
             }
 
     @cacheable('servicio_productores', key_func=lambda texto: f"busqueda_{texto.lower().replace(' ', '_')}", ttl=600)

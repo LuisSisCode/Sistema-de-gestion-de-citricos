@@ -367,3 +367,13 @@ class LoteAgroquimicoRepositorio(RepositorioBase):
         except Exception as e:
             logger.error(f"Error al obtener lotes con stock bajo: {str(e)}")
             return []
+        
+    def listar_lotes_por_vencer(self, dias: int = 30) -> List[Dict]:
+        """Alias/compatibilidad: devuelve lotes próximos a vencer"""
+        try:
+            lotes = self.obtener_lotes_por_vencer(dias)
+            logger.info(f"Listados {len(lotes)} lotes por vencer en los próximos {dias} días")
+            return lotes
+        except Exception as e:
+            logger.error(f"Error al listar lotes por vencer: {str(e)}")
+            return []

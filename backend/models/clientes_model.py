@@ -1,5 +1,5 @@
 """
-Modelo Qt de Clientes
+Modelo Qt de Clientes - CORREGIDO
 Capa de presentación - Bridge entre Python y QML
 Expone funcionalidad del servicio como Slots Qt
 """
@@ -62,7 +62,7 @@ class ClientesModel(QObject):
             logger.info("📊 Obteniendo clientes desde QML...")
             self._clientes = self.service.obtener_clientes()
             
-            self.clientesActualizados.emit()
+            # NO emitir clientesActualizados aquí para evitar loops infinitos
             logger.info(f"✅ {len(self._clientes)} clientes obtenidos")
             
             return self._clientes
@@ -126,6 +126,7 @@ class ClientesModel(QObject):
                 logger.info(f"✅ {mensaje} (ID: {id_cliente})")
                 self.operacionExitosa.emit(mensaje)
                 self.clienteAgregado.emit(id_cliente)
+                # Solo emitir clientesActualizados después de modificar datos
                 self.clientesActualizados.emit()
                 return True
             else:
@@ -160,6 +161,7 @@ class ClientesModel(QObject):
                 logger.info(f"✅ {mensaje}")
                 self.operacionExitosa.emit(mensaje)
                 self.clienteActualizado.emit(id_cliente)
+                # Solo emitir clientesActualizados después de modificar datos
                 self.clientesActualizados.emit()
                 return True
             else:
@@ -193,6 +195,7 @@ class ClientesModel(QObject):
                 logger.info(f"✅ {mensaje}")
                 self.operacionExitosa.emit(mensaje)
                 self.clienteEliminado.emit(id_cliente)
+                # Solo emitir clientesActualizados después de modificar datos
                 self.clientesActualizados.emit()
                 return True
             else:
@@ -239,8 +242,6 @@ class ClientesModel(QObject):
             self.errorOcurrido.emit(error_msg)
             return []
     
-    # ==================== ANÁLISIS Y REPORTES ====================
-    
     @Slot(result='QVariantList')
     def obtenerClientesClasificados(self) -> List[Dict]:
         """
@@ -250,12 +251,12 @@ class ClientesModel(QObject):
             Lista de clientes con categoría asignada.
         """
         try:
-            logger.info("📊 Obteniendo clasificación de clientes...")
+            logger.info("📊 Obteniendo clientes clasificados...")
             
-            clasificados = self.service.clasificar_clientes_por_volumen()
+            clientes = self.service.clasificar_clientes_por_volumen()
             
-            logger.info(f"✅ {len(clasificados)} clientes clasificados")
-            return clasificados
+            logger.info(f"✅ {len(clientes)} clientes clasificados")
+            return clientes
             
         except Exception as e:
             error_msg = f"Error al clasificar clientes: {str(e)}"
@@ -385,68 +386,17 @@ class ClientesModel(QObject):
             logger.error(f"❌ Error al verificar ventas: {str(e)}")
             return False
     
-    # ==================== MÉTODOS JSON PARA COMPATIBILIDAD CON QML ====================
-    
-    @Slot(result=str)
-    def obtenerClientesJson(self) -> str:
-        """
-        Retorna todos los clientes en formato JSON para QML.
-        Útil para componentes que requieren JSON.
-        
-        Returns:
-            String JSON con los clientes.
-        """
-        try:
-            clientes = self.obtenerClientes()
-            return json.dumps(clientes)
-        except Exception as e:
-            logger.error(f"❌ Error al convertir a JSON: {str(e)}")
-            return "[]"
-    
-    @Slot(str, result=str)
-    def buscarClientesJson(self, criterio: str) -> str:
-        """
-        Busca clientes y retorna resultado en JSON.
-        
-        Args:
-            criterio: Texto a buscar.
-            
-        Returns:
-            String JSON con los resultados.
-        """
-        try:
-            resultados = self.buscarClientes(criterio)
-            return json.dumps(resultados)
-        except Exception as e:
-            logger.error(f"❌ Error al convertir búsqueda a JSON: {str(e)}")
-            return "[]"
-    
-    @Slot(result=str)
-    def obtenerClientesClasificadosJson(self) -> str:
-        """
-        Retorna clientes clasificados en formato JSON.
-        
-        Returns:
-            String JSON con clientes clasificados.
-        """
-        try:
-            clasificados = self.obtenerClientesClasificados()
-            return json.dumps(clasificados)
-        except Exception as e:
-            logger.error(f"❌ Error al convertir clasificación a JSON: {str(e)}")
-            return "[]"
-    
     # ==================== MÉTODOS DE RECARGA ====================
     
     @Slot()
     def recargarClientes(self):
         """
         Recarga todos los clientes desde la base de datos.
-        Útil para refrescar datos después de operaciones.
         """
         try:
             logger.info("🔄 Recargando clientes...")
             self._clientes = self.service.obtener_clientes()
+            # Emitir señal solo después de recargar explícitamente
             self.clientesActualizados.emit()
             logger.info(f"✅ {len(self._clientes)} clientes recargados")
         except Exception as e:
@@ -459,41 +409,3 @@ class ClientesModel(QObject):
         """Limpia el cliente actual cargado."""
         self._cliente_actual = None
         self.clienteCargado.emit()
-
-
-# Ejemplo de uso y testing
-if __name__ == "__main__":
-    import sys
-    from PySide6.QtWidgets import QApplication
-    
-    app = QApplication(sys.argv)
-    
-    try:
-        modelo = ClientesModel()
-        
-        # Prueba: Obtener clientes
-        print("\n🧪 PRUEBA: Obtener clientes")
-        clientes = modelo.obtenerClientes()
-        print(f"✅ Total clientes: {len(clientes)}")
-        
-        # Prueba: Clasificar clientes
-        print("\n🧪 PRUEBA: Clasificar clientes")
-        clasificados = modelo.obtenerClientesClasificados()
-        print(f"✅ Clientes clasificados: {len(clasificados)}")
-        
-        # Mostrar primeros 3
-        for cliente in clasificados[:3]:
-            print(f"  - {cliente['nombre']}: {cliente.get('categoria', 'N/A')}")
-        
-        # Prueba: Mejores clientes
-        print("\n🧪 PRUEBA: Top 5 clientes")
-        mejores = modelo.obtenerMejoresClientes(5)
-        for cliente in mejores:
-            print(f"  {cliente.get('ranking', '?')}. {cliente['nombre']} - ${cliente.get('monto_total', 0):,.2f}")
-        
-        print("\n✅ Todas las pruebas completadas")
-        
-    except Exception as e:
-        print(f"\n❌ Error en pruebas: {str(e)}")
-    
-    sys.exit(0)

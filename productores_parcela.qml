@@ -406,6 +406,7 @@ Rectangle {
                     filterPlaceholder: "Estado..."
                     filterWidth: 150
                     showFilter: true
+                    showRefreshButton: true
                     
                     onButtonClicked: {
                         console.log("➕ Nuevo agricultor")
@@ -418,6 +419,15 @@ Rectangle {
                     
                     onFilterChanged: function(index) {
                         filtrarPorEstadoAgricultores(index)
+                    }
+                    onRefreshClicked: {  // <-- AÑADIR ESTA SEÑAL
+                        console.log("🔄 Actualizando lista de agricultores...")
+                        if (buscandoAgricultores) {
+                            buscarAgricultores(terminoBusquedaActualAgricultores)
+                        } else {
+                            productoresparcelasModel.cargar_productores_pagina(paginaAgricultores)
+                        }
+                        mostrarNotificacion("✅ Lista de agricultores actualizada", "success")
                     }
                 }
                 
@@ -649,6 +659,7 @@ Rectangle {
                     filterPlaceholder: "Estado..."
                     filterWidth: 150
                     showFilter: true
+                    showRefreshButton: true
                     
                     onButtonClicked: {
                         console.log("➕ Nueva parcela")
@@ -661,6 +672,15 @@ Rectangle {
                     
                     onFilterChanged: function(index) {
                         filtrarPorEstadoParcelas(index)
+                    }
+                    onRefreshClicked: {  // <-- AÑADIR ESTA SEÑAL
+                        console.log("🔄 Actualizando lista de parcelas...")
+                        if (buscandoParcelas) {
+                            buscarParcelas(terminoBusquedaActualParcelas)
+                        } else {
+                            productoresparcelasModel.cargar_parcelas_pagina(paginaParcelas)
+                        }
+                        mostrarNotificacion("✅ Lista de parcelas actualizada", "success")
                     }
                 }
                 
@@ -1652,7 +1672,7 @@ Rectangle {
                         console.log("🗑️ Confirmando eliminación:", dialogoConfirmacion.tipo, dialogoConfirmacion.id)
                         
                         if (dialogoConfirmacion.tipo === "agricultor") {
-                            var resultado = productoresparcelasModel.eliminar_productor(dialogoConfirmacion.id)
+                            var resultado = productoresparcelasModel.eliminar_productor(dialogoConfirmacion.id, true)
                             console.log("Resultado eliminación agricultor:", JSON.stringify(resultado))
                             
                             if (resultado && resultado.exito) {

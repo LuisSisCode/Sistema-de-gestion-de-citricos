@@ -34,9 +34,9 @@ Rectangle {
     // ============================================
     // SEÑALES
     // ============================================
-    signal textChanged(string text)
     signal enterPressed()
-    signal focusChanged(bool hasFocus)
+    signal inputFocusChanged(bool hasFocus)  // CAMBIADO: De focusChanged a inputFocusChanged
+    signal textChangedSignal(string text)    // CAMBIADO: Nombre único para evitar conflicto
     
     // ============================================
     // PROPIEDADES PRIVADAS
@@ -157,7 +157,7 @@ Rectangle {
                     }
                     
                     onTextChanged: {
-                        root.textChanged(text)
+                        root.textChangedSignal(text)  // CAMBIADO: Usar señal renombrada
                     }
                     
                     onAccepted: {
@@ -165,7 +165,7 @@ Rectangle {
                     }
                     
                     onActiveFocusChanged: {
-                        root.focusChanged(activeFocus)
+                        root.inputFocusChanged(activeFocus)  // CAMBIADO: Usar señal renombrada
                     }
                     
                     Keys.onReturnPressed: {
@@ -273,7 +273,7 @@ Rectangle {
         textInput.text = ""
     }
     
-    function focus() {
+    function focusInput() {  // CAMBIADO: De focus a focusInput
         textInput.forceActiveFocus()
     }
     

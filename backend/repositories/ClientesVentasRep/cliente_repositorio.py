@@ -1,5 +1,5 @@
 """
-Repositorio de Clientes
+Repositorio de Clientes - CORREGIDO
 Capa de acceso a datos - Solo queries SQL
 Sin lógica de negocio, sin cálculos complejos
 """
@@ -11,6 +11,25 @@ from backend.core.database import DatabaseConnection
 
 # Configurar logging
 logger = logging.getLogger('cliente_repositorio')
+
+
+def safe_date_format(date_value) -> Optional[str]:
+    """
+    Formatea una fecha de forma segura, manejando diferentes tipos.
+    """
+    if date_value is None:
+        return None
+    
+    # Si ya es string, retornar directamente
+    if isinstance(date_value, str):
+        return date_value
+    
+    # Si tiene el método strftime (datetime, date), usarlo
+    if hasattr(date_value, 'strftime'):
+        return date_value.strftime('%Y-%m-%d')
+    
+    # Intentar convertir a string como último recurso
+    return str(date_value)
 
 
 class ClienteRepositorio:
@@ -67,15 +86,13 @@ class ClienteRepositorio:
                 clientes = []
                 
                 for row in cursor.fetchall():
-                    fecha_registro = row.fecha_registro.strftime('%Y-%m-%d') if row.fecha_registro and hasattr(row.fecha_registro, 'strftime') else row.fecha_registro
-                    
                     cliente = {
                         'id_cliente': row.id_cliente,
                         'nombre': row.nombre,
                         'direccion': row.direccion,
                         'telefono': row.telefono,
                         'condiciones_pago': row.condiciones_pago,
-                        'fecha_registro': fecha_registro,
+                        'fecha_registro': safe_date_format(row.fecha_registro),
                         'registrado_por': row.registrado_por,
                         'registrado_por_nombre': row.registrado_por_nombre,
                         'activo': bool(row.activo)
@@ -116,15 +133,13 @@ class ClienteRepositorio:
                 row = cursor.fetchone()
                 
                 if row:
-                    fecha_registro = row.fecha_registro.strftime('%Y-%m-%d') if row.fecha_registro else None
-                    
                     cliente = {
                         'id_cliente': row.id_cliente,
                         'nombre': row.nombre,
                         'direccion': row.direccion,
                         'telefono': row.telefono,
                         'condiciones_pago': row.condiciones_pago,
-                        'fecha_registro': fecha_registro,
+                        'fecha_registro': safe_date_format(row.fecha_registro),
                         'registrado_por': row.registrado_por,
                         'registrado_por_nombre': row.registrado_por_nombre,
                         'activo': bool(row.activo)
@@ -172,7 +187,6 @@ class ClienteRepositorio:
                 cursor.execute(query, valores)
                 conn.commit()
                 
-                # Obtener el ID del cliente recién insertado
                 cursor.execute("SELECT @@IDENTITY AS ID")
                 id_cliente = int(cursor.fetchone()[0])
                 
@@ -226,7 +240,7 @@ class ClienteRepositorio:
                     return False
                     
         except Exception as e:
-            logger.error(f"❌ Error al actualizar cliente {id_cliente}: {str(e)}")
+            logger.error(f"❌ Error al actualizar cliente: {str(e)}")
             return False
     
     def eliminar(self, id_cliente: int) -> bool:
@@ -243,31 +257,26 @@ class ClienteRepositorio:
             with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 
-                query = """
-                UPDATE Clientes 
-                SET activo = 0 
-                WHERE id_cliente = ?
-                """
-                
+                query = "UPDATE Clientes SET activo = 0 WHERE id_cliente = ?"
                 cursor.execute(query, (id_cliente,))
                 conn.commit()
                 
                 if cursor.rowcount > 0:
-                    logger.info(f"✅ Cliente {id_cliente} desactivado")
+                    logger.info(f"✅ Cliente {id_cliente} eliminado (soft delete)")
                     return True
                 else:
                     logger.warning(f"⚠️ Cliente {id_cliente} no encontrado para eliminar")
                     return False
                     
         except Exception as e:
-            logger.error(f"❌ Error al eliminar cliente {id_cliente}: {str(e)}")
+            logger.error(f"❌ Error al eliminar cliente: {str(e)}")
             return False
     
     # ==================== BÚSQUEDAS ====================
     
     def buscar_por_criterio(self, criterio: str) -> List[Dict]:
         """
-        Busca clientes que coincidan con el criterio en varios campos.
+        Busca clientes por criterio (nombre, teléfono, dirección).
         
         Args:
             criterio: Texto a buscar.
@@ -280,39 +289,32 @@ class ClienteRepositorio:
                 cursor = conn.cursor()
                 
                 query = """
-                SELECT c.id_cliente, c.nombre, c.direccion, 
-                       c.telefono, c.condiciones_pago, c.fecha_registro, 
+                SELECT c.id_cliente, c.nombre, c.direccion, c.telefono, 
+                       c.condiciones_pago, c.fecha_registro, 
                        u.nombre AS registrado_por_nombre, c.activo
                 FROM Clientes c
                 LEFT JOIN Usuarios u ON c.registrado_por = u.id_usuario
-                WHERE c.activo = 1 AND (
-                    c.nombre LIKE ? OR
-                    c.direccion LIKE ? OR
-                    c.telefono LIKE ?
-                )
+                WHERE c.activo = 1 AND (c.nombre LIKE ? OR c.telefono LIKE ? OR c.direccion LIKE ?)
                 ORDER BY c.nombre
                 """
                 
-                param = f"%{criterio}%"
-                cursor.execute(query, (param, param, param))
+                patron = f"%{criterio}%"
+                cursor.execute(query, (patron, patron, patron))
                 
                 clientes = []
                 for row in cursor.fetchall():
-                    fecha_registro = row.fecha_registro.strftime('%Y-%m-%d') if row.fecha_registro else None
-                    
                     cliente = {
                         'id_cliente': row.id_cliente,
                         'nombre': row.nombre,
                         'direccion': row.direccion,
                         'telefono': row.telefono,
                         'condiciones_pago': row.condiciones_pago,
-                        'fecha_registro': fecha_registro,
-                        'registrado_por': row.registrado_por_nombre,
+                        'fecha_registro': safe_date_format(row.fecha_registro),
+                        'registrado_por_nombre': row.registrado_por_nombre,
                         'activo': bool(row.activo)
                     }
                     clientes.append(cliente)
                 
-                logger.info(f"🔍 Búsqueda '{criterio}': {len(clientes)} resultados")
                 return clientes
                 
         except Exception as e:
@@ -347,15 +349,13 @@ class ClienteRepositorio:
                 
                 clientes = []
                 for row in cursor.fetchall():
-                    fecha_registro = row.fecha_registro.strftime('%Y-%m-%d') if row.fecha_registro else None
-                    
                     cliente = {
                         'id_cliente': row.id_cliente,
                         'nombre': row.nombre,
                         'direccion': row.direccion,
                         'telefono': row.telefono,
                         'condiciones_pago': row.condiciones_pago,
-                        'fecha_registro': fecha_registro,
+                        'fecha_registro': safe_date_format(row.fecha_registro),
                         'registrado_por': row.registrado_por_nombre,
                         'activo': bool(row.activo)
                     }
@@ -371,7 +371,7 @@ class ClienteRepositorio:
     
     def obtener_con_estadisticas_ventas(self) -> List[Dict]:
         """
-        Obtiene clientes con sus estadísticas de ventas (JOIN con Ventas).
+        Obtiene clientes con sus estadísticas de ventas.
         
         Returns:
             List[Dict]: Lista de clientes con estadísticas.
@@ -396,15 +396,13 @@ class ClienteRepositorio:
                 clientes = []
                 
                 for row in cursor.fetchall():
-                    ultima_compra = row.ultima_compra.strftime('%Y-%m-%d') if hasattr(row.ultima_compra, 'strftime') else str(row.ultima_compra) if row.ultima_compra else None
-                    
                     cliente = {
                         'id_cliente': row.id_cliente,
                         'nombre': row.nombre,
                         'telefono': row.telefono,
                         'total_ventas': row.total_ventas or 0,
                         'monto_total': float(row.monto_total) if row.monto_total else 0.0,
-                        'ultima_compra': ultima_compra
+                        'ultima_compra': safe_date_format(row.ultima_compra)
                     }
                     clientes.append(cliente)
                 
@@ -445,13 +443,11 @@ class ClienteRepositorio:
                 clientes = []
                 
                 for row in cursor.fetchall():
-                    ultima_compra = row.ultima_compra.strftime('%Y-%m-%d') if row.ultima_compra else None
-                    
                     cliente = {
                         'id_cliente': row.id_cliente,
                         'nombre': row.nombre,
                         'telefono': row.telefono,
-                        'ultima_compra': ultima_compra,
+                        'ultima_compra': safe_date_format(row.ultima_compra),
                         'dias_inactividad': row.dias_inactividad if row.dias_inactividad else None
                     }
                     clientes.append(cliente)
@@ -519,27 +515,8 @@ class ClienteRepositorio:
     def obtener_activos(self) -> List[Dict]:
         """
         Obtiene solo los clientes activos.
-        Alias para obtener_todos() pero más explícito.
         
         Returns:
             List[Dict]: Lista de clientes activos.
         """
         return self.obtener_todos()
-
-
-# Ejemplo de uso y testing
-if __name__ == "__main__":
-    try:
-        repo = ClienteRepositorio()
-        repo.test_connection()
-        
-        # Obtener todos los clientes
-        clientes = repo.obtener_todos()
-        print(f"✅ Total de clientes: {len(clientes)}")
-        
-        # Mostrar primeros 3 clientes
-        for cliente in clientes[:3]:
-            print(f"  - {cliente['nombre']} (ID: {cliente['id_cliente']})")
-            
-    except Exception as e:
-        print(f"❌ Error en prueba: {str(e)}")

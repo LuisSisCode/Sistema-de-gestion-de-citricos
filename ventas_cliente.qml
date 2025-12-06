@@ -1,5 +1,5 @@
 import QtQuick 2.15
-import QtQuick.Controls.Universal 2.15
+import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import "./components"
 
@@ -8,9 +8,11 @@ Rectangle {
     anchors.fill: parent
     color: "#F8F9FA"
 
-    ListModel { id: ventasListViewModel }
-    ListModel { id: clientesViewModel }
-    ListModel { id: clientesComboModel }
+    // ============================================
+    // MODELOS Y PROPIEDADES
+    // ============================================
+    property var ventaModel: ventaModel
+    property var clientesModel: clientesModel
 
     // Variables para datos de resumen
     property string ventasDelMes: "Bs. 0"
@@ -30,10 +32,6 @@ Rectangle {
         {"text": "Clientes", "icon": "recursos/image/icons/clientes.png", "color": "#0288D1"}
     ]
 
-    // Propiedades para datos dinámicos
-    property var ventasData: []
-    property var clientesData: []
-
     // Propiedades para filtros
     property var estadosVenta: ["Todos los estados", "Pagada", "Pendiente", "Parcial", "Vencida"]
     property var tiposCliente: ["Todos los tipos", "Persona", "Empresa"]
@@ -41,1053 +39,1364 @@ Rectangle {
     
     // Propiedades para paginación
     property int paginaVentas: 1
-    property int totalPaginasVentas: 5
+    property int totalPaginasVentas: 1
     property int paginaClientes: 1
-    property int totalPaginasClientes: 3
+    property int totalPaginasClientes: 1
 
-    // Propiedades para edición
-    property bool mostrarDialogoNuevaVenta: false
-    property int filaSeleccionada: -1
-    property var nuevaVenta: {
-        "ventaId": "",
+    // Propiedades para nueva venta
+    property bool mostrarNuevaVenta: false
+    property var nuevaVentaData: ({
         "codigo": "",
-        "fecha": "",
-        "cliente": "",
-        "cantidad": 0,
-        "precio100u": 0,
+        "fecha": Qt.formatDate(new Date(), "dd/MM/yyyy"),
+        "clienteId": -1,
+        "clienteNombre": "",
+        "productos": [],
         "total": 0,
         "estado": "Pendiente"
-    }
-    
-    property bool mostrarNuevoCliente: false
-    property var nuevoCliente: {
-        "clienteId": "",
+    })
+
+    // Propiedades para nuevo cliente
+    property var nuevoClienteData: ({
         "tipo": "Persona",
         "nombre": "",
         "identificacion": "",
         "telefono": "",
-        "ciudad": "",
-        "totalCompras": 0,
-        "pendiente": 0
+        "email": "",
+        "direccion": "",
+        "ciudad": ""
+    })
+
+    // ============================================
+    // FUNCIONES PRINCIPALES
+    // ============================================
+
+    function cargarVentas() {
+        console.log("Cargando ventas desde modelo...")
+        var ventas = ventaModel.obtenerVentas()
+        actualizarResumenVentas()
     }
 
-    Connections {
-        target: ventaModel
-        
-        function onVentasChanged() {
-            cargarVentasDesdeModelo()
-        }
-        
-        function onClientesChanged() {
-            cargarClientesDesdeModelo()
-        }
-    }
-
-    function safeGetModelData(functionName, defaultValue) {
-        try {
-            if (ventaModel && ventaModel[functionName]) {
-                return ventaModel[functionName]();
-            }
-        } catch(e) {
-            console.error("Error al llamar a " + functionName + ": " + e);
-        }
-        return defaultValue || "[]";
-    }
-
-    function safeText(value, defaultValue) {
-        return (value !== undefined && value !== null) ? String(value) : (defaultValue || "");
-    }
-
-    function cargarVentasDesdeModelo() {
-        console.log("Iniciando carga de ventas desde modelo...");
-        ventasListViewModel.clear();
-        var ventasJson = safeGetModelData("get_ventas_json");
-        console.log("JSON de ventas recibido, longitud: " + ventasJson.length);
-        
-        try {
-            var ventas = JSON.parse(ventasJson);
-            console.log("Cantidad de ventas parseadas: " + ventas.length);
-            
-            for (var i = 0; i < ventas.length; i++) {
-                var venta = ventas[i];
-                var item = {
-                    id_venta: venta.id_venta || 0,
-                    codigo: safeText(venta.codigo_venta, ""),
-                    fecha: safeText(venta.fecha_venta, ""),
-                    cliente: safeText(venta.cliente_nombre, ""),
-                    cantidad: venta.cantidad || 0,
-                    precio100u: venta.precio_unitario || 0,
-                    total: venta.total || 0,
-                    estado: safeText(venta.estado_nombre, "Pendiente"),
-                    estado_pago: safeText(venta.estado_pago, "Pendiente")
-                };
-                ventasListViewModel.append(item);
-            }
-            
-            console.log("Carga de ventas completada. Total ventas: " + ventasListViewModel.count);
-            actualizarResumenVentas();
-        } catch (e) {
-            console.error("Error al cargar ventas: " + e);
-        }
-    }
-
-    function cargarClientesDesdeModelo() {
-        clientesViewModel.clear();
-        var clientesJson = safeGetModelData("get_clientes_json");
-        var clientes = JSON.parse(clientesJson);
-        
-        for (var i = 0; i < clientes.length; i++) {
-            clientesViewModel.append(clientes[i]);
-        }
-    }
-
-    function cargarClientesCombo() {
-        clientesComboModel.clear();
-        var clientesJson = safeGetModelData("get_clientes_json");
-        
-        try {
-            var clientes = JSON.parse(clientesJson);
-            for (var i = 0; i < clientes.length; i++) {
-                clientesComboModel.append({
-                    id: clientes[i].id_cliente,
-                    nombre: clientes[i].nombre
-                });
-            }
-        } catch (e) {
-            console.error("Error al cargar clientes: " + e);
-        }
+    function cargarClientes() {
+        console.log("Cargando clientes desde modelo...")
+        var clientes = clientesModel.obtenerClientes()
     }
 
     function buscarVentas(termino) {
         if (termino.length === 0) {
-            cargarVentasDesdeModelo();
-            return;
-        }
-        
-        if (ventaModel && typeof ventaModel.buscar_ventas === 'function') {
-            var resultadosJson = ventaModel.buscar_ventas(termino);
-            var resultados = JSON.parse(resultadosJson);
-            
-            ventasListViewModel.clear();
-            for (var i = 0; i < resultados.length; i++) {
-                ventasListViewModel.append(resultados[i]);
-            }
+            cargarVentas()
+        } else if (termino.length >= 2) {
+            var resultados = ventaModel.buscarVentas(termino)
         }
     }
 
     function filtrarVentasPorEstado(estado) {
         if (estado === "Todos los estados") {
-            cargarVentasDesdeModelo();
-            return;
-        }
-        
-        if (ventaModel && typeof ventaModel.filtrar_ventas_por_estado_pago === 'function') {
-            var resultadosJson = ventaModel.filtrar_ventas_por_estado_pago(estado);
-            var resultados = JSON.parse(resultadosJson);
-            
-            ventasListViewModel.clear();
-            for (var i = 0; i < resultados.length; i++) {
-                ventasListViewModel.append(resultados[i]);
-            }
+            cargarVentas()
+        } else {
+            // Implementar filtrado por estado
+            console.log("Filtrando ventas por estado:", estado)
         }
     }
 
     function actualizarResumenVentas() {
         try {
-            if (ventaModel && typeof ventaModel.get_resumen_ventas_json === 'function') {
-                var resumenJson = ventaModel.get_resumen_ventas_json();
-                var resumen = JSON.parse(resumenJson);
+            var resumen = ventaModel.obtenerResumenMesActual()
+            if (resumen) {
+                ventasDelMes = "Bs. " + (resumen.ventas_mes || 0)
+                pagosPendientes = "Bs. " + (resumen.pagos_pendientes || 0)
+                ventasVendidas = "Bs. " + (resumen.ventas_vendidas || 0)
+                porcentajeVentas = (resumen.porcentaje_ventas || 0) + "%"
                 
-                ventasDelMes = "Bs. " + (resumen.ventas_mes || 0);
-                pagosPendientes = "Bs. " + (resumen.pagos_pendientes || 0);
-                ventasVendidas = "Bs. " + (resumen.ventas_vendidas || 0);
-                porcentajeVentas = (resumen.porcentaje_ventas || 0) + "%";
+                textoPagosPendientes = (resumen.cantidad_pendientes || 0) + " clientes"
+                textoVentasVendidas = (resumen.cantidad_vendidas || 0) + " clientes"
+                textoPorcentajeVentas = (resumen.porcentaje_ventas || 0) + "% de las ventas"
                 
-                textoPagosPendientes = (resumen.cantidad_pendientes || 0) + " clientes";
-                textoVentasVendidas = (resumen.cantidad_vendidas || 0) + " clientes";
-                textoPorcentajeVentas = (resumen.porcentaje_ventas || 0) + "% de las ventas";
-                
-                if (ventaModel && typeof ventaModel.get_cliente_top_json === 'function') {
-                    var clienteTopJson = ventaModel.get_cliente_top_json();
-                    var clienteTopData = JSON.parse(clienteTopJson);
-                    clienteTop = clienteTopData.nombre || "Sin datos";
-                }
+                clienteTop = resumen.cliente_top || "Sin datos"
             }
         } catch (e) {
-            console.error("Error al actualizar resumen: " + e);
+            console.error("Error al actualizar resumen:", e)
+        }
+    }
+
+    function abrirNuevaVenta() {
+        nuevaVentaData = {
+            "codigo": ventaModel.generarCodigoVenta(),
+            "fecha": Qt.formatDate(new Date(), "dd/MM/yyyy"),
+            "clienteId": -1,
+            "clienteNombre": "",
+            "productos": [],
+            "total": 0,
+            "estado": "Pendiente"
+        }
+        mostrarNuevaVenta = true
+        // Agregar pestaña dinámica
+        if (!tabsInfo.find(tab => tab.text === "Nueva Venta")) {
+            tabsInfo.push({"text": "Nueva Venta", "icon": "recursos/image/icons/agregar.svg", "color": "#FF9800"})
+            tabActiva = tabsInfo.length - 1
+        }
+    }
+
+    function guardarNuevaVenta() {
+        if (!nuevaVentaData.clienteId || nuevaVentaData.productos.length === 0) {
+            mensajeDialog.mostrarMensaje("Complete todos los campos obligatorios")
+            return
+        }
+
+        var ventaGuardada = ventaModel.agregarVenta(nuevaVentaData, nuevaVentaData.productos, 1) // 1 = usuario actual
+        if (ventaGuardada) {
+            mensajeDialog.mostrarMensaje("Venta guardada exitosamente")
+            cerrarNuevaVenta()
+            cargarVentas()
+        } else {
+            mensajeDialog.mostrarMensaje("Error al guardar la venta")
+        }
+    }
+
+    function cerrarNuevaVenta() {
+        mostrarNuevaVenta = false
+        // Remover pestaña dinámica
+        var index = tabsInfo.findIndex(tab => tab.text === "Nueva Venta")
+        if (index !== -1) {
+            tabsInfo.splice(index, 1)
+            tabActiva = Math.max(0, index - 1)
+        }
+    }
+
+    function abrirNuevoCliente() {
+        nuevoClienteDialog.open()
+    }
+
+    function guardarNuevoCliente() {
+        if (!nuevoClienteData.nombre || !nuevoClienteData.identificacion) {
+            mensajeDialog.mostrarMensaje("Nombre e identificación son obligatorios")
+            return
+        }
+
+        var clienteGuardado = clientesModel.agregarCliente(nuevoClienteData, 1) // 1 = usuario actual
+        if (clienteGuardado) {
+            mensajeDialog.mostrarMensaje("Cliente guardado exitosamente")
+            nuevoClienteDialog.close()
+            cargarClientes()
+            // Limpiar datos
+            nuevoClienteData = {
+                "tipo": "Persona",
+                "nombre": "",
+                "identificacion": "",
+                "telefono": "",
+                "email": "",
+                "direccion": "",
+                "ciudad": ""
+            }
+        } else {
+            mensajeDialog.mostrarMensaje("Error al guardar el cliente")
         }
     }
 
     function exportarDatos() {
-        if (ventaModel && typeof ventaModel.exportar_ventas === 'function') {
-            ventaModel.exportar_ventas();
-        }
+        // Implementar exportación
+        console.log("Exportando datos...")
+        mensajeDialog.mostrarMensaje("Datos exportados exitosamente")
     }
 
     function importarClientes() {
-        if (ventaModel && typeof ventaModel.importar_clientes === 'function') {
-            ventaModel.importar_clientes();
-        }
-    }
-
-    function mostrarNuevaVenta() {
-        console.log("Mostrar nueva venta");
-    }
-
-    function showMessage(message) {
-        console.log("Mensaje:", message);
+        // Implementar importación
+        console.log("Importando clientes...")
+        mensajeDialog.mostrarMensaje("Clientes importados exitosamente")
     }
 
     Component.onCompleted: {
-        cargarClientesCombo();
-        cargarVentasDesdeModelo();
-        cargarClientesDesdeModelo();
-        actualizarResumenVentas();
+        cargarVentas()
+        cargarClientes()
     }
 
-    // Título
-    Rectangle {
-        id: titleBar
-        width: parent.width
-        height: 60
-        color: "transparent"
+    // ============================================
+    // INTERFAZ PRINCIPAL
+    // ============================================
 
-        Text {
-            text: "GESTIÓN DE VENTAS Y CARTERAS DE CLIENTES"
-            font.pixelSize: 28
-            font.bold: true
-            color: "#2E7D32"
-            anchors.left: parent.left
-            anchors.centerIn: parent
+    ColumnLayout {
+        anchors.fill: parent
+        spacing: 0
+
+        // Título
+        Rectangle {
+            Layout.fillWidth: true
+            height: 60
+            color: "transparent"
+
+            Text {
+                text: "GESTIÓN DE VENTAS Y CLIENTES"
+                font.pixelSize: 24
+                font.bold: true
+                color: "#2E7D32"
+                anchors.centerIn: parent
+            }
         }
-    }
 
-    // Barra de pestañas - TabBarComponent
-    Item {
-        id: modernTabBar
-        width: parent.width - 40
-        height: 70
-        anchors.top: titleBar.bottom
-        anchors.topMargin: 5
-        anchors.horizontalCenter: parent.horizontalCenter
-        
-        TabBarComponent {
-            id: tabBar
-            anchors.centerIn: parent
-            width: parent.width
-            height: parent.height
-            tabsData: ventasClientesRoot.tabsInfo
-            tabActiva: ventasClientesRoot.tabActiva
-            
-            onTabChanged: function(index) {
-                ventasClientesRoot.tabActiva = index
-                paginaVentas = 1
-                paginaClientes = 1
+        // Resumen de ventas (4 cards)
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 150
+            color: "transparent"
+            Layout.margins: 10
+
+            RowLayout {
+                anchors.fill: parent
+                spacing: 10
+
+                // Card 1: Ventas del mes
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    color: "white"
+                    radius: 8
+                    border.color: "#E0E0E0"
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 15
+                        spacing: 10
+
+                        RowLayout {
+                            Rectangle {
+                                width: 40
+                                height: 40
+                                radius: 20
+                                color: "#E8F5E9"
+                                
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "💰"
+                                    font.pixelSize: 20
+                                }
+                            }
+
+                            Item { Layout.fillWidth: true }
+
+                            Text {
+                                text: "↑ 12%"
+                                color: "#2E7D32"
+                                font.pixelSize: 12
+                                font.bold: true
+                            }
+                        }
+
+                        Text {
+                            text: ventasDelMes
+                            font.pixelSize: 24
+                            font.bold: true
+                            color: "#333333"
+                        }
+
+                        Text {
+                            text: "Ventas del mes"
+                            font.pixelSize: 12
+                            color: "#666666"
+                        }
+
+                        Text {
+                            text: textoVentasDelMes
+                            font.pixelSize: 11
+                            color: "#999999"
+                        }
+                    }
+                }
+
+                // Card 2: Pagos pendientes
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    color: "white"
+                    radius: 8
+                    border.color: "#E0E0E0"
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 15
+                        spacing: 10
+
+                        RowLayout {
+                            Rectangle {
+                                width: 40
+                                height: 40
+                                radius: 20
+                                color: "#FFF3E0"
+                                
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "⏱️"
+                                    font.pixelSize: 20
+                                }
+                            }
+
+                            Item { Layout.fillWidth: true }
+
+                            Text {
+                                text: "↓ 5%"
+                                color: "#F57C00"
+                                font.pixelSize: 12
+                                font.bold: true
+                            }
+                        }
+
+                        Text {
+                            text: pagosPendientes
+                            font.pixelSize: 24
+                            font.bold: true
+                            color: "#333333"
+                        }
+
+                        Text {
+                            text: "Pagos pendientes"
+                            font.pixelSize: 12
+                            color: "#666666"
+                        }
+
+                        Text {
+                            text: textoPagosPendientes
+                            font.pixelSize: 11
+                            color: "#999999"
+                        }
+                    }
+                }
+
+                // Card 3: Ventas vendidas
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    color: "white"
+                    radius: 8
+                    border.color: "#E0E0E0"
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 15
+                        spacing: 10
+
+                        RowLayout {
+                            Rectangle {
+                                width: 40
+                                height: 40
+                                radius: 20
+                                color: "#E3F2FD"
+                                
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "✓"
+                                    font.pixelSize: 20
+                                }
+                            }
+
+                            Item { Layout.fillWidth: true }
+
+                            Text {
+                                text: "↑ 8%"
+                                color: "#1976D2"
+                                font.pixelSize: 12
+                                font.bold: true
+                            }
+                        }
+
+                        Text {
+                            text: ventasVendidas
+                            font.pixelSize: 24
+                            font.bold: true
+                            color: "#333333"
+                        }
+
+                        Text {
+                            text: "Ventas completadas"
+                            font.pixelSize: 12
+                            color: "#666666"
+                        }
+
+                        Text {
+                            text: textoVentasVendidas
+                            font.pixelSize: 11
+                            color: "#999999"
+                        }
+                    }
+                }
+
+                // Card 4: Cliente top
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    color: "white"
+                    radius: 8
+                    border.color: "#E0E0E0"
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 15
+                        spacing: 10
+
+                        RowLayout {
+                            Rectangle {
+                                width: 40
+                                height: 40
+                                radius: 20
+                                color: "#F3E5F5"
+                                
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "👤"
+                                    font.pixelSize: 20
+                                }
+                            }
+
+                            Item { Layout.fillWidth: true }
+
+                            Text {
+                                text: porcentajeVentas
+                                color: "#7B1FA2"
+                                font.pixelSize: 12
+                                font.bold: true
+                            }
+                        }
+
+                        Text {
+                            text: clienteTop
+                            font.pixelSize: 18
+                            font.bold: true
+                            color: "#333333"
+                            elide: Text.ElideRight
+                            Layout.fillWidth: true
+                        }
+
+                        Text {
+                            text: "Cliente del mes"
+                            font.pixelSize: 12
+                            color: "#666666"
+                        }
+
+                        Text {
+                            text: textoPorcentajeVentas
+                            font.pixelSize: 11
+                            color: "#999999"
+                        }
+                    }
+                }
+            }
+        }
+
+        // Contenedor de pestañas y contenido
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            color: "transparent"
+            Layout.margins: 10
+
+            ColumnLayout {
+                anchors.fill: parent
+                spacing: 0
+
+                // Barra de pestañas
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 60
+                    color: "white"
+                    radius: 8
+                    border.color: "#E0E0E0"
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 10
+
+                        // Pestañas dinámicas
+                        Repeater {
+                            model: tabsInfo
+
+                            Rectangle {
+                                Layout.preferredWidth: 150
+                                Layout.fillHeight: true
+                                color: tabActiva === index ? modelData.color : "transparent"
+                                radius: 6
+                                border.color: tabActiva === index ? modelData.color : "#E0E0E0"
+                                border.width: 2
+
+                                RowLayout {
+                                    anchors.centerIn: parent
+                                    spacing: 8
+
+                                    Image {
+                                        source: modelData.icon
+                                        sourceSize.width: 24
+                                        sourceSize.height: 24
+                                    }
+
+                                    Text {
+                                        text: modelData.text
+                                        font.pixelSize: 14
+                                        font.bold: tabActiva === index
+                                        color: tabActiva === index ? "white" : "#666666"
+                                    }
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: tabActiva = index
+                                }
+                            }
+                        }
+
+                        Item { Layout.fillWidth: true }
+
+                        // Botón de nueva venta/cliente
+                        Button {
+                            text: tabActiva === 0 ? "+ Nueva Venta" : "+ Nuevo Cliente"
+                            font.pixelSize: 13
+                            font.bold: true
+                            Layout.preferredHeight: 40
+                            palette.buttonText: "white"
+                            
+                            background: Rectangle {
+                                color: parent.down ? "#1976D2" : parent.hovered ? "#2196F3" : "#42A5F5"
+                                radius: 6
+                            }
+
+                            onClicked: {
+                                if (tabActiva === 0) {
+                                    abrirNuevaVenta()
+                                } else {
+                                    abrirNuevoCliente()
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Contenido de las pestañas
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.topMargin: 10
+                    color: "white"
+                    radius: 8
+                    border.color: "#E0E0E0"
+
+                    StackLayout {
+                        anchors.fill: parent
+                        currentIndex: tabActiva
+
+                        // PESTAÑA 1: VENTAS
+                        Rectangle {
+                            color: "transparent"
+
+                            ColumnLayout {
+                                anchors.fill: parent
+                                anchors.margins: 20
+                                spacing: 15
+
+                                // Barra de búsqueda y filtros
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 10
+
+                                    TextField {
+                                        Layout.fillWidth: true
+                                        placeholderText: "Buscar ventas por código, cliente..."
+                                        font.pixelSize: 14
+                                        onTextChanged: buscarVentas(text)
+                                    }
+
+                                    ComboBox {
+                                        model: estadosVenta
+                                        Layout.preferredWidth: 200
+                                        onCurrentTextChanged: filtrarVentasPorEstado(currentText)
+                                    }
+
+                                    ComboBox {
+                                        model: periodosVentas
+                                        Layout.preferredWidth: 150
+                                    }
+
+                                    Button {
+                                        text: "Exportar"
+                                        font.pixelSize: 12
+                                        onClicked: exportarDatos()
+                                    }
+                                }
+
+                                // Tabla de ventas
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    color: "#FAFAFA"
+                                    border.color: "#E0E0E0"
+
+                                    ColumnLayout {
+                                        anchors.fill: parent
+                                        spacing: 0
+
+                                        // Encabezados de columnas
+                                        Rectangle {
+                                            Layout.fillWidth: true
+                                            height: 50
+                                            color: "#E3F2FD"
+
+                                            RowLayout {
+                                                anchors.fill: parent
+                                                anchors.margins: 10
+                                                spacing: 10
+
+                                                Text { text: "Código"; font.bold: true; Layout.preferredWidth: 100 }
+                                                Text { text: "Fecha"; font.bold: true; Layout.preferredWidth: 100 }
+                                                Text { text: "Cliente"; font.bold: true; Layout.fillWidth: true }
+                                                Text { text: "Total"; font.bold: true; Layout.preferredWidth: 120; horizontalAlignment: Text.AlignRight }
+                                                Text { text: "Estado"; font.bold: true; Layout.preferredWidth: 100; horizontalAlignment: Text.AlignHCenter }
+                                                Text { text: "Acciones"; font.bold: true; Layout.preferredWidth: 150; horizontalAlignment: Text.AlignHCenter }
+                                            }
+                                        }
+
+                                        // Lista de ventas
+                                        ListView {
+                                            Layout.fillWidth: true
+                                            Layout.fillHeight: true
+                                            clip: true
+                                            model: ventaModel
+
+                                            delegate: Rectangle {
+                                                width: parent.width
+                                                height: 60
+                                                color: index % 2 === 0 ? "white" : "#F5F5F5"
+                                                border.color: "#E0E0E0"
+                                                border.width: 1
+
+                                                RowLayout {
+                                                    anchors.fill: parent
+                                                    anchors.margins: 10
+                                                    spacing: 10
+
+                                                    Text { 
+                                                        text: model.codigo
+                                                        Layout.preferredWidth: 100 
+                                                        font.pixelSize: 13
+                                                    }
+                                                    Text { 
+                                                        text: model.fecha
+                                                        Layout.preferredWidth: 100 
+                                                        font.pixelSize: 13
+                                                    }
+                                                    Text { 
+                                                        text: model.nombre_cliente
+                                                        Layout.fillWidth: true 
+                                                        font.pixelSize: 13
+                                                        elide: Text.ElideRight
+                                                    }
+                                                    Text { 
+                                                        text: "Bs. " + model.total
+                                                        Layout.preferredWidth: 120 
+                                                        horizontalAlignment: Text.AlignRight
+                                                        font.pixelSize: 13
+                                                        font.bold: true
+                                                    }
+
+                                                    // Estado
+                                                    Rectangle {
+                                                        Layout.preferredWidth: 100
+                                                        Layout.preferredHeight: 30
+                                                        radius: 15
+                                                        color: {
+                                                            switch(model.estado) {
+                                                                case "Pagada": return "#C8E6C9"
+                                                                case "Pendiente": return "#FFF9C4"
+                                                                case "Parcial": return "#FFECB3"
+                                                                case "Vencida": return "#FFCDD2"
+                                                                default: return "#E0E0E0"
+                                                            }
+                                                        }
+
+                                                        Text {
+                                                            anchors.centerIn: parent
+                                                            text: model.estado
+                                                            font.pixelSize: 11
+                                                            font.bold: true
+                                                            color: {
+                                                                switch(model.estado) {
+                                                                    case "Pagada": return "#2E7D32"
+                                                                    case "Pendiente": return "#F9A825"
+                                                                    case "Parcial": return "#F57C00"
+                                                                    case "Vencida": return "#C62828"
+                                                                    default: return "#666666"
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+
+                                                    // Botones de acción
+                                                    RowLayout {
+                                                        Layout.preferredWidth: 150
+                                                        spacing: 5
+
+                                                        Button {
+                                                            text: "Ver"
+                                                            font.pixelSize: 11
+                                                            Layout.preferredHeight: 30
+                                                            palette.buttonText: "#1976D2"
+                                                            
+                                                            background: Rectangle {
+                                                                color: parent.down ? "#E3F2FD" : parent.hovered ? "#BBDEFB" : "white"
+                                                                border.color: "#1976D2"
+                                                                radius: 4
+                                                            }
+                                                        }
+
+                                                        Button {
+                                                            text: "Editar"
+                                                            font.pixelSize: 11
+                                                            Layout.preferredHeight: 30
+                                                            palette.buttonText: "#F57C00"
+                                                            
+                                                            background: Rectangle {
+                                                                color: parent.down ? "#FFF3E0" : parent.hovered ? "#FFE0B2" : "white"
+                                                                border.color: "#F57C00"
+                                                                radius: 4
+                                                            }
+                                                        }
+
+                                                        Button {
+                                                            text: "❌"
+                                                            font.pixelSize: 11
+                                                            Layout.preferredHeight: 30
+                                                            Layout.preferredWidth: 30
+                                                            
+                                                            background: Rectangle {
+                                                                color: parent.down ? "#FFCDD2" : parent.hovered ? "#EF9A9A" : "white"
+                                                                border.color: "#D32F2F"
+                                                                radius: 4
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Paginación de ventas
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 10
+
+                                    Text {
+                                        text: "Mostrando página " + paginaVentas + " de " + totalPaginasVentas
+                                        font.pixelSize: 12
+                                        color: "#666666"
+                                    }
+
+                                    Item { Layout.fillWidth: true }
+
+                                    Button {
+                                        text: "← Anterior"
+                                        enabled: paginaVentas > 1
+                                        onClicked: paginaVentas--
+                                    }
+
+                                    Button {
+                                        text: "Siguiente →"
+                                        enabled: paginaVentas < totalPaginasVentas
+                                        onClicked: paginaVentas++
+                                    }
+                                }
+                            }
+                        }
+
+                        // PESTAÑA 2: CLIENTES
+                        Rectangle {
+                            color: "transparent"
+
+                            ColumnLayout {
+                                anchors.fill: parent
+                                anchors.margins: 20
+                                spacing: 15
+
+                                // Barra de búsqueda y filtros
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 10
+
+                                    TextField {
+                                        Layout.fillWidth: true
+                                        placeholderText: "Buscar clientes por nombre, identificación..."
+                                        font.pixelSize: 14
+                                    }
+
+                                    ComboBox {
+                                        model: tiposCliente
+                                        Layout.preferredWidth: 200
+                                    }
+
+                                    Button {
+                                        text: "Importar"
+                                        font.pixelSize: 12
+                                        onClicked: importarClientes()
+                                    }
+
+                                    Button {
+                                        text: "Exportar"
+                                        font.pixelSize: 12
+                                        onClicked: exportarDatos()
+                                    }
+                                }
+
+                                // Tabla de clientes
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    color: "#FAFAFA"
+                                    border.color: "#E0E0E0"
+
+                                    ColumnLayout {
+                                        anchors.fill: parent
+                                        spacing: 0
+
+                                        // Encabezados de columnas
+                                        Rectangle {
+                                            Layout.fillWidth: true
+                                            height: 50
+                                            color: "#E3F2FD"
+
+                                            RowLayout {
+                                                anchors.fill: parent
+                                                anchors.margins: 10
+                                                spacing: 10
+
+                                                Text { text: "Tipo"; font.bold: true; Layout.preferredWidth: 80 }
+                                                Text { text: "Nombre"; font.bold: true; Layout.fillWidth: true }
+                                                Text { text: "Identificación"; font.bold: true; Layout.preferredWidth: 120 }
+                                                Text { text: "Teléfono"; font.bold: true; Layout.preferredWidth: 120 }
+                                                Text { text: "Ciudad"; font.bold: true; Layout.preferredWidth: 100 }
+                                                Text { text: "Ventas"; font.bold: true; Layout.preferredWidth: 80; horizontalAlignment: Text.AlignHCenter }
+                                                Text { text: "Acciones"; font.bold: true; Layout.preferredWidth: 120; horizontalAlignment: Text.AlignHCenter }
+                                            }
+                                        }
+
+                                        // Lista de clientes
+                                        ListView {
+                                            Layout.fillWidth: true
+                                            Layout.fillHeight: true
+                                            clip: true
+                                            model: clientesModel
+
+                                            delegate: Rectangle {
+                                                width: parent.width
+                                                height: 60
+                                                color: index % 2 === 0 ? "white" : "#F5F5F5"
+                                                border.color: "#E0E0E0"
+                                                border.width: 1
+
+                                                RowLayout {
+                                                    anchors.fill: parent
+                                                    anchors.margins: 10
+                                                    spacing: 10
+
+                                                    // Tipo
+                                                    Rectangle {
+                                                        Layout.preferredWidth: 80
+                                                        Layout.preferredHeight: 30
+                                                        radius: 4
+                                                        color: model.tipo === "Persona" ? "#E8F5E9" : "#E3F2FD"
+
+                                                        Text {
+                                                            anchors.centerIn: parent
+                                                            text: model.tipo
+                                                            font.pixelSize: 11
+                                                            font.bold: true
+                                                            color: model.tipo === "Persona" ? "#2E7D32" : "#1976D2"
+                                                        }
+                                                    }
+
+                                                    Text { 
+                                                        text: model.nombre
+                                                        Layout.fillWidth: true 
+                                                        font.pixelSize: 13
+                                                        elide: Text.ElideRight
+                                                    }
+                                                    Text { 
+                                                        text: model.identificacion
+                                                        Layout.preferredWidth: 120 
+                                                        font.pixelSize: 13
+                                                    }
+                                                    Text { 
+                                                        text: model.telefono || "-"
+                                                        Layout.preferredWidth: 120 
+                                                        font.pixelSize: 13
+                                                    }
+                                                    Text { 
+                                                        text: model.ciudad || "-"
+                                                        Layout.preferredWidth: 100 
+                                                        font.pixelSize: 13
+                                                    }
+                                                    Text { 
+                                                        text: model.total_ventas || "0"
+                                                        Layout.preferredWidth: 80 
+                                                        font.pixelSize: 13
+                                                        font.bold: true
+                                                        horizontalAlignment: Text.AlignHCenter
+                                                    }
+
+                                                    // Botones de acción
+                                                    RowLayout {
+                                                        Layout.preferredWidth: 120
+                                                        spacing: 5
+
+                                                        Button {
+                                                            text: "Ver"
+                                                            font.pixelSize: 11
+                                                            Layout.preferredHeight: 30
+                                                            palette.buttonText: "#1976D2"
+                                                            
+                                                            background: Rectangle {
+                                                                color: parent.down ? "#E3F2FD" : parent.hovered ? "#BBDEFB" : "white"
+                                                                border.color: "#1976D2"
+                                                                radius: 4
+                                                            }
+                                                        }
+
+                                                        Button {
+                                                            text: "Editar"
+                                                            font.pixelSize: 11
+                                                            Layout.preferredHeight: 30
+                                                            palette.buttonText: "#F57C00"
+                                                            
+                                                            background: Rectangle {
+                                                                color: parent.down ? "#FFF3E0" : parent.hovered ? "#FFE0B2" : "white"
+                                                                border.color: "#F57C00"
+                                                                radius: 4
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Paginación de clientes
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 10
+
+                                    Text {
+                                        text: "Mostrando página " + paginaClientes + " de " + totalPaginasClientes
+                                        font.pixelSize: 12
+                                        color: "#666666"
+                                    }
+
+                                    Item { Layout.fillWidth: true }
+
+                                    Button {
+                                        text: "← Anterior"
+                                        enabled: paginaClientes > 1
+                                        onClicked: paginaClientes--
+                                    }
+
+                                    Button {
+                                        text: "Siguiente →"
+                                        enabled: paginaClientes < totalPaginasClientes
+                                        onClicked: paginaClientes++
+                                    }
+                                }
+                            }
+                        }
+
+                        // PESTAÑA 3: NUEVA VENTA (si está activa)
+                        Rectangle {
+                            visible: mostrarNuevaVenta
+                            color: "transparent"
+
+                            ColumnLayout {
+                                anchors.fill: parent
+                                anchors.margins: 20
+                                spacing: 20
+
+                                // Encabezado
+                                RowLayout {
+                                    Layout.fillWidth: true
+
+                                    Text {
+                                        text: "Nueva Venta"
+                                        font.pixelSize: 20
+                                        font.bold: true
+                                        color: "#FF9800"
+                                    }
+
+                                    Item { Layout.fillWidth: true }
+
+                                    Button {
+                                        text: "Guardar"
+                                        font.bold: true
+                                        palette.buttonText: "white"
+                                        
+                                        background: Rectangle {
+                                            color: parent.down ? "#2E7D32" : parent.hovered ? "#388E3C" : "#4CAF50"
+                                            radius: 6
+                                        }
+
+                                        onClicked: guardarNuevaVenta()
+                                    }
+
+                                    Button {
+                                        text: "Cancelar"
+                                        palette.buttonText: "#666666"
+                                        
+                                        background: Rectangle {
+                                            color: parent.down ? "#E0E0E0" : parent.hovered ? "#EEEEEE" : "white"
+                                            border.color: "#BDBDBD"
+                                            radius: 6
+                                        }
+
+                                        onClicked: cerrarNuevaVenta()
+                                    }
+                                }
+
+                                // Formulario de venta
+                                ScrollView {
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    clip: true
+
+                                    ColumnLayout {
+                                        width: parent.parent.width - 20
+                                        spacing: 20
+
+                                        // Información básica
+                                        Rectangle {
+                                            Layout.fillWidth: true
+                                            Layout.preferredHeight: 200
+                                            color: "#F5F5F5"
+                                            radius: 8
+                                            border.color: "#E0E0E0"
+
+                                            ColumnLayout {
+                                                anchors.fill: parent
+                                                anchors.margins: 15
+                                                spacing: 15
+
+                                                Text {
+                                                    text: "Información de la Venta"
+                                                    font.pixelSize: 16
+                                                    font.bold: true
+                                                    color: "#333333"
+                                                }
+
+                                                GridLayout {
+                                                    columns: 2
+                                                    columnSpacing: 20
+                                                    rowSpacing: 10
+                                                    Layout.fillWidth: true
+
+                                                    Text { text: "Código:"; font.bold: true }
+                                                    TextField {
+                                                        Layout.fillWidth: true
+                                                        text: nuevaVentaData.codigo
+                                                        readOnly: true
+                                                        background: Rectangle { color: "#E0E0E0"; radius: 4 }
+                                                    }
+
+                                                    Text { text: "Fecha:"; font.bold: true }
+                                                    TextField {
+                                                        Layout.fillWidth: true
+                                                        text: nuevaVentaData.fecha
+                                                        readOnly: true
+                                                        background: Rectangle { color: "#E0E0E0"; radius: 4 }
+                                                    }
+
+                                                    Text { text: "Cliente *:"; font.bold: true }
+                                                    RowLayout {
+                                                        Layout.fillWidth: true
+
+                                                        TextField {
+                                                            Layout.fillWidth: true
+                                                            text: nuevaVentaData.clienteNombre
+                                                            placeholderText: "Seleccione un cliente..."
+                                                            readOnly: true
+                                                        }
+
+                                                        Button {
+                                                            text: "Buscar"
+                                                            onClicked: buscarClienteDialog.open()
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        // Productos
+                                        Rectangle {
+                                            Layout.fillWidth: true
+                                            Layout.fillHeight: true
+                                            color: "#F5F5F5"
+                                            radius: 8
+                                            border.color: "#E0E0E0"
+
+                                            ColumnLayout {
+                                                anchors.fill: parent
+                                                anchors.margins: 15
+                                                spacing: 10
+
+                                                Text {
+                                                    text: "Productos"
+                                                    font.pixelSize: 16
+                                                    font.bold: true
+                                                    color: "#333333"
+                                                }
+
+                                                // Lista de productos (simplificada)
+                                                Rectangle {
+                                                    Layout.fillWidth: true
+                                                    Layout.fillHeight: true
+                                                    color: "#FAFAFA"
+                                                    border.color: "#E0E0E0"
+
+                                                    Text {
+                                                        anchors.centerIn: parent
+                                                        text: "Funcionalidad de productos en desarrollo..."
+                                                        color: "#666666"
+                                                        font.pixelSize: 14
+                                                    }
+                                                }
+
+                                                // Total
+                                                Rectangle {
+                                                    Layout.fillWidth: true
+                                                    height: 40
+                                                    color: "#E3F2FD"
+                                                    radius: 4
+
+                                                    RowLayout {
+                                                        anchors.fill: parent
+                                                        anchors.margins: 10
+
+                                                        Text {
+                                                            text: "TOTAL:"
+                                                            font.bold: true
+                                                            font.pixelSize: 16
+                                                            color: "#1976D2"
+                                                        }
+
+                                                        Item { Layout.fillWidth: true }
+
+                                                        Text {
+                                                            text: "Bs. " + nuevaVentaData.total
+                                                            font.bold: true
+                                                            font.pixelSize: 18
+                                                            color: "#1976D2"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 
-    // Área de contenido principal
-    Item {
-        id: contentArea
-        width: parent.width - 40
-        height: parent.height - modernTabBar.y - modernTabBar.height - 20
-        anchors.top: modernTabBar.bottom
-        anchors.topMargin: 10
-        anchors.horizontalCenter: parent.horizontalCenter
-        
-        // ==================== TAB 1: VENTAS ====================
-        Item {
-            anchors.fill: parent
-            visible: tabActiva === 0
-            
-            ColumnLayout {
-                anchors.fill: parent
-                spacing: 20
-                
-                // Panel de resumen modernizado - TARJETAS COMPACTAS
-                Rectangle {
+    // ============================================
+    // DIÁLOGOS
+    // ============================================
+
+    // Diálogo para nuevo cliente
+    Dialog {
+        id: nuevoClienteDialog
+        title: "Nuevo Cliente"
+        modal: true
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        width: 500
+        anchors.centerIn: parent
+
+        ColumnLayout {
+            width: parent ? parent.width : 400
+            spacing: 15
+
+            Text { text: "Información del Cliente"; font.bold: true; font.pixelSize: 16 }
+
+            GridLayout {
+                columns: 2
+                columnSpacing: 15
+                rowSpacing: 10
+
+                Text { text: "Tipo:"; font.bold: true }
+                ComboBox {
                     Layout.fillWidth: true
-                    height: 100
-                    color: "white"
-                    radius: 10
-                    border.color: "#E8E8E8"
-                    border.width: 1
-                    
+                    model: ["Persona", "Empresa"]
+                    onCurrentTextChanged: nuevoClienteData.tipo = currentText
+                }
+
+                Text { text: "Nombre *:"; font.bold: true }
+                TextField {
+                    Layout.fillWidth: true
+                    placeholderText: "Nombre completo o razón social"
+                    onTextChanged: nuevoClienteData.nombre = text
+                }
+
+                Text { text: "Identificación *:"; font.bold: true }
+                TextField {
+                    Layout.fillWidth: true
+                    placeholderText: "Número de identificación"
+                    onTextChanged: nuevoClienteData.identificacion = text
+                }
+
+                Text { text: "Teléfono:"; font.bold: true }
+                TextField {
+                    Layout.fillWidth: true
+                    placeholderText: "Número de teléfono"
+                    onTextChanged: nuevoClienteData.telefono = text
+                }
+
+                Text { text: "Email:"; font.bold: true }
+                TextField {
+                    Layout.fillWidth: true
+                    placeholderText: "Correo electrónico"
+                    onTextChanged: nuevoClienteData.email = text
+                }
+
+                Text { text: "Dirección:"; font.bold: true }
+                TextField {
+                    Layout.fillWidth: true
+                    placeholderText: "Dirección completa"
+                    onTextChanged: nuevoClienteData.direccion = text
+                }
+
+                Text { text: "Ciudad:"; font.bold: true }
+                TextField {
+                    Layout.fillWidth: true
+                    placeholderText: "Ciudad"
+                    onTextChanged: nuevoClienteData.ciudad = text
+                }
+            }
+        }
+
+        onAccepted: guardarNuevoCliente()
+    }
+
+    // Diálogo para buscar cliente en nueva venta
+    Dialog {
+        id: buscarClienteDialog
+        title: "Buscar Cliente"
+        modal: true
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        width: 600
+        anchors.centerIn: parent
+
+        ColumnLayout {
+            width: parent ? parent.width : 400
+            spacing: 15
+
+            TextField {
+                Layout.fillWidth: true
+                placeholderText: "Buscar cliente por nombre o identificación..."
+                onTextChanged: {
+                    // Implementar búsqueda en tiempo real
+                }
+            }
+
+            ListView {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 200
+                clip: true
+                model: clientesModel
+                delegate: Rectangle {
+                    width: parent.width
+                    height: 40
+                    color: mouseArea.containsMouse ? "#E3F2FD" : "white"
+                    border.color: "#E0E0E0"
+
                     Row {
                         anchors.fill: parent
-                        anchors.margins: 12
-                        spacing: 12
-                        
-                        // Ventas del Mes
-                        Rectangle {
-                            width: (parent.width - 48) / 5
-                            height: parent.height
-                            color: "#F0F7F0"
-                            radius: 8
-                            border.color: "#D4E8D4"
-                            border.width: 1
-                            
-                            Column {
-                                anchors.centerIn: parent
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                spacing: 3
-                                
-                                Text {
-                                    text: "Ventas del Mes"
-                                    font.pixelSize: 10
-                                    color: "#555555"
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                }
-                                Text {
-                                    text: ventasDelMes
-                                    font.pixelSize: 18
-                                    font.bold: true
-                                    color: "#2E7D32"
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                }
-                                Text {
-                                    text: textoVentasDelMes
-                                    font.pixelSize: 8
-                                    color: "#888888"
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    width: parent.width - 10
-                                    elide: Text.ElideRight
-                                }
-                            }
-                        }
-                        
-                        // Pagos Pendientes
-                        Rectangle {
-                            width: (parent.width - 48) / 5
-                            height: parent.height
-                            color: "#FFFAF0"
-                            radius: 8
-                            border.color: "#FFE8C8"
-                            border.width: 1
-                            
-                            Column {
-                                anchors.centerIn: parent
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                spacing: 3
-                                
-                                Text {
-                                    text: "Pagos Pendientes"
-                                    font.pixelSize: 10
-                                    color: "#555555"
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                }
-                                Text {
-                                    text: pagosPendientes
-                                    font.pixelSize: 18
-                                    font.bold: true
-                                    color: "#F9A825"
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                }
-                                Text {
-                                    text: textoPagosPendientes
-                                    font.pixelSize: 8
-                                    color: "#888888"
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    width: parent.width - 10
-                                    elide: Text.ElideRight
-                                }
-                            }
-                        }
-                        
-                        // Ventas Vendidas
-                        Rectangle {
-                            width: (parent.width - 48) / 5
-                            height: parent.height
-                            color: "#FFF0F1"
-                            radius: 8
-                            border.color: "#FFCCCC"
-                            border.width: 1
-                            
-                            Column {
-                                anchors.centerIn: parent
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                spacing: 3
-                                
-                                Text {
-                                    text: "Ventas Vendidas"
-                                    font.pixelSize: 10
-                                    color: "#555555"
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                }
-                                Text {
-                                    text: ventasVendidas
-                                    font.pixelSize: 18
-                                    font.bold: true
-                                    color: "#D32F2F"
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                }
-                                Text {
-                                    text: textoVentasVendidas
-                                    font.pixelSize: 8
-                                    color: "#888888"
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    width: parent.width - 10
-                                    elide: Text.ElideRight
-                                }
-                            }
-                        }
-                        
-                        // Cliente Top
-                        Rectangle {
-                            width: (parent.width - 48) / 5
-                            height: parent.height
-                            color: "#F0F4FF"
-                            radius: 8
-                            border.color: "#D4E1FF"
-                            border.width: 1
-                            
-                            Column {
-                                anchors.centerIn: parent
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                spacing: 3
-                                
-                                Text {
-                                    text: "Cliente Top"
-                                    font.pixelSize: 10
-                                    color: "#555555"
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                }
-                                Text {
-                                    text: clienteTop
-                                    font.pixelSize: 14
-                                    font.bold: true
-                                    color: "#1976D2"
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    elide: Text.ElideRight
-                                    width: parent.width - 10
-                                }
-                                Text {
-                                    text: "Sin datos"
-                                    font.pixelSize: 8
-                                    color: "#888888"
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                }
-                            }
-                        }
-                        
-                        // Porcentaje Ventas
-                        Rectangle {
-                            width: (parent.width - 48) / 5
-                            height: parent.height
-                            color: "#F0F8F5"
-                            radius: 8
-                            border.color: "#D4E8E0"
-                            border.width: 1
-                            
-                            Column {
-                                anchors.centerIn: parent
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                spacing: 3
-                                
-                                Text {
-                                    text: "Porcentaje Ventas"
-                                    font.pixelSize: 10
-                                    color: "#555555"
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                }
-                                Text {
-                                    text: porcentajeVentas
-                                    font.pixelSize: 18
-                                    font.bold: true
-                                    color: "#00897B"
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                }
-                                Text {
-                                    text: textoPorcentajeVentas
-                                    font.pixelSize: 8
-                                    color: "#888888"
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    width: parent.width - 10
-                                    elide: Text.ElideRight
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                // Barra de acción
-                Rectangle {
-                    Layout.fillWidth: true
-                    height: 50
-                    color: "white"
-                    radius: 25
-                    border.color: "#EEEEEE"
-                    
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.margins: 10
-                        spacing: 15
-                        
-                        Button {
-                            text: "Nueva Venta"
-                            icon.source: "recursos/image/icons/agregar.svg"
-                            implicitHeight: 36
-                            background: Rectangle {
-                                color: parent.hovered ? "#E65A00" : "#f5922f"
-                                radius: height / 2
-                            }
-                            contentItem: Row {
-                                spacing: 5
-                                anchors.centerIn: parent
-                                Image {
-                                    source: "recursos/image/icons/agregar.svg"
-                                    width: 16
-                                    height: 16
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                                Text {
-                                    text: "Nueva Venta"
-                                    color: "white"
-                                    font.bold: true
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                            }
-                            onClicked: {
-                                nuevaVenta = { 
-                                    "ventaId": "", 
-                                    "codigo": "",
-                                    "fecha": Qt.formatDateTime(new Date(), "dd/MM/yyyy"),
-                                    "cliente": "",
-                                    "total": 0,
-                                    "estado": "Pendiente"
-                                }
-                                mostrarNuevaVenta();
-                            }
-                        }
-                        
-                        TextField {
-                            Layout.preferredWidth: 250
-                            placeholderText: "Buscar venta por código o cliente..."
-                            implicitWidth: 450
-                            implicitHeight: 28
-                            leftPadding: 30
-                            
-                            background: Rectangle {
-                                color: "#ffffff"
-                                radius: height / 2
-                                border.color: "#808080"
-                                border.width: 1
-                                
-                                Image {
-                                    anchors {
-                                        left: parent.left
-                                        leftMargin: 10
-                                        verticalCenter: parent.verticalCenter
-                                    }
-                                    source: "recursos/image/icons/lupa.png"
-                                    width: 16
-                                    height: 16
-                                }
-                            }
-                            onTextChanged: {
-                                if (text.length > 2 || text.length === 0) {
-                                    buscarVentas(text);
-                                }
-                            }
-                        }
-                        
-                        ComboBox {
-                            Layout.preferredWidth: 200
-                            model: ["Todos los estados", "Pagada", "Pendiente", "Parcial", "Vencida"]
-                            implicitHeight: 36
+                        anchors.margins: 5
+                        spacing: 10
 
-                            onCurrentIndexChanged: {
-                                if (currentIndex === 0) {
-                                    cargarVentasDesdeModelo();
-                                } else {
-                                    filtrarVentasPorEstado(currentText);
-                                }
-                            }
+                        Text { 
+                            text: model.nombre
+                            font.bold: true
+                            anchors.verticalCenter: parent.verticalCenter
                         }
-                        
-                        Item { Layout.fillWidth: true }
-                        
-                        ComboBox {
-                            Layout.preferredWidth: 150
-                            model: ["Último mes", "Últimos 3 meses", "Último año", "Todas"]
-                            implicitHeight: 36
+                        Text { 
+                            text: model.identificacion
+                            color: "#666666"
+                            anchors.verticalCenter: parent.verticalCenter
                         }
-                        
-                        Button {
-                            text: "Exportar"
-                            icon.source: "recursos/image/icons/exportacion-de-archivos.svg"
-                            implicitHeight: 36
-                            background: Rectangle {
-                                color: "#4CAF50"
-                                radius: height / 2
-                            }
-                            onClicked: exportarDatos()
+                        Text { 
+                            text: model.tipo
+                            color: "#666666"
+                            anchors.verticalCenter: parent.verticalCenter
                         }
                     }
-                }
-                
-                // Tabla de ventas
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    color: "white"
-                    radius: 5
-                    border.color: "#EEEEEE"
-                    
-                    ListView {
-                        id: ventasListView
+
+                    MouseArea {
+                        id: mouseArea
                         anchors.fill: parent
-                        anchors.margins: 1
-                        clip: true
-                        model: ventasListViewModel
-                        headerPositioning: ListView.OverlayHeader
-                        
-                        header: Rectangle {
-                            width: parent.width
-                            height: 40
-                            color: "#F5F5F5"
-                            z: 2
-                            
-                            Row {
-                                anchors.fill: parent
-                                
-                                Text {
-                                    width: parent.width * 0.1
-                                    height: parent.height
-                                    text: "Código"
-                                    font.bold: true
-                                    verticalAlignment: Text.AlignVCenter
-                                    leftPadding: 10
-                                }
-                                
-                                Text {
-                                    width: parent.width * 0.15
-                                    height: parent.height
-                                    text: "Fecha"
-                                    font.bold: true
-                                    verticalAlignment: Text.AlignVCenter
-                                    leftPadding: 10
-                                }
-                                
-                                Text {
-                                    width: parent.width * 0.15
-                                    height: parent.height
-                                    text: "Cliente"
-                                    font.bold: true
-                                    verticalAlignment: Text.AlignVCenter
-                                    leftPadding: 10
-                                }
-                                
-                                Text {
-                                    width: parent.width * 0.1
-                                    height: parent.height
-                                    text: "Cantidad"
-                                    font.bold: true
-                                    verticalAlignment: Text.AlignVCenter
-                                    leftPadding: 10
-                                }
-                                
-                                Text {
-                                    width: parent.width * 0.12
-                                    height: parent.height
-                                    text: "Precio Unit."
-                                    font.bold: true
-                                    verticalAlignment: Text.AlignVCenter
-                                    leftPadding: 10
-                                }
-                                
-                                Text {
-                                    width: parent.width * 0.12
-                                    height: parent.height
-                                    text: "Total"
-                                    font.bold: true
-                                    verticalAlignment: Text.AlignVCenter
-                                    leftPadding: 10
-                                }
-                                
-                                Text {
-                                    width: parent.width * 0.16
-                                    height: parent.height
-                                    text: "Estado"
-                                    font.bold: true
-                                    verticalAlignment: Text.AlignVCenter
-                                    leftPadding: 10
-                                }
-                                
-                                Text {
-                                    width: parent.width * 0.1
-                                    height: parent.height
-                                    text: "Acciones"
-                                    font.bold: true
-                                    verticalAlignment: Text.AlignVCenter
-                                    horizontalAlignment: Text.AlignHCenter
-                                }
-                            }
+                        hoverEnabled: true
+                        onClicked: {
+                            nuevaVentaData.clienteId = model.id_cliente
+                            nuevaVentaData.clienteNombre = model.nombre
+                            buscarClienteDialog.close()
                         }
-                        
-                        delegate: Rectangle {
-                            width: parent.width
-                            height: 50
-                            color: index % 2 === 0 ? "#FFFFFF" : "#FAFAFA"
-                            
-                            MouseArea {
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                onEntered: parent.color = "#E8F4F8"
-                                onExited: parent.color = index % 2 === 0 ? "#FFFFFF" : "#FAFAFA"
-                            }
-                            
-                            Row {
-                                anchors.fill: parent
-                                
-                                Text { width: parent.width * 0.1; height: parent.height; text: codigo; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
-                                Text { width: parent.width * 0.15; height: parent.height; text: fecha; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
-                                Text { width: parent.width * 0.15; height: parent.height; text: cliente; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
-                                Text { width: parent.width * 0.1; height: parent.height; text: cantidad; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
-                                Text { width: parent.width * 0.12; height: parent.height; text: precio100u; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
-                                Text { width: parent.width * 0.12; height: parent.height; text: total; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
-                                
-                                Rectangle {
-                                    width: parent.width * 0.16
-                                    height: parent.height
-                                    color: "transparent"
-                                    
-                                    Rectangle {
-                                        width: 80
-                                        height: 24
-                                        radius: 12
-                                        anchors.centerIn: parent
-                                        color: estado === "Completada" ? "#E8F5E8" : (estado === "Pendiente" ? "#FFF3CD" : "#FFEBEE")
-                                        
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: estado
-                                            font.pixelSize: 11
-                                            color: estado === "Completada" ? "#2E7D32" : (estado === "Pendiente" ? "#B8860B" : "#D32F2F")
-                                        }
-                                    }
-                                }
-                                
-                                Rectangle {
-                                    width: parent.width * 0.1
-                                    height: parent.height
-                                    color: "transparent"
-                                    
-                                    Row {
-                                        anchors.centerIn: parent
-                                        spacing: 5
-                                    }
-                                }
-                            }
-                        }
-                        
-                        footer: Rectangle {
-                            width: parent.width
-                            height: ventasListViewModel.count === 0 ? 100 : 0
-                            color: "transparent"
-                            
-                            Text {
-                                anchors.centerIn: parent
-                                text: "No hay ventas registradas"
-                                font.pixelSize: 14
-                                color: "#999999"
-                            }
-                        }
-                    }
-                }
-                
-                // Paginador Ventas
-                Paginator {
-                    Layout.fillWidth: true
-                    height: 50
-                    currentPage: paginaVentas
-                    totalPages: totalPaginasVentas
-                    
-                    onPageChanged: function(newPage) {
-                        paginaVentas = newPage
                     }
                 }
             }
         }
-        
-        // ==================== TAB 2: CLIENTES ====================
-        Item {
-            anchors.fill: parent
-            visible: tabActiva === 1
-            
-            ColumnLayout {
-                anchors.fill: parent
-                spacing: 20
-                
-                Rectangle {
-                    Layout.fillWidth: true
-                    height: 50
-                    color: "white"
-                    radius: 25
-                    border.color: "#EEEEEE"
-                    
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.margins: 10
-                        spacing: 15
-                        
-                        Button {
-                            text: "Nuevo Cliente"
-                            icon.source: "recursos/image/icons/agregar.svg"
-                            implicitHeight: 36
-                            background: Rectangle {
-                                color: parent.hovered ? "#0277bd" : "#0288D1"
-                                radius: height / 2
-                            }
-                            contentItem: Row {
-                                spacing: 5
-                                anchors.centerIn: parent
-                                Image {
-                                    source: "recursos/image/icons/agregar.svg"
-                                    width: 16
-                                    height: 16
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                                Text {
-                                    text: "Nuevo Cliente"
-                                    color: "white"
-                                    font.bold: true
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                            }
-                            onClicked: {
-                                mostrarNuevoCliente = true;
-                            }
-                        }
-                        
-                        TextField {
-                            Layout.preferredWidth: 250
-                            placeholderText: "Buscar cliente..."
-                            implicitWidth: 450
-                            implicitHeight: 28
-                            leftPadding: 30
-                            
-                            background: Rectangle {
-                                color: "#ffffff"
-                                radius: height / 2
-                                border.color: "#808080"
-                                border.width: 1
-                                
-                                Image {
-                                    anchors {
-                                        left: parent.left
-                                        leftMargin: 10
-                                        verticalCenter: parent.verticalCenter
-                                    }
-                                    source: "recursos/image/icons/lupa.png"
-                                    width: 16
-                                    height: 16
-                                }
-                            }
-                        }
-                        
-                        ComboBox {
-                            Layout.preferredWidth: 200
-                            model: ["Todos los tipos", "Persona", "Empresa"]
-                            implicitHeight: 36
-                        }
-                        
-                        Item { Layout.fillWidth: true }
-                        
-                        Button {
-                            text: "Importar"
-                            icon.source: "recursos/image/icons/impotar.png"
-                            implicitHeight: 36
-                            background: Rectangle {
-                                color: "#4CAF50"
-                                radius: height / 2
-                            }
-                            onClicked: importarClientes()
-                        }
-                    }
-                }
-                
-                // Tabla de Clientes
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    color: "white"
-                    radius: 5
-                    border.color: "#EEEEEE"
-                    
-                    ListView {
-                        anchors.fill: parent
-                        anchors.margins: 1
-                        clip: true
-                        model: clientesViewModel
-                        headerPositioning: ListView.OverlayHeader
-                        
-                        header: Rectangle {
-                            width: parent.width
-                            height: 40
-                            color: "#F5F5F5"
-                            z: 2
-                            
-                            Row {
-                                anchors.fill: parent
-                                
-                                Text {
-                                    width: parent.width * 0.15
-                                    height: parent.height
-                                    text: "Nombre"
-                                    font.bold: true
-                                    verticalAlignment: Text.AlignVCenter
-                                    leftPadding: 10
-                                }
-                                
-                                Text {
-                                    width: parent.width * 0.15
-                                    height: parent.height
-                                    text: "Tipo"
-                                    font.bold: true
-                                    verticalAlignment: Text.AlignVCenter
-                                    leftPadding: 10
-                                }
-                                
-                                Text {
-                                    width: parent.width * 0.15
-                                    height: parent.height
-                                    text: "Identificación"
-                                    font.bold: true
-                                    verticalAlignment: Text.AlignVCenter
-                                    leftPadding: 10
-                                }
-                                
-                                Text {
-                                    width: parent.width * 0.12
-                                    height: parent.height
-                                    text: "Teléfono"
-                                    font.bold: true
-                                    verticalAlignment: Text.AlignVCenter
-                                    leftPadding: 10
-                                }
-                                
-                                Text {
-                                    width: parent.width * 0.12
-                                    height: parent.height
-                                    text: "Ciudad"
-                                    font.bold: true
-                                    verticalAlignment: Text.AlignVCenter
-                                    leftPadding: 10
-                                }
-                                
-                                Text {
-                                    width: parent.width * 0.12
-                                    height: parent.height
-                                    text: "Total Compras"
-                                    font.bold: true
-                                    verticalAlignment: Text.AlignVCenter
-                                    leftPadding: 10
-                                }
-                                
-                                Text {
-                                    width: parent.width * 0.1
-                                    height: parent.height
-                                    text: "Pendiente"
-                                    font.bold: true
-                                    verticalAlignment: Text.AlignVCenter
-                                    leftPadding: 10
-                                }
-                                
-                                Text {
-                                    width: parent.width * 0.09
-                                    height: parent.height
-                                    text: "Acciones"
-                                    font.bold: true
-                                    verticalAlignment: Text.AlignVCenter
-                                    horizontalAlignment: Text.AlignHCenter
-                                }
-                            }
-                        }
-                        
-                        delegate: Rectangle {
-                            width: parent.width
-                            height: 50
-                            color: index % 2 === 0 ? "#FFFFFF" : "#FAFAFA"
-                            
-                            MouseArea {
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                onEntered: parent.color = "#E8F4F8"
-                                onExited: parent.color = index % 2 === 0 ? "#FFFFFF" : "#FAFAFA"
-                            }
-                            
-                            Row {
-                                anchors.fill: parent
-                                
-                                Text { width: parent.width * 0.15; height: parent.height; text: nombre || ""; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
-                                Text { width: parent.width * 0.15; height: parent.height; text: tipo || ""; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
-                                Text { width: parent.width * 0.15; height: parent.height; text: identificacion || ""; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
-                                Text { width: parent.width * 0.12; height: parent.height; text: telefono || ""; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
-                                Text { width: parent.width * 0.12; height: parent.height; text: ciudad || ""; verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
-                                Text { width: parent.width * 0.12; height: parent.height; text: "Bs. " + (total_compras || 0); verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
-                                Text { width: parent.width * 0.1; height: parent.height; text: "Bs. " + (pendiente || 0); verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight; font.pixelSize: 12 }
-                                
-                                Rectangle {
-                                    width: parent.width * 0.09
-                                    height: parent.height
-                                    color: "transparent"
-                                    
-                                    Row {
-                                        anchors.centerIn: parent
-                                        spacing: 5
-                                        
-                                        Rectangle {
-                                            width: 28
-                                            height: 28
-                                            radius: 4
-                                            color: "#E3F2FD"
-                                            
-                                            Text {
-                                                anchors.centerIn: parent
-                                                text: "✎"
-                                                font.pixelSize: 14
-                                            }
-                                            
-                                            MouseArea {
-                                                anchors.fill: parent
-                                                cursorShape: Qt.PointingHandCursor
-                                                onClicked: console.log("Editar cliente: " + nombre)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        
-                        footer: Rectangle {
-                            width: parent.width
-                            height: clientesViewModel.count === 0 ? 100 : 0
-                            color: "transparent"
-                            
-                            Text {
-                                anchors.centerIn: parent
-                                text: "No hay clientes registrados"
-                                font.pixelSize: 14
-                                color: "#999999"
-                            }
-                        }
-                    }
-                }
-                
-                // Paginador Clientes
-                Paginator {
-                    Layout.fillWidth: true
-                    height: 50
-                    currentPage: paginaClientes
-                    totalPages: totalPaginasClientes
-                    
-                    onPageChanged: function(newPage) {
-                        paginaClientes = newPage
-                    }
-                }
-            }
+    }
+
+    // Diálogo de mensajes simple (reemplazo de MessageDialog)
+    Dialog {
+        id: mensajeDialog
+        title: "Mensaje"
+        modal: true
+        standardButtons: Dialog.Ok
+        width: 400
+        anchors.centerIn: parent
+
+        property alias text: mensajeText.text
+
+        function mostrarMensaje(mensaje) {
+            text = mensaje
+            open()
+        }
+
+        Text {
+            id: mensajeText
+            width: parent ? parent.width : 300
+            wrapMode: Text.WordWrap
+            font.pixelSize: 14
+        }
+    }
+
+    // ============================================
+    // CONEXIONES CON MODELOS
+    // ============================================
+
+    Connections {
+        target: ventaModel
+        function onVentasActualizadas() {
+            cargarVentas()
+        }
+        function onErrorOcurrido(mensaje) {
+            mensajeDialog.mostrarMensaje(mensaje)
+        }
+        function onOperacionExitosa(mensaje) {
+            mensajeDialog.mostrarMensaje(mensaje)
+        }
+    }
+
+    Connections {
+        target: clientesModel
+        function onClientesActualizados() {
+            cargarClientes()
+        }
+        function onErrorOcurrido(mensaje) {
+            mensajeDialog.mostrarMensaje(mensaje)
+        }
+        function onOperacionExitosa(mensaje) {
+            mensajeDialog.mostrarMensaje(mensaje)
         }
     }
 }

@@ -1,5 +1,5 @@
 """
-Repositorio de Ventas
+Repositorio de Ventas - CORREGIDO
 Capa de acceso a datos - Solo queries SQL
 Sin lógica de negocio, sin cálculos complejos
 """
@@ -11,6 +11,25 @@ from backend.core.database import DatabaseConnection
 
 # Configurar logging
 logger = logging.getLogger('venta_repositorio')
+
+
+def safe_date_format(date_value) -> Optional[str]:
+    """
+    Formatea una fecha de forma segura, manejando diferentes tipos.
+    """
+    if date_value is None:
+        return None
+    
+    # Si ya es string, retornar directamente
+    if isinstance(date_value, str):
+        return date_value
+    
+    # Si tiene el método strftime (datetime, date), usarlo
+    if hasattr(date_value, 'strftime'):
+        return date_value.strftime('%Y-%m-%d')
+    
+    # Intentar convertir a string como último recurso
+    return str(date_value)
 
 
 class VentaRepositorio:
@@ -68,18 +87,15 @@ class VentaRepositorio:
                 ventas = []
                 
                 for row in cursor.fetchall():
-                    fecha_venta = row.fecha_venta.strftime('%Y-%m-%d') if row.fecha_venta else None
-                    fecha_entrega = row.fecha_entrega.strftime('%Y-%m-%d') if row.fecha_entrega else None
-                    
                     venta = {
                         'id_venta': row.id_venta,
                         'codigo_venta': row.codigo_venta,
-                        'fecha_venta': fecha_venta,
+                        'fecha_venta': safe_date_format(row.fecha_venta),
                         'id_cliente': row.id_cliente,
                         'cliente_nombre': row.cliente_nombre,
                         'subtotal': float(row.subtotal) if row.subtotal else 0.0,
                         'total': float(row.total) if row.total else 0.0,
-                        'fecha_entrega': fecha_entrega,
+                        'fecha_entrega': safe_date_format(row.fecha_entrega),
                         'estado_pago': row.estado_pago,
                         'registrado_por': row.registrado_por,
                         'registrado_por_nombre': row.registrado_por_nombre,
@@ -124,19 +140,16 @@ class VentaRepositorio:
                 row = cursor.fetchone()
                 
                 if row:
-                    fecha_venta = row.fecha_venta.strftime('%Y-%m-%d') if row.fecha_venta else None
-                    fecha_entrega = row.fecha_entrega.strftime('%Y-%m-%d') if row.fecha_entrega else None
-                    
                     venta = {
                         'id_venta': row.id_venta,
                         'codigo_venta': row.codigo_venta,
-                        'fecha_venta': fecha_venta,
+                        'fecha_venta': safe_date_format(row.fecha_venta),
                         'id_cliente': row.id_cliente,
                         'cliente_nombre': row.cliente_nombre,
                         'cliente_telefono': row.cliente_telefono,
                         'subtotal': float(row.subtotal) if row.subtotal else 0.0,
                         'total': float(row.total) if row.total else 0.0,
-                        'fecha_entrega': fecha_entrega,
+                        'fecha_entrega': safe_date_format(row.fecha_entrega),
                         'estado_pago': row.estado_pago,
                         'registrado_por': row.registrado_por,
                         'registrado_por_nombre': row.registrado_por_nombre,
@@ -189,7 +202,6 @@ class VentaRepositorio:
                 cursor.execute(query, valores)
                 conn.commit()
                 
-                # Obtener el ID de la venta recién insertada
                 cursor.execute("SELECT @@IDENTITY AS ID")
                 id_venta = int(cursor.fetchone()[0])
                 
@@ -249,12 +261,12 @@ class VentaRepositorio:
                     return False
                     
         except Exception as e:
-            logger.error(f"❌ Error al actualizar venta {id_venta}: {str(e)}")
+            logger.error(f"❌ Error al actualizar venta: {str(e)}")
             return False
     
     def eliminar(self, id_venta: int) -> bool:
         """
-        Elimina una venta (elimina físicamente en este caso ya que no hay campo activo).
+        Elimina una venta.
         
         Args:
             id_venta: ID de la venta a eliminar.
@@ -266,11 +278,8 @@ class VentaRepositorio:
             with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 
-                # Primero eliminar detalles de venta
-                cursor.execute("DELETE FROM DetallesVenta WHERE id_venta = ?", (id_venta,))
-                
-                # Luego eliminar la venta
-                cursor.execute("DELETE FROM Ventas WHERE id_venta = ?", (id_venta,))
+                query = "DELETE FROM Ventas WHERE id_venta = ?"
+                cursor.execute(query, (id_venta,))
                 conn.commit()
                 
                 if cursor.rowcount > 0:
@@ -281,30 +290,29 @@ class VentaRepositorio:
                     return False
                     
         except Exception as e:
-            logger.error(f"❌ Error al eliminar venta {id_venta}: {str(e)}")
+            logger.error(f"❌ Error al eliminar venta: {str(e)}")
             return False
     
-    # ==================== DETALLES DE VENTA ====================
+    # ==================== GESTIÓN DE DETALLES ====================
     
     def obtener_detalles_venta(self, id_venta: int) -> List[Dict]:
         """
-        Obtiene los detalles de una venta específica.
+        Obtiene los detalles de una venta.
         
         Args:
             id_venta: ID de la venta.
             
         Returns:
-            List[Dict]: Lista de detalles de la venta.
+            List[Dict]: Lista de detalles.
         """
         try:
             with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 
                 query = """
-                SELECT dv.id_detalle_venta, dv.id_venta, dv.id_lote,
-                       dv.cantidad, dv.unidad_medida, dv.precio_unitario,
-                       dv.subtotal, dv.observaciones
-                FROM DetallesVenta dv
+                SELECT dv.id_detalle_venta, dv.id_venta, dv.producto,
+                       dv.cantidad, dv.precio_unitario, dv.subtotal
+                FROM Detalles_Venta dv
                 WHERE dv.id_venta = ?
                 ORDER BY dv.id_detalle_venta
                 """
@@ -316,16 +324,13 @@ class VentaRepositorio:
                     detalle = {
                         'id_detalle_venta': row.id_detalle_venta,
                         'id_venta': row.id_venta,
-                        'id_lote': row.id_lote,
+                        'producto': row.producto,
                         'cantidad': float(row.cantidad) if row.cantidad else 0.0,
-                        'unidad_medida': row.unidad_medida,
                         'precio_unitario': float(row.precio_unitario) if row.precio_unitario else 0.0,
-                        'subtotal': float(row.subtotal) if row.subtotal else 0.0,
-                        'observaciones': row.observaciones
+                        'subtotal': float(row.subtotal) if row.subtotal else 0.0
                     }
                     detalles.append(detalle)
                 
-                logger.info(f"📊 Se obtuvieron {len(detalles)} detalles de venta {id_venta}")
                 return detalles
                 
         except Exception as e:
@@ -347,19 +352,16 @@ class VentaRepositorio:
                 cursor = conn.cursor()
                 
                 query = """
-                INSERT INTO DetallesVenta (id_venta, id_lote, cantidad, unidad_medida,
-                                          precio_unitario, subtotal, observaciones)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO Detalles_Venta (id_venta, producto, cantidad, precio_unitario, subtotal)
+                VALUES (?, ?, ?, ?, ?)
                 """
                 
                 valores = (
                     detalle_data['id_venta'],
-                    detalle_data.get('id_lote'),
+                    detalle_data['producto'],
                     detalle_data['cantidad'],
-                    detalle_data['unidad_medida'],
                     detalle_data['precio_unitario'],
-                    detalle_data['subtotal'],
-                    detalle_data.get('observaciones')
+                    detalle_data['subtotal']
                 )
                 
                 cursor.execute(query, valores)
@@ -368,55 +370,11 @@ class VentaRepositorio:
                 cursor.execute("SELECT @@IDENTITY AS ID")
                 id_detalle = int(cursor.fetchone()[0])
                 
-                logger.info(f"✅ Detalle agregado con ID: {id_detalle}")
                 return True, id_detalle
                 
         except Exception as e:
             logger.error(f"❌ Error al agregar detalle: {str(e)}")
             return False, None
-    
-    def actualizar_detalle(self, id_detalle: int, detalle_data: Dict) -> bool:
-        """
-        Actualiza un detalle de venta.
-        
-        Args:
-            id_detalle: ID del detalle.
-            detalle_data: Datos actualizados.
-            
-        Returns:
-            bool: True si se actualizó correctamente.
-        """
-        try:
-            with self.db.get_connection() as conn:
-                cursor = conn.cursor()
-                
-                query = """
-                UPDATE DetallesVenta
-                SET cantidad = ?,
-                    unidad_medida = ?,
-                    precio_unitario = ?,
-                    subtotal = ?,
-                    observaciones = ?
-                WHERE id_detalle_venta = ?
-                """
-                
-                valores = (
-                    detalle_data['cantidad'],
-                    detalle_data['unidad_medida'],
-                    detalle_data['precio_unitario'],
-                    detalle_data['subtotal'],
-                    detalle_data.get('observaciones'),
-                    id_detalle
-                )
-                
-                cursor.execute(query, valores)
-                conn.commit()
-                
-                return cursor.rowcount > 0
-                
-        except Exception as e:
-            logger.error(f"❌ Error al actualizar detalle: {str(e)}")
-            return False
     
     def eliminar_detalle(self, id_detalle: int) -> bool:
         """
@@ -426,24 +384,24 @@ class VentaRepositorio:
             id_detalle: ID del detalle.
             
         Returns:
-            bool: True si se eliminó correctamente.
+            bool: True si se eliminó.
         """
         try:
             with self.db.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM DetallesVenta WHERE id_detalle_venta = ?", (id_detalle,))
+                query = "DELETE FROM Detalles_Venta WHERE id_detalle_venta = ?"
+                cursor.execute(query, (id_detalle,))
                 conn.commit()
                 return cursor.rowcount > 0
-                
         except Exception as e:
             logger.error(f"❌ Error al eliminar detalle: {str(e)}")
             return False
     
-    # ==================== BÚSQUEDAS Y FILTROS ====================
+    # ==================== BÚSQUEDAS ====================
     
     def buscar_por_criterio(self, criterio: str) -> List[Dict]:
         """
-        Busca ventas por código o nombre de cliente.
+        Busca ventas por criterio.
         
         Args:
             criterio: Texto a buscar.
@@ -457,31 +415,25 @@ class VentaRepositorio:
                 
                 query = """
                 SELECT v.id_venta, v.codigo_venta, v.fecha_venta, v.id_cliente,
-                       c.nombre AS cliente_nombre, v.subtotal, v.total,
-                       v.fecha_entrega, v.estado_pago
+                       c.nombre AS cliente_nombre, v.total, v.estado_pago
                 FROM Ventas v
                 LEFT JOIN Clientes c ON v.id_cliente = c.id_cliente
                 WHERE v.codigo_venta LIKE ? OR c.nombre LIKE ?
                 ORDER BY v.fecha_venta DESC
                 """
                 
-                param = f"%{criterio}%"
-                cursor.execute(query, (param, param))
+                patron = f"%{criterio}%"
+                cursor.execute(query, (patron, patron))
                 
                 ventas = []
                 for row in cursor.fetchall():
-                    fecha_venta = row.fecha_venta.strftime('%Y-%m-%d') if row.fecha_venta else None
-                    fecha_entrega = row.fecha_entrega.strftime('%Y-%m-%d') if row.fecha_entrega else None
-                    
                     venta = {
                         'id_venta': row.id_venta,
                         'codigo_venta': row.codigo_venta,
-                        'fecha_venta': fecha_venta,
+                        'fecha_venta': safe_date_format(row.fecha_venta),
                         'id_cliente': row.id_cliente,
                         'cliente_nombre': row.cliente_nombre,
-                        'subtotal': float(row.subtotal) if row.subtotal else 0.0,
                         'total': float(row.total) if row.total else 0.0,
-                        'fecha_entrega': fecha_entrega,
                         'estado_pago': row.estado_pago
                     }
                     ventas.append(venta)
@@ -494,7 +446,7 @@ class VentaRepositorio:
     
     def obtener_por_cliente(self, id_cliente: int) -> List[Dict]:
         """
-        Obtiene todas las ventas de un cliente.
+        Obtiene ventas de un cliente.
         
         Args:
             id_cliente: ID del cliente.
@@ -518,16 +470,13 @@ class VentaRepositorio:
                 
                 ventas = []
                 for row in cursor.fetchall():
-                    fecha_venta = row.fecha_venta.strftime('%Y-%m-%d') if row.fecha_venta else None
-                    fecha_entrega = row.fecha_entrega.strftime('%Y-%m-%d') if row.fecha_entrega else None
-                    
                     venta = {
                         'id_venta': row.id_venta,
                         'codigo_venta': row.codigo_venta,
-                        'fecha_venta': fecha_venta,
+                        'fecha_venta': safe_date_format(row.fecha_venta),
                         'subtotal': float(row.subtotal) if row.subtotal else 0.0,
                         'total': float(row.total) if row.total else 0.0,
-                        'fecha_entrega': fecha_entrega,
+                        'fecha_entrega': safe_date_format(row.fecha_entrega),
                         'estado_pago': row.estado_pago
                     }
                     ventas.append(venta)
@@ -540,7 +489,7 @@ class VentaRepositorio:
     
     def obtener_por_periodo(self, fecha_inicio: date, fecha_fin: date) -> List[Dict]:
         """
-        Obtiene ventas en un período específico.
+        Obtiene ventas en un período.
         
         Args:
             fecha_inicio: Fecha de inicio.
@@ -566,12 +515,10 @@ class VentaRepositorio:
                 
                 ventas = []
                 for row in cursor.fetchall():
-                    fecha_venta = row.fecha_venta.strftime('%Y-%m-%d') if row.fecha_venta else None
-                    
                     venta = {
                         'id_venta': row.id_venta,
                         'codigo_venta': row.codigo_venta,
-                        'fecha_venta': fecha_venta,
+                        'fecha_venta': safe_date_format(row.fecha_venta),
                         'id_cliente': row.id_cliente,
                         'cliente_nombre': row.cliente_nombre,
                         'subtotal': float(row.subtotal) if row.subtotal else 0.0,
@@ -591,7 +538,7 @@ class VentaRepositorio:
         Obtiene ventas con un estado de pago específico.
         
         Args:
-            estado_pago: Estado de pago (Pendiente, Pagado, Parcial).
+            estado_pago: Estado de pago.
             
         Returns:
             List[Dict]: Ventas con ese estado.
@@ -613,12 +560,10 @@ class VentaRepositorio:
                 
                 ventas = []
                 for row in cursor.fetchall():
-                    fecha_venta = row.fecha_venta.strftime('%Y-%m-%d') if row.fecha_venta else None
-                    
                     venta = {
                         'id_venta': row.id_venta,
                         'codigo_venta': row.codigo_venta,
-                        'fecha_venta': fecha_venta,
+                        'fecha_venta': safe_date_format(row.fecha_venta),
                         'id_cliente': row.id_cliente,
                         'cliente_nombre': row.cliente_nombre,
                         'total': float(row.total) if row.total else 0.0,
@@ -658,7 +603,7 @@ class VentaRepositorio:
         Genera un código único para una nueva venta.
         
         Returns:
-            str: Código generado (formato V-XXXX).
+            str: Código generado.
         """
         try:
             with self.db.get_connection() as conn:
@@ -693,25 +638,3 @@ class VentaRepositorio:
         except Exception as e:
             logger.error(f"❌ Error al generar código: {str(e)}")
             return "V-0001"
-
-
-# Ejemplo de uso y testing
-if __name__ == "__main__":
-    try:
-        repo = VentaRepositorio()
-        repo.test_connection()
-        
-        # Obtener todas las ventas
-        ventas = repo.obtener_todas()
-        print(f"✅ Total de ventas: {len(ventas)}")
-        
-        # Mostrar primeras 3 ventas
-        for venta in ventas[:3]:
-            print(f"  - {venta['codigo_venta']} - {venta['cliente_nombre']} - ${venta['total']}")
-        
-        # Generar código
-        nuevo_codigo = repo.generar_codigo_venta()
-        print(f"✅ Nuevo código generado: {nuevo_codigo}")
-            
-    except Exception as e:
-        print(f"❌ Error en prueba: {str(e)}")

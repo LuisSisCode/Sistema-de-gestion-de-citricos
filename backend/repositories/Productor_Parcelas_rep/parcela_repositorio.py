@@ -33,8 +33,7 @@ class ParcelaRepositorio(RepositorioBase):
             CONCAT(prod.nombre, ' ', prod.apellido) AS nombre_productor_completo
         FROM Parcelas p
         JOIN Productores prod ON p.id_productor = prod.id_productor
-        WHERE p.activo = 1 AND prod.activo = 1
-        ORDER BY p.nombre
+        ORDER BY p.id_parcelas DESC
         """
         
         try:
@@ -535,6 +534,7 @@ class ParcelaRepositorio(RepositorioBase):
     def _construir_objeto_parcela(self, row):
         """
         Construye un objeto parcela a partir de una fila de la base de datos.
+        Incluye información del estado del productor.
         
         Args:
             row: Fila de la consulta.
@@ -542,12 +542,13 @@ class ParcelaRepositorio(RepositorioBase):
         Returns:
             dict: Objeto parcela estructurado.
         """
-        # Calcular porcentaje de uso (temporal - debería venir de cultivos)
         from random import randint
         porcentaje_uso = randint(50, 100)
         
-        # Construcción optimizada del objeto
         area_total = float(row.area_total) if row.area_total else 0.0
+        
+        # Determinar si el productor está activo
+        productor_activo = bool(getattr(row, 'productor_activo', 1))
         
         return {
             'id_parcela': row.id_parcela,
@@ -560,6 +561,8 @@ class ParcelaRepositorio(RepositorioBase):
             'nombre_productor': getattr(row, 'nombre_productor', ''),
             'apellido_productor': getattr(row, 'apellido_productor', ''),
             'id_productor': row.id_productor,
+            'productor_activo': productor_activo,
+            'estado_productor': 'Activo' if productor_activo else 'Inactivo',
             
             # Ubicación y área
             'ubicacion': row.ubicacion or '',

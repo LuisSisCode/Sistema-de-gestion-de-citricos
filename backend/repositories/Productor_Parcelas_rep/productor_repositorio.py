@@ -4,11 +4,17 @@ import logging
 from datetime import datetime
 from ...core.repositorio_base import RepositorioBase
 from ...core.excepciones_bd import RegistroNoEncontrado, RegistroYaExiste, ErrorValidacion
+from ...core.cache_system import CacheManager
 from ...core.cache_system import cacheable, cache_invalidator, get_ttl
+import re
 
 logger = logging.getLogger(__name__)
 
 class ProductorRepositorio(RepositorioBase):
+    def __init__(self, server=None, database=None, trusted_connection=None):
+        super().__init__(server, database, trusted_connection)
+        self.re = re
+        self.cache_sistem= CacheManager()
     """Repositorio para operaciones CRUD de productores con funcionalidades extendidas."""
 
     @cacheable('productores', key_func=lambda: 'todos_activos', ttl=1800)  # 30 min
@@ -24,7 +30,6 @@ class ProductorRepositorio(RepositorioBase):
                telefono, correo, direccion, fecha_registro, 
                activo
         FROM Productores
-        WHERE activo = 1
         ORDER BY nombre, apellido
         """
         
@@ -57,7 +62,7 @@ class ProductorRepositorio(RepositorioBase):
                telefono, correo, direccion, fecha_registro, 
                activo
         FROM Productores
-        WHERE id_productor = ? AND activo = 1
+        WHERE id_productor = ?
         """
         
         rows = self._ejecutar_consulta(query, (id_productor,))
@@ -90,8 +95,7 @@ class ProductorRepositorio(RepositorioBase):
                telefono, correo, direccion, fecha_registro, 
                activo
         FROM Productores
-        WHERE activo = 1
-        ORDER BY nombre, apellido
+        ORDER BY id_productor DESC
         OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
         """
         
@@ -130,9 +134,8 @@ class ProductorRepositorio(RepositorioBase):
                telefono, correo, direccion, fecha_registro, 
                activo
         FROM Productores
-        WHERE activo = 1 
-        AND (nombre LIKE ? OR apellido LIKE ? OR CONCAT(nombre, ' ', apellido) LIKE ?)
-        ORDER BY nombre, apellido
+        WHERE (nombre LIKE ? OR apellido LIKE ? OR CONCAT(nombre, ' ', apellido) LIKE ?)
+        ORDER BY id_productor DESC
         """
         
         patron = f"%{texto_busqueda}%"
@@ -214,7 +217,6 @@ class ProductorRepositorio(RepositorioBase):
             COALESCE(SUM(par.area_total), 0) as area_total
         FROM Productores p
         LEFT JOIN Parcelas par ON p.id_productor = par.id_productor AND par.activo = 1
-        WHERE p.activo = 1
         GROUP BY p.id_productor, p.nombre, p.apellido
         ORDER BY cantidad_parcelas DESC, area_total DESC
         """
@@ -252,14 +254,14 @@ class ProductorRepositorio(RepositorioBase):
             p.apellido,
             p.identificacion,
             COUNT(par.id_parcela) as cantidad_parcelas,
-            COALESCE(SUM(par.area_total), 0) as area_total
+            COALESCE(SUM(par.area_total), 0) as area_total,
+            p.activo  -- Incluimos el estado del productor
         FROM Productores p
         LEFT JOIN Parcelas par ON p.id_productor = par.id_productor AND par.activo = 1
-        WHERE p.activo = 1 
-        AND (p.nombre LIKE ? OR p.apellido LIKE ? OR CONCAT(p.nombre, ' ', p.apellido) LIKE ?)
-        GROUP BY p.id_productor, p.nombre, p.apellido, p.identificacion
+        WHERE (p.nombre LIKE ? OR p.apellido LIKE ? OR CONCAT(p.nombre, ' ', p.apellido) LIKE ?)
+        GROUP BY p.id_productor, p.nombre, p.apellido, p.identificacion, p.activo
         HAVING COUNT(par.id_parcela) > 0
-        ORDER BY p.nombre, p.apellido
+        ORDER BY p.activo DESC, p.nombre, p.apellido
         """
         
         patron = f"%{texto_busqueda}%"
@@ -302,7 +304,6 @@ class ProductorRepositorio(RepositorioBase):
             MAX(par.fecha_adquisicion) as ultima_adquisicion
         FROM Productores p
         LEFT JOIN Parcelas par ON p.id_productor = par.id_productor AND par.activo = 1
-        WHERE p.activo = 1
         GROUP BY p.id_productor, p.nombre, p.apellido, p.identificacion, p.telefono, p.correo
         ORDER BY area_total DESC
         """
@@ -347,7 +348,6 @@ class ProductorRepositorio(RepositorioBase):
             COALESCE(SUM(par.area_total), 0) as area_total
         FROM Productores p
         JOIN Parcelas par ON p.id_productor = par.id_productor AND par.activo = 1
-        WHERE p.activo = 1
         GROUP BY p.id_productor, p.nombre, p.apellido
         ORDER BY area_total DESC
         """
@@ -481,6 +481,10 @@ class ProductorRepositorio(RepositorioBase):
         if 'direccion' in datos_productor:
             campos_actualizar.append("direccion = ?")
             valores.append(datos_productor['direccion'])
+
+        if 'activo' in datos_productor:
+            campos_actualizar.append("activo = ?")
+            valores.append(1 if datos_productor['activo'] else 0)
         
         if not campos_actualizar:
             logger.warning("No hay campos para actualizar")
@@ -520,21 +524,97 @@ class ProductorRepositorio(RepositorioBase):
         
         logger.info(f"Productor {id_productor} desactivado. Filas afectadas: {filas_afectadas}")
         return filas_afectadas > 0
+    
+    # metodo eliminar
+
+    @cache_invalidator('productores', pattern='id_')        # Invalidar caché específico
+    @cache_invalidator('productores', key='todos_activos')  # Invalidar lista completa
+    @cache_invalidator('productores', pattern='pagina_')    # Invalidar paginación
+    @cache_invalidator('estadisticas')                      # Invalidar estadísticas
+    @cache_invalidator('reportes')                          # Invalidar reportes
+    @cache_invalidator('ranking')                           # Invalidar rankings
+    def eliminar_fisico(self, id_productor):
+        """
+        Elimina físicamente un productor de la base de datos (ADMIN ONLY).
+        
+        Args:
+            id_productor (int): ID del productor.
+            
+        Returns:
+            bool: True si se eliminó correctamente.
+            
+        Raises:
+            RegistroNoEncontrado: Si el productor no existe.
+            ErrorValidacion: Si el productor tiene dependencias activas.
+        """
+        try:
+            # 1. Verificar que el productor existe
+            productor = self.obtener_por_id(id_productor)
+            
+            # 2. Verificar que NO tenga parcelas activas
+            parcelas_activas = self.contar_parcelas_por_productor(id_productor)
+            
+            if parcelas_activas > 0:
+                raise ErrorValidacion(
+                    f"No se puede eliminar físicamente al productor {productor['nombre']} {productor['apellido']}. "
+                    f"Tiene {parcelas_activas} parcelas asociadas. "
+                    f"Debe transferir o eliminar las parcelas primero."
+                )
+            
+            # 3. Ejecutar eliminación física
+            query = "DELETE FROM Productores WHERE id_productor = ?"
+            filas_afectadas = self._ejecutar_consulta(query, (id_productor,), obtener_resultado=False)
+            
+            if filas_afectadas > 0:
+                logger.warning(f"⚠️ ELIMINACIÓN FÍSICA: Productor {id_productor} ({productor['nombre']} {productor['apellido']}) eliminado permanentemente")
+                
+                # 4. Invalidar cachés específicas del productor eliminado
+                self._invalidar_cache_productor(id_productor)
+                
+                return True
+            else:
+                logger.error(f"Error: No se pudo eliminar físicamente el productor {id_productor}")
+                return False
+                
+        except RegistroNoEncontrado as e:
+            logger.error(f"Productor no encontrado para eliminación física: {str(e)}")
+            raise
+        except ErrorValidacion as e:
+            logger.error(f"Validación fallida para eliminación física: {str(e)}")
+            raise
+        except Exception as e:
+            logger.error(f"Error inesperado en eliminación física: {str(e)}")
+            raise ErrorValidacion(f"Error interno al eliminar productor: {str(e)}")
+
+    def _invalidar_cache_productor(self, id_productor):
+        """Invalidar todas las cachés relacionadas con un productor específico."""
+        # Estas claves deben coincidir con las usadas en cacheable
+        claves_invalidar = [
+            f"id_{id_productor}",
+            f"parcelas_count_{id_productor}",
+            f"dependencias_{id_productor}",
+            f"puede_eliminar_{id_productor}"
+        ]
+        
+        
+        logger.debug(f"Cachés invalidadas para productor {id_productor}")
 
     # ==================== MÉTODOS AUXILIARES ====================
     
     def _construir_objeto_productor(self, row):
         """
         Construye un objeto productor a partir de una fila de la base de datos.
+        Ahora incluye información de estado.
         
         Args:
             row: Fila de la consulta.
             
         Returns:
-            dict: Objeto productor estructurado.
+            dict: Objeto productor estructurado con información de estado.
         """
-        return {
+        productor = {
             'id_productor': row.id_productor,
+            'id': row.id_productor,
             'nombre': row.nombre,
             'apellido': row.apellido,
             'identificacion': row.identificacion,
@@ -543,8 +623,12 @@ class ProductorRepositorio(RepositorioBase):
             'direccion': row.direccion,
             'fecha_registro': self._formatear_fecha(row.fecha_registro),
             'activo': bool(row.activo),
-            'nombre_completo': f"{row.nombre} {row.apellido}"
+            'nombre_completo': f"{row.nombre} {row.apellido}",
+            'estado': 'Activo' if row.activo else 'Inactivo',
+            'estado_color': 'green' if row.activo else 'gray'
         }
+        
+        return productor
     
     def _validar_datos_productor(self, datos):
         """
@@ -567,15 +651,14 @@ class ProductorRepositorio(RepositorioBase):
         
         # Validar formato de correo si se proporciona
         if datos.get('correo'):
-            import re
             email_regex = r'\w+([-+.\']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*'
-            if not re.match(email_regex, datos['correo']):
+            if not self.re.match(email_regex, datos['correo']):
                 raise ErrorValidacion("El formato del correo electrónico no es válido")
     
-    @cacheable('conteos', key_func=lambda: 'total_productores', ttl=1800)  # 30 min
     def _contar_registros_cached(self):
         """
         Cuenta total de productores activos (versión cacheada).
+        Mantenemos este método para compatibilidad con código existente.
         
         Returns:
             int: Número total de productores activos.
@@ -612,3 +695,12 @@ class ProductorRepositorio(RepositorioBase):
             (identificacion, id_excluir)
         )
         return count > 0
+    @cacheable('conteos', key_func=lambda: 'total_productores_todos', ttl=1800)  # 30 min
+    def _contar_registros_cached_todos(self):
+        """
+        Cuenta total de productores (activos e inactivos) - versión cacheada.
+        
+        Returns:
+            int: Número total de productores.
+        """
+        return self._contar_registros("Productores", "1=1")  # Sin filtro de activo

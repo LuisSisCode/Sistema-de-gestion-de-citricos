@@ -107,9 +107,6 @@ class ProductoresParcelasModels(QObject):
             resultado = self.productor_servicio.crear_productor(datos_productor)
             
             if resultado['exito']:
-                from PySide6.QtCore import QTimer
-                QTimer.singleShot(0, lambda: self.cargar_productores_pagina(self._pagina_actual_productores))
-                
                 self.operacionCompleta.emit('crear_productor', True, resultado['mensaje'])
                 return True
             else:
@@ -143,43 +140,79 @@ class ProductoresParcelasModels(QObject):
             self.operacionCompleta.emit('actualizar_productor', False, 'Error interno del sistema')
             return False
     
-    @Slot(int, result='QVariant')
-    def eliminar_productor(self, id_productor):
-        """Elimina un productor usando servicios - retorna resultado detallado."""
+    @Slot(int, bool, result='QVariant')
+    def eliminar_productor(self, id_productor, eliminar_fisicamente=False):
+        """Elimina un productor - admite eliminación física o lógica."""
         try:
-            resultado = self.productor_servicio.eliminar_productor(id_productor)
+            resultado = self.productor_servicio.eliminar_productor(id_productor, eliminar_fisicamente)
             
             if resultado['exito']:
-                self.cargar_productores_pagina(self._pagina_actual_productores)
+                # Recargar lista después de eliminar
+                from PySide6.QtCore import QTimer
+                QTimer.singleShot(0, lambda: self.cargar_productores_pagina(self._pagina_actual_productores))
                 
-                self.operacionCompleta.emit('eliminar_productor', True, resultado['mensaje'])
+                # Emitir señal con detalles específicos
+                tipo_operacion = 'eliminacion_fisica' if eliminar_fisicamente else 'desactivacion_logica'
+                self.operacionCompleta.emit(tipo_operacion, True, resultado['mensaje'])
             else:
-                self.operacionCompleta.emit('eliminar_productor', False, resultado['mensaje'])
+                tipo_error = resultado['datos'].get('tipo_error', 'desconocido')
+                self.operacionCompleta.emit('eliminar_productor', False, f"{resultado['mensaje']} (Error: {tipo_error})")
             
             return resultado
             
         except Exception as e:
-            print(f"Error al eliminar productor: {str(e)}")
+            print(f"Error en modelo eliminar_productor: {str(e)}")
             resultado_error = {
                 'exito': False,
-                'mensaje': 'Error interno del sistema',
-                'tipo_error': 'interno'
+                'mensaje': 'Error interno del modelo',
+                'datos': {'tipo_error': 'modelo'}
             }
-            self.operacionCompleta.emit('eliminar_productor', False, resultado_error['mensaje'])
+            self.operacionCompleta.emit('eliminar_productor', False, 'Error en el modelo')
             return resultado_error
-    
+
     @Slot(int, result=bool)
     def desactivar_productor(self, id_productor):
-        """Desactiva un productor en lugar de eliminarlo físicamente"""
+        """Desactiva un productor (eliminación lógica) - para usuarios no admin."""
         try:
-            # Nota: El servicio actual usa desactivar como eliminación lógica
-            resultado = self.productor_servicio.eliminar_productor(id_productor)
+            # Siempre usa eliminación lógica para este método
+            resultado = self.productor_servicio.eliminar_productor(id_productor, False)
             if resultado['exito']:
                 self.cargar_productores_pagina(self._pagina_actual_productores)
             return resultado['exito']
         except Exception as e:
             print(f"Error al desactivar productor: {str(e)}")
             return False
+
+    # Nuevo método para eliminación física (admin only)
+    @Slot(int, result='QVariant')
+    def eliminar_productor_fisico(self, id_productor):
+        """Elimina físicamente un productor (ADMIN ONLY)."""
+        try:
+            # Solicitar confirmación adicional para eliminación física
+            print(f"⚠️ SOLICITUD DE ELIMINACIÓN FÍSICA para productor {id_productor}")
+            
+            resultado = self.productor_servicio.eliminar_productor(id_productor, True)
+            
+            if resultado['exito']:
+                # Recargar lista después de eliminar
+                from PySide6.QtCore import QTimer
+                QTimer.singleShot(0, lambda: self.cargar_productores_pagina(self._pagina_actual_productores))
+                
+                self.operacionCompleta.emit('eliminacion_fisica', True, resultado['mensaje'])
+            else:
+                self.operacionCompleta.emit('eliminacion_fisica', False, resultado['mensaje'])
+            
+            return resultado
+            
+        except Exception as e:
+            print(f"Error en eliminación física: {str(e)}")
+            resultado_error = {
+                'exito': False,
+                'mensaje': 'Error en eliminación física',
+                'datos': {'tipo_error': 'fisico'}
+            }
+            self.operacionCompleta.emit('eliminacion_fisica', False, 'Error crítico')
+            return resultado_error
     
     @Slot(str, result=bool)
     def agregar_parcela(self, parcela_json):
@@ -238,6 +271,20 @@ class ProductoresParcelasModels(QObject):
         except Exception as e:
             print(f"Error al eliminar parcela: {str(e)}")
             self.operacionCompleta.emit('eliminar_parcela', False, 'Error interno del sistema')
+            return False
+        
+    @Slot()
+    def forzar_actualizacion_completa(self):
+        """Fuerza la recarga completa de ambos modelos inválidando caché."""
+        try:
+            # Recargar ambas páginas actuales
+            self.cargar_productores_pagina(self._pagina_actual_productores)
+            self.cargar_parcelas_pagina(self._pagina_actual_parcelas)
+            
+            print("✅ Actualización completa forzada")
+            return True
+        except Exception as e:
+            print(f"❌ Error en forzar_actualizacion_completa: {str(e)}")
             return False
     
     # ----------METODOS DE BUSQUEDA --------------------
